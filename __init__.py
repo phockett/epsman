@@ -36,11 +36,11 @@ class epsJob():
 
     # Import local functions
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
-    from ._epsRun import runJobs
+    from ._epsRun import runJobs, tidyJobs
 
     def __init__(self, host = None, user = None):
         # Set paths - here hardcoded for AntonJr for testing only.
-        # For local machine can build this easily.
+        # For local machine (or once connected) can build this easily.
         # To set a given machine to be used locally, this will just need local IP setting.
         self.hostDefn = {'AntonJr':{
                 'host':'AntonJr',
@@ -49,7 +49,8 @@ class epsJob():
                 'wrkdir':Path('/home/paul/ePS_stuff'),
                 'scpdir':Path('/home/paul/ePS_stuff/scripts2019'),
                 'ePSpath':Path('/opt/ePolyScat.E3/bin/ePolyScat'),
-                'jobPath':Path('/home/paul/ePS_stuff/jobs')},
+                'jobPath':Path('/home/paul/ePS_stuff/jobs'),
+                'jobComplete':Path('/home/paul/ePS_stuff/jobs/completed')},
             'localhost':{'host':socket.gethostname(),
                 'IP':'127.0.0.1',
                 'home':Path.home(),
@@ -87,6 +88,7 @@ class epsJob():
             self.hostDefn[host]['elecDir'] = Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
             self.hostDefn[host]['genDir'] = Path(self.hostDefn[host]['systemDir'], 'generators')
             self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
+            self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
 
         # Write file locally (working dir).
         if self.jobSettings is not None:

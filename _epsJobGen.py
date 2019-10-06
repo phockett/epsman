@@ -50,6 +50,8 @@ def initConnection(self, host = None, user = None):
         user = self.user,
         connect_kwargs = {
             "password": self.password,
+            "allow_agent": False,       # Added to force new SSH session.
+                                        # http://docs.fabfile.org/en/2.5/concepts/authentication.html#ssh-agents
         },
     )
 
