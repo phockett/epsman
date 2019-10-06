@@ -177,7 +177,7 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
             self.fileList = Result.stdout.split()
             print('Getting files from ' + self.hostDefn[self.host]['jobDir'].as_posix())
             print('Updated file list:')
-            print(*self.fileList, sep = '/n')
+            print(*self.fileList, sep = '\n')
 
 
         for f in self.fileList:

@@ -20,6 +20,7 @@ import numpy as np
 from fabric import Connection
 import getpass
 from pathlib import Path
+import datetime
 
 def initConnection(self, host = None, user = None, IP = None):
     """Init connection to selected machine & test."""
@@ -217,12 +218,26 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None):
 
 # Function to write ePS input files, multi-E chunks
 # Loop over chuncks, here set to run shell script with passing of E values and job title.
-def writeInp(self, scrType = 'basic'):
-    """Write ePS input files from job structure, in multi-E chunks."""
+def writeInp(self, scrType = 'basic', wLog = True):
+    """
+    Write ePS input files from job structure, in multi-E chunks.
+
+    Parameters
+    ----------
+    scrType : str, default = 'basic'
+        Type of shell script to call, as defined in self.scrDefn
+
+    wLog : bool, default = True
+        Write local log file from script run stdout.
+        Log file will be written using self.genFile path & name.
+
+    """
 
     dp = 2  # Set for output name formatting for round(%f, dp)
 
     writeLog = []
+
+    print('Writing input files on remote...\n')
     for n in np.arange(0, self.Elist.shape[1]):
         # Set ranges separately for readability
         E1 = str(round(self.Elist[0,n], dp))
@@ -235,3 +250,16 @@ def writeInp(self, scrType = 'basic'):
         writeLog.append(result)
 
     self.writeLog = writeLog
+
+    # Write local log file
+    logFile = self.genFile.as_posix() + '.log'
+    print(f'\nResults logged to local file: {logFile}')
+    with open(logFile, 'w') as f:
+        f.write(f'ePSman log file, job: {self.genFile.as_posix()}\n')
+        f.write(f'Running on {self.host}\n')
+        f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+        f.write('\n\n')
+
+        for item in (self.writeLog):
+            f.write(item.stdout)
+            f.write('\n\n')
