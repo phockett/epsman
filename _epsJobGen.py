@@ -79,7 +79,7 @@ def initConnection(self, host = None, user = None, IP = None):
 
     # Build dir list if not already set
     if 'home' not in self.hostDefn[self.host].keys():
-        print('Setting host dir tree.')
+        print('\n\nSetting host dir tree.')
         self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
         testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
         if len(testwrkdir) > 1:

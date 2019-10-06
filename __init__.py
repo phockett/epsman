@@ -93,7 +93,8 @@ class epsJob():
             self.hostDefn[host]['elecDir'] = Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
             self.hostDefn[host]['genDir'] = Path(self.hostDefn[host]['systemDir'], 'generators')
             self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
-            self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+            self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+            self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
 
         # Write file locally (working dir).
         if self.jobSettings is not None:
