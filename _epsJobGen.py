@@ -21,14 +21,26 @@ from fabric import Connection
 import getpass
 from pathlib import Path
 
-def initConnection(self, host = None, user = None):
+def initConnection(self, host = None, user = None, IP = None):
     """Init connection to selected machine & test."""
 
-    # Set values if passed
+    # Set values if passed (but don't overwrite set values)
     if self.host is None and host is not None:
         self.host = host
     if self.user is None and user is not None:
         self.user = user
+    if self.IP is None and IP is not None:
+        self.IP = IP
+
+    # Check if host definitions are already set, set if missing
+    if self.host in self.hostDefn.keys():
+        if 'IP' not in self.hostDefn[self.host].keys() and self.IP is None:
+            self.IP = input('Host IP required for connection: ')
+        if 'IP' not in self.hostDefn[self.host].keys():
+            self.hostDefn[self.host]['IP'] = self.IP
+    else:
+        self.hostDefn[self.host] = {'host':self.host, 'IP':self.IP}
+
 
     # print(f'Connecting to machine: {self.host}') # at {self.hostDefn[self.host]['IP']}')  # Multi-level indexing not allowed here.
     print('Connecting to machine: {} at {}'.format(self.host, self.hostDefn[self.host]['IP']))
@@ -64,6 +76,30 @@ def initConnection(self, host = None, user = None):
     else:
         print('Connection failed')
         print(test)
+
+    # Build dir list if not already set
+    if 'home' not in self.hostDefn[self.host].keys():
+        print('Setting host dir tree.')
+        self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
+        testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
+        if len(testwrkdir) > 1:
+            print('Found multiple ePS directories, please select working dir:')
+            # print(testwrkdir)
+            for n, item in enumerate(testwrkdir):
+                print(f'{n}: {item}')
+
+            N = int(input('List item #: '))
+            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[N])
+        else:
+            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir)
+
+        print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
+
+        # TODO: finish this... should add looping over necessary paths, functionalised and with more searching. Sigh.
+        # FOR NOW - set know paths based on above.
+        self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')
+        self.hostDefn[self.host]['jobPath'] = Path(self.hostDefn[self.host]['wrkdir'], 'jobs')
+        self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobPath'], 'completed')
 
 
 

@@ -19,7 +19,7 @@ def runJobs(self):
 
 
 # Tidy up job files
-def tidyJobs(self, mvFlag = True, tol = 0.05):
+def tidyJobs(self, mvFlag = True, cpFlag = False, tol = 0.05):
     """
     Check files for job completion (crudely). Move completed jobs to main job folder.
 
@@ -27,6 +27,9 @@ def tidyJobs(self, mvFlag = True, tol = 0.05):
     ----------
     mvFlag : bool, optional, default = True
         Move files from completed to job dir if True.
+
+    cpFlag : bool, optional, default = False
+        Make a local copy of job files if True.
 
     tol : float, optional, default = 0.05
         Tolerance (%age) for filesize tests.
@@ -88,22 +91,40 @@ def tidyJobs(self, mvFlag = True, tol = 0.05):
 
             print('Failed .inp files returned to ' + self.hostDefn[self.host]['jobPath'].as_posix())
 
-    # Issue warning if destination file(s) exist
-    if destTest.count(True):
-        print(f'*** Warning: {destTest.count(True)} files exist in destination dir.')
-        # Print formatted list of existing items.
-        print(*list(compress(self.fileList, (np.array(destTest)))), sep = "\n")    # Slightly ugly... could also flip with list comprehension to avoid np use here.
-
-        # Check whether to continue moving files
-        mv = input('Continue file move? (y/n) ')
-        if mv == 'y':
-            mvFlag = True
-        else:
-            mvFlag = False
-
 
     #*** Move files to jobDir
+    if mvFlag:
+        # Issue warning if destination file(s) exist
+        if destTest.count(True):
+            print(f'*** Warning: {destTest.count(True)} files exist in destination dir.')
+            # Print formatted list of existing items.
+            print(*list(compress(self.fileList, (np.array(destTest)))), sep = "\n")    # Slightly ugly... could also flip with list comprehension to avoid np use here.
+
+            # Check whether to continue moving files
+            mv = input('Continue file move? (y/n) ')
+            if mv == 'y':
+                mvFlag = True
+            else:
+                mvFlag = False
+
+    # Move files
     if mvFlag:
         Result = self.c.run('mv ' + Path(self.hostDefn[self.host]['jobComplete'], self.genFile.stem).as_posix() + '* ' + self.hostDefn[self.host]['jobDir'].as_posix())
         if Result.ok:
             print(Result.command + ' returned OK')
+
+
+    #*** Make a local copy
+    if cpFlag:
+        # Check if local path exists, create if not.
+        if not Path.is_dir(self.hostDefn['localhost']['systemDir']):
+            Path.mkdir(self.hostDefn['localhost']['systemDir'])
+            print('Created local dir ' + self.hostDefn['localhost']['systemDir'].as_posix())
+        if not Path.is_dir(self.hostDefn['localhost']['jobDir']):
+            Path.mkdir(self.hostDefn['localhost']['jobDir'])
+            print('Created local dir ' + self.hostDefn['localhost']['jobDir'].as_posix())
+
+        for f  in self.fileList:
+            Result = self.c.get(f, local = self.hostDefn['localhost']['jobDir'].as_posix())
+            if Result.ok:
+                print(Result.command + ' returned OK')

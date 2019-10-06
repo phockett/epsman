@@ -38,19 +38,23 @@ class epsJob():
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
     from ._epsRun import runJobs, tidyJobs
 
-    def __init__(self, host = None, user = None):
-        # Set paths - here hardcoded for AntonJr for testing only.
-        # For local machine (or once connected) can build this easily.
+    def __init__(self, host = None, user = None, IP = None):
+        """
+        Init job.
+
+        Parameters
+        ----------
+        host, user, IP : str, default = None
+            Pass host settings for job. Currently used to set connection & look-up machine details.
+            TODO: convert to connection only, and bootstrap paths.
+
+        """
+        # Set hostDefns - NOW paths set at connection init stage.
         # To set a given machine to be used locally, this will just need local IP setting.
+        # TODO: set master dir list somewhere for reference.
         self.hostDefn = {'AntonJr':{
                 'host':'AntonJr',
-                'IP':'10.8.0.6',
-                'home':Path('/home/paul'),
-                'wrkdir':Path('/home/paul/ePS_stuff'),
-                'scpdir':Path('/home/paul/ePS_stuff/scripts2019'),
-                'ePSpath':Path('/opt/ePolyScat.E3/bin/ePolyScat'),
-                'jobPath':Path('/home/paul/ePS_stuff/jobs'),
-                'jobComplete':Path('/home/paul/ePS_stuff/jobs/completed')},
+                'ePSpath':Path('/opt/ePolyScat.E3/bin/ePolyScat')},
             'localhost':{'host':socket.gethostname(),
                 'IP':'127.0.0.1',
                 'home':Path.home(),
@@ -65,6 +69,7 @@ class epsJob():
         self.host = host
         self.user = user
         self.password = None
+        self.IP = IP
 
         # Settings for job
         self.genFile = None
