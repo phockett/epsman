@@ -251,11 +251,15 @@ def writeInp(self, scrType = 'basic', wLog = True):
 
     self.writeLog = writeLog
 
+    # Set logfile path, write to jobDir
+    logFile = Path(self.genFile, '.log')
+    for host in self.hostDefn:
+        self.hostDefn[host]['logFile'] = Path(self.hostDefn[host]['jobDir'], logFile)
+
     # Write local log file
-    logFile = self.genFile.as_posix() + '.log'
     print(f'\nResults logged to local file: {logFile}')
     with open(logFile, 'w') as f:
-        f.write(f'ePSman log file, job: {self.genFile.as_posix()}\n')
+        f.write(f'ePSman log file, job: {self.genFile}\n')
         f.write(f'Running on {self.host}\n')
         f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
         f.write('\n\n')
@@ -263,3 +267,24 @@ def writeInp(self, scrType = 'basic', wLog = True):
         for item in (self.writeLog):
             f.write(item.stdout)
             f.write('\n\n')
+
+
+    # Put log file to host.
+    print(f'Pushing log file to host: {self.logFile}')
+
+    # Test if exists
+    test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)
+    if test.ok:
+        wFlag = input(f"File {self.logFile} already exists, overwrite? (y/n) ")
+    else:
+        wFlag = 'y'
+
+    # Upload and test result.
+    if wFlag == 'y':
+        logResult = self.c.put(self.logFile, remote = self.hostDefn[self.host]['logFile'].as_posix())
+        test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
+        if test.ok:
+            # print(f'Generator file {genFile}, put to {genDir}')
+            print("Uploaded \n{0.local}\n to \n{0.remote}".format(logResult))
+        else:
+            print('Failed to put generator file to host.')
