@@ -72,6 +72,9 @@ class epsJob():
         self.IP = IP
 
         # Settings for job
+        self.mol = None
+        self.orb = None
+        self.batch = None
         self.genFile = None
         self.jobSettings = None
 
@@ -79,9 +82,10 @@ class epsJob():
     def setGenFile(self, genFile = None):
         # Default setting
         if self.genFile is None and genFile is None:
-            self.genFile = Path(f'{self.mol}_{self.orb}.conf')
+            # self.genFile = Path(f'{self.mol}_{self.orb}.conf')
+            self.genFile = Path(f'{self.batch}.{self.orb}.conf')
         elif self.genFile is None and genFile is not None:
-            self.genFile = genFile
+            self.genFile = Path(genFile)
         # else:
         #     print('*** Generator filename not defined.')
 
@@ -93,7 +97,9 @@ class epsJob():
             self.hostDefn[host]['elecDir'] = Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
             self.hostDefn[host]['genDir'] = Path(self.hostDefn[host]['systemDir'], 'generators')
             self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
-            self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+            # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+            self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
+            # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
             self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
 
         # Write file locally (working dir).
