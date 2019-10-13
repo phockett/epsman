@@ -44,6 +44,7 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
     TODO
     ----
     - Lots of repetitive logic and boiler-plate here, should do better.
+    - Better logic for check & move - at the moment all files are moved, even if they fail checks.
 
     """
 
@@ -89,7 +90,17 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
         for f in self.fileList:
             result = self.c.run('tail ' +  f, hide = True)
             # temp.append(result.stdout)
-            self.fTails.append(result.stdout.split('\n')[-2])
+            # self.fTails.append(result.stdout.split('\n')[-2])
+
+            # Version with error checking (will drop out in some cases otherwise)
+            # Specifically, some files will have blank lines which will gives index errors at .split.
+            try:
+                self.fTails.append(result.stdout.split('\n')[-2])
+            except IndexError as e:
+                if e.args[0] != 'list index out of range':
+                    raise
+                # print(e.args[0])
+                self.fTails.append(result.stdout)
 
             # result = self.c.run('[ -f "' + f + '" ]', warn = True, hide = True)  # Test for destination file, will return True if exists
             # destTest.append(result.ok)
@@ -105,8 +116,8 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
         self.fAbrupt = []
         if fTest.count(False):
             print(f'*** Warning: {fTest.count(False)} files end abruptly.')
-            self.fAbrupt = list(compress(self.fileList, (np.array(finalize))))    # Slightly ugly... could also flip with list comprehension to avoid np use here.
-            print(self.fAbrupt)
+            self.fAbrupt = list(compress(self.fileList, np.logical_not(np.array(fTest))))    # Slightly ugly... could also flip with list comprehension to avoid np use here.
+            print(*self.fAbrupt, sep = '\n')
 
             # Rerun incomplete jobs?
             rerunFlag = input('Rerun failed jobs? (y/n) ')
