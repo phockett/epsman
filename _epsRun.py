@@ -15,7 +15,12 @@ from itertools import compress
 def runJobs(self):
     """Basic wrapper for running ePS jobs remotely."""
 
-    result = self.c.run('nohup ' + Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_job.sh').as_posix())
+    # With nohup
+    # result = self.c.run('nohup ' + Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_job.sh').as_posix())
+
+    # With nohup wrapper script to allow job to run independently of terminal.
+    # Turn warnings off, and set low timeout, to ensure hangup... probably...
+    result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 1)
 
 
 # Tidy up job files
