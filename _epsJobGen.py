@@ -252,13 +252,14 @@ def writeInp(self, scrType = 'basic', wLog = True):
     self.writeLog = writeLog
 
     # Set logfile path, write to jobDir
-    logFile = Path(self.genFile, '.log')
+    # logFile = Path(self.genFile, '.log')
+    self.logFile = self.genFile.with_suffix(f"{self.genFile.suffix}.log")  # Get current suffix and append .log
     for host in self.hostDefn:
-        self.hostDefn[host]['logFile'] = Path(self.hostDefn[host]['jobDir'], logFile)
+        self.hostDefn[host]['logFile'] = Path(self.hostDefn[host]['jobDir'], self.logFile)
 
     # Write local log file
-    print(f'\nResults logged to local file: {logFile}')
-    with open(logFile, 'w') as f:
+    print(f'\nResults logged to local file: {self.logFile}')
+    with open(self.logFile, 'w') as f:
         f.write(f'ePSman log file, job: {self.genFile}\n')
         f.write(f'Running on {self.host}\n')
         f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
