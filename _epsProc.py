@@ -85,14 +85,26 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR')
 
 
     # Get job list
-    if subDirs:
-        # List ePS files in jobDir, including subDirs
-        self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('**/*.out'))
+    if self.host == 'localhost':
+        # Python version with Glob - ok for local jobs
+        if subDirs:
+            # List ePS files in jobDir, including subDirs
+            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('**/*.out'))
+        else:
+            # Exclude subDirs
+            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('*.out'))
     else:
-        # Exclude subDirs
-        self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('*.out'))
+        # Use remote shell commands
+        # Actually no need to separate this as above, aside from that code was already tested.
+        if subDirs:
+            Result = self.c.run('ls -R ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + ' | grep \.out$', warn = True, hide = True)
+        else:
+            Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.out', warn = True, hide = True)
 
-    print('\nJob List:')
+        self.jobList = Result.stdout.split()
+
+
+    print(f'\nJob List (from {self.host}):')
     print(*self.jobList, sep='\n')
 
 
@@ -100,23 +112,22 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR')
 
     # Write params file for Jupyter Runner
     paramsFile = 'JR-params.txt'
-    self.JRParams = Path(job.hostDefn['localhost']['wrkdir'], paramsFile)
+    self.JRParams = Path(self.hostDefn['localhost']['wrkdir'], paramsFile)
     with open(self.JRParams, 'w') as f:
-        for item in jobList:
-            f.write(f'DATAFILE='{item}'\n')
+        for item in self.jobList:
+            f.write(f"DATAFILE='{Path(self.hostDefn[self.host]['nbProcDir'], item).as_posix()}'\n")
 
     print(f'\nJupyter-runner params set in local file: {self.JRParams}')
 
     # Push to host
-    print(f'Pushing file to host: {self.JRParams}')
+    print(f'Pushing file to host: {self.host}')
     logResult = self.c.put(self.JRParams.as_posix(), remote = self.hostDefn[self.host]['nbProcDir'].as_posix())
 
     #*** Run post-processing with Jupyter-runner script
     # Set number of processors == job size
     # TODO: add error checking and upper limit here, if proc > number of physical processors.
-    proc = len(jobList)
+    proc = len(self.jobList)
 
     # With nohup wrapper script to allow job to run independently of terminal.
     # Turn warnings off, and set low timeout, to ensure hangup... probably...
-    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() +
-        f' {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}', warn = True, timeout = 1)
+    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 1)

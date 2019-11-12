@@ -37,6 +37,7 @@ class epsJob():
     # Import local functions
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
     from ._epsRun import runJobs, tidyJobs
+    from ._epsProc import runNotebooks
 
     def __init__(self, host = None, user = None, IP = None):
         """
@@ -62,6 +63,7 @@ class epsJob():
             }
 
         # Set dictionary of Shell scripts for .inp file generation.
+        # Now also includes notebook templates... needs a tidy up!
         self.scrDefn = {'basic':'ePS_input_write_template_basic.sh',
                         'wf-sph':'ePS_input_write_template_wf_sph.sh',
                         'nb-tpl-JR':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',

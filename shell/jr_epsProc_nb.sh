@@ -8,7 +8,7 @@
 echo Starting Jupyter-runner batch run with nohup
 
 # Set env
-conada activate ePSproc
+conda activate ePSproc
 cd $1
 
 nohup jupyter-runner --overwrite --workers $2 --parameter-file=$3 --format notebook --allow-errors $4 &
