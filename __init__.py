@@ -63,7 +63,9 @@ class epsJob():
 
         # Set dictionary of Shell scripts for .inp file generation.
         self.scrDefn = {'basic':'ePS_input_write_template_basic.sh',
-                        'wf-sph':'ePS_input_write_template_wf_sph.sh'}
+                        'wf-sph':'ePS_input_write_template_wf_sph.sh',
+                        'nb-tpl-JR':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
+                        'nb-sh-JR':'jr_epsProc_nb.sh'}
 
         # Settings for connection - init to None.
         self.host = host
