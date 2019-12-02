@@ -37,7 +37,7 @@ class epsJob():
     # Import local functions
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
     from ._epsRun import runJobs, tidyJobs
-    from ._epsProc import runNotebooks
+    from ._epsProc import getNotebookJobList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
 
     def __init__(self, host = None, user = None, IP = None):
         """

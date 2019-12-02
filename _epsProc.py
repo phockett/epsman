@@ -18,6 +18,93 @@ from pathlib import Path
 # temp.parent
 # temp2 = Path(temp.parent, 'templates')
 
+def getNotebookJobList(self, subDirs=True, verbose = True):
+    """Get job list from host - scan nbProcDir for ePS .out files.
+
+    Mainly for use by `runNotebooks()`, but can call separately to reconstuct job list.
+
+    Parameters
+    ----------
+    subDirs : bool, optional, default = True
+        Include subDirs in processing.
+
+    verbose : bool, optional, default = True
+        Print jobList to screen.
+
+    """
+
+    if self.host == 'localhost':
+        # Python version with Glob - ok for local jobs
+        if subDirs:
+            # List ePS files in jobDir, including subDirs
+            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('**/*.out'))
+        else:
+            # Exclude subDirs
+            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('*.out'))
+    else:
+        # Use remote shell commands
+        # Actually no need to separate this as above, aside from that code was already tested.
+        if subDirs:
+            # This works, but only returns file names, not full paths.
+            # Result = self.c.run('ls -R ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + ' | grep \.out$', warn = True, hide = True)
+
+            # From https://stackoverflow.com/questions/3528460/how-to-list-specific-type-of-files-in-recursive-directories-in-shell
+            # Will be recursive if globstar active - may need to .sh this.
+            # Globstar: shopt -s globstar
+            Result = self.c.run(f"shopt -s globstar; ls -d -1 '{self.hostDefn[self.host]['nbProcDir'].as_posix()}/'**/* | grep \.out$", warn = True, hide = True)
+        else:
+            Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.out', warn = True, hide = True)
+
+        self.jobList = Result.stdout.split()
+
+    if verbose:
+        print(f'\nJob List (from {self.host}):')
+        print(*self.jobList, sep='\n')
+
+
+def setNotebookTemplate(self, template = 'nb-tpl-JR'):
+    """Set post-processing job template
+
+    Mainly for use by `runNotebooks()`, but can call separately to reconstuct settings.
+
+    Parameters
+    ----------
+    template : str, optional, default = 'nb-tpl-JR'
+        Jupyter notebook template file for post-processing.
+        File list set in self.scrDefn, assumed to be in self.hostDefn[self.host]['scpdir'] unless self.hostDefn[self.host]['nbTemplateDir'] is defined.
+
+    """
+
+    if 'nbProcDir' not in self.hostDefn[self.host].keys():
+        self.hostDefn[self.host]['nbProcDir'] = self.hostDefn[self.host]['systemDir']
+
+    # print('*** Post-processing with Jupyter-runner for ', self.hostDefn[self.host]['nbProcDir'])
+
+    if 'nbTemplateDir' not in self.hostDefn[self.host].keys():
+        self.hostDefn[self.host]['nbTemplateDir'] = self.hostDefn[self.host]['scpdir']
+
+    self.hostDefn[self.host]['nbTemplate'] = Path(self.hostDefn[self.host]['nbTemplateDir'], self.scrDefn[template])
+    print('Set template: ', self.hostDefn[self.host]['nbTemplate'])
+
+    # Test if template exists
+    test = self.c.run('[ -f "' + self.hostDefn[self.host]['nbTemplate'].as_posix() + '" ]', warn = True)
+    if test.ok:
+        pass
+    else:
+        pFlag = input('Template missing on remote, push from local? (y/n) ')
+
+        if pFlag == 'y':
+            if 'nbTemplate' not in self.hostDefn['localhost'].keys():
+                tplInput = input('Local template file not set, please specify: ')
+                self.hostDefn['localhost']['nbTemplate'] = Path(tplInput)
+
+            result = self.c.put(self.hostDefn['localhost']['nbTemplate'].as_posix(), remote = self.hostDefn[self.host]['nbTemplate'].as_posix())
+            if result.ok:
+                print("Template file uploaded.")
+            else:
+                print("Failed to push file to host.")
+
+
 def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR'):
     """
     Set up and run batch of ePSproc notebooks using Jupyter-runner.
@@ -54,65 +141,13 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR')
     """
 
     #*** Set env
-    if 'nbProcDir' not in self.hostDefn[self.host].keys():
-        self.hostDefn[self.host]['nbProcDir'] = self.hostDefn[self.host]['systemDir']
-
+    # Set template
+    self.setNotebookTemplate()
     print('*** Post-processing with Jupyter-runner for ', self.hostDefn[self.host]['nbProcDir'])
-
-    if 'nbTemplateDir' not in self.hostDefn[self.host].keys():
-        self.hostDefn[self.host]['nbTemplateDir'] = self.hostDefn[self.host]['scpdir']
-
-    self.hostDefn[self.host]['nbTemplate'] = Path(self.hostDefn[self.host]['nbTemplateDir'], self.scrDefn[template])
     print('Using template: ', self.hostDefn[self.host]['nbTemplate'])
 
-    # Test if template exists
-    test = self.c.run('[ -f "' + self.hostDefn[self.host]['nbTemplate'].as_posix() + '" ]', warn = True)
-    if test.ok:
-        pass
-    else:
-        pFlag = input('Template missing on remote, push from local? (y/n) ')
-
-        if pFlag == 'y':
-            if 'nbTemplate' not in self.hostDefn['localhost'].keys():
-                tplInput = input('Local template file not set, please specify: ')
-                self.hostDefn['localhost']['nbTemplate'] = Path(tplInput)
-
-            result = self.c.put(self.hostDefn['localhost']['nbTemplate'].as_posix(), remote = self.hostDefn[self.host]['nbTemplate'].as_posix())
-            if result.ok:
-                print("Template file uploaded.")
-            else:
-                print("Failed to push file to host.")
-
-
-    # Get job list
-    if self.host == 'localhost':
-        # Python version with Glob - ok for local jobs
-        if subDirs:
-            # List ePS files in jobDir, including subDirs
-            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('**/*.out'))
-        else:
-            # Exclude subDirs
-            self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('*.out'))
-    else:
-        # Use remote shell commands
-        # Actually no need to separate this as above, aside from that code was already tested.
-        if subDirs:
-            # This works, but only returns file names, not full paths.
-            # Result = self.c.run('ls -R ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + ' | grep \.out$', warn = True, hide = True)
-
-            # From https://stackoverflow.com/questions/3528460/how-to-list-specific-type-of-files-in-recursive-directories-in-shell
-            # Will be recursive if globstar active - may need to .sh this.
-            # Globstar: shopt -s globstar
-            Result = self.c.run(f"shopt -s globstar; ls -d -1 '{self.hostDefn[self.host]['nbProcDir'].as_posix()}/'**/* | grep \.out$", warn = True, hide = True)
-        else:
-            Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.out', warn = True, hide = True)
-
-        self.jobList = Result.stdout.split()
-
-
-    print(f'\nJob List (from {self.host}):')
-    print(*self.jobList, sep='\n')
-
+    # Get jobList, ePS output files to run  template for.
+    self.getNotebookJobList(subDirs = subDirs)
 
     #*** Write to file - set for local then push to remote.
 
@@ -166,29 +201,47 @@ def tidyNotebooks(self, rename = True, cp = True, dryRun = False):
 
     # Currently set to move to item (job) dir.
     self.nbFileList = []
+    self.nbFileFail = []
     for n, item in enumerate(self.jobList):
         # Set file name for jupyter-runner output (full path)
         JRFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], self.hostDefn[self.host]['nbTemplate'].stem)}_{n+1}.ipynb"
         newFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], Path(Path(item).stem).stem)}.ipynb"
 
-        self.nbFileList.append(newFile)
+        # Check file exists
+        result = self.c.run('[ -f "' + JRFile + '" ]', warn = True, hide = True)  # Test for destination file, will return True if exists
+        destTest = result.ok
 
-        if rename:
-            if dryRun:
-                print(f"mv {JRFile} {newFile}")
-            else:
-                Result = job.c.run(f"mv {JRFile} {newFile}")
-                print(Result.stdout)
+        if destTest:
+            self.nbFileList.append(newFile)
 
-        if cp:
-            if dryRun:
-                print(f"cp {newFile} {Path(item).parent}")
-            else:
-                Result = job.c.run(f"cp {newFile} {Path(item).parent}")
-                print(Result.stdout)
+            if rename:
+                if not dryRun:
+                    Result = self.c.run(f"mv {JRFile} {newFile}")
+                if dryRun or Result.ok:
+                    print(f"mv {JRFile} {newFile}")
+                else:
+                    print(f"mv {JRFile} {newFile} fail")
 
-    print(f'\nNotebook List:')
+
+            if cp:
+                if not dryRun:
+                    Result = self.c.run(f"cp {newFile} {Path(item).parent}")
+                if dryRun or Result.ok:
+                    print(f"cp {newFile} {Path(item).parent}")
+                else:
+                    print(f"cp {newFile} {Path(item).parent} fail")
+
+        else:
+            print(f"*** Missing notebook {JRFile} -> {newFile}")
+            self.nbFileFail.append([JRFile, newFile])
+
+    print(f'\nProcessed Notebook List:')
     print(*self.nbFileList, sep='\n')
+
+    if self.nbFileFail:
+        print(f'\n\nMissing Notebook List:')
+        print(*self.nbFileFail, sep='\n')
+
 
 # Pull auto-generated notebook files from remote
 def getNotebooks(self):
