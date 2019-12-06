@@ -62,14 +62,14 @@ def getNotebookJobList(self, subDirs=True, verbose = True):
         print(*self.jobList, sep='\n')
 
 
-def setNotebookTemplate(self, template = 'nb-tpl-JR'):
+def setNotebookTemplate(self, template = 'nb-tpl-JR-v2'):
     """Set post-processing job template
 
     Mainly for use by `runNotebooks()`, but can call separately to reconstuct settings.
 
     Parameters
     ----------
-    template : str, optional, default = 'nb-tpl-JR'
+    template : str, optional, default = 'nb-tpl-JR-v2'
         Jupyter notebook template file for post-processing.
         File list set in self.scrDefn, assumed to be in self.hostDefn[self.host]['scpdir'] unless self.hostDefn[self.host]['nbTemplateDir'] is defined.
 
@@ -99,13 +99,14 @@ def setNotebookTemplate(self, template = 'nb-tpl-JR'):
                 self.hostDefn['localhost']['nbTemplate'] = Path(tplInput)
 
             result = self.c.put(self.hostDefn['localhost']['nbTemplate'].as_posix(), remote = self.hostDefn[self.host]['nbTemplate'].as_posix())
-            if result.ok:
-                print("Template file uploaded.")
-            else:
-                print("Failed to push file to host.")
+            # if result.ok:
+            #     print("Template file uploaded.")
+            # else:
+            #     print("Failed to push file to host.")
+            print(f"Pushed notebook {result.remote} to {result.local}")
+            # print(result)
 
-
-def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR'):
+def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v2', scp = 'nb-sh-JR'):
     """
     Set up and run batch of ePSproc notebooks using Jupyter-runner.
 
@@ -130,7 +131,7 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR')
         Jupyter notebook template file for post-processing.
         File list set in self.scrDefn, assumed to be in self.hostDefn[self.host]['scpdir'] unless self.hostDefn[self.host]['nbTemplateDir'] is defined.
 
-    scp : str, optional, default = 'nb-sh-JR'
+    scp : str, optional, default = 'nb-sh-JR-v2'
         Script for running batch job on remote.
         TODO: should set scp and template relations in input dict.
 
@@ -142,7 +143,7 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR', scp = 'nb-sh-JR')
 
     #*** Set env
     # Set template
-    self.setNotebookTemplate()
+    self.setNotebookTemplate(template = template)
     print('*** Post-processing with Jupyter-runner for ', self.hostDefn[self.host]['nbProcDir'])
     print('Using template: ', self.hostDefn[self.host]['nbTemplate'])
 

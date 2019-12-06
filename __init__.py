@@ -66,7 +66,8 @@ class epsJob():
         # Now also includes notebook templates... needs a tidy up!
         self.scrDefn = {'basic':'ePS_input_write_template_basic.sh',
                         'wf-sph':'ePS_input_write_template_wf_sph.sh',
-                        'nb-tpl-JR':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
+                        'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
+                        'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
                         'nb-sh-JR':'jr_epsProc_nb.sh'}
 
         # Settings for connection - init to None.
