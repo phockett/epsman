@@ -6,6 +6,8 @@
 # To generate, paste https://docs.figshare.com/swagger.json to https://editor.swagger.io
 # This gives some errors...
 # Also, keywords seem to be changed now to _, not camelHump, format.
+#
+# May also want to check python library: https://pypi.org/project/swaggerpy/
 
 # Add Swagger module full path for testing
 import sys
