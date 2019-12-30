@@ -43,23 +43,65 @@ def getNotebookJobList(self, subDirs=True, verbose = True):
             self.jobList = list(self.hostDefn[self.host]['nbProcDir'].glob('*.out'))
     else:
         # Use remote shell commands
-        # Actually no need to separate this as above, aside from that code was already tested.
-        if subDirs:
-            # This works, but only returns file names, not full paths.
-            # Result = self.c.run('ls -R ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + ' | grep \.out$', warn = True, hide = True)
+        self.jobList = self.getFileList(scanDir=self.hostDefn[self.host]['nbProcDir'].as_posix(), fileType = 'out', subDirs = subDirs, verbose = verbose)
 
-            # From https://stackoverflow.com/questions/3528460/how-to-list-specific-type-of-files-in-recursive-directories-in-shell
-            # Will be recursive if globstar active - may need to .sh this.
-            # Globstar: shopt -s globstar
-            Result = self.c.run(f"shopt -s globstar; ls -d -1 '{self.hostDefn[self.host]['nbProcDir'].as_posix()}/'**/* | grep \.out$", warn = True, hide = True)
-        else:
-            Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.out', warn = True, hide = True)
+    #     # Actually no need to separate this as above, aside from that code was already tested.
+    #     if subDirs:
+    #         # This works, but only returns file names, not full paths.
+    #         # Result = self.c.run('ls -R ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + ' | grep \.out$', warn = True, hide = True)
+    #
+    #         # From https://stackoverflow.com/questions/3528460/how-to-list-specific-type-of-files-in-recursive-directories-in-shell
+    #         # Will be recursive if globstar active - may need to .sh this.
+    #         # Globstar: shopt -s globstar
+    #         Result = self.c.run(f"shopt -s globstar; ls -d -1 '{self.hostDefn[self.host]['nbProcDir'].as_posix()}/'**/* | grep \.out$", warn = True, hide = True)
+    #     else:
+    #         Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.out', warn = True, hide = True)
+    #
+    #     self.jobList = Result.stdout.split()
+    #
+    # if verbose:
+    #     print(f'\nJob List (from {self.host}):')
+    #     print(*self.jobList, sep='\n')
 
-        self.jobList = Result.stdout.split()
 
-    if verbose:
-        print(f'\nJob List (from {self.host}):')
-        print(*self.jobList, sep='\n')
+def getNotebookList(self, subDirs = True, verbose = True):
+    """Get notebook list from host - scan nbProcDir for ePS .ipynb files.
+
+    Use to generate/reconstuct notebook list. If list is already set, old and new lists will be displayed, and user prompted for overwrite.
+
+    Parameters
+    ----------
+    subDirs : bool, optional, default = True
+        Include subDirs in processing.
+
+    verbose : bool, optional, default = True
+        Print jobList to screen.
+
+    """
+
+    if hasattr(self, 'nbFileList'):
+        print('***Notebook file list already set:')
+        print(*self.nbFileList, sep='\n')
+        verbose = True  # Force verbose in this case.
+
+    # Use remote shell commands
+    nbFileList = self.getFileList(self.hostDefn[self.host]['nbProcDir'].as_posix(), fileType = 'ipynb', subDirs = subDirs, verbose = verbose)
+
+    if hasattr(self, 'nbFileList'):
+        overwriteFlag = input('Overwrite existing list with new? (y/n) ')
+    else:
+        overwriteFlag = 'y'
+
+    if overwriteFlag == 'y':
+        self.nbFileList = nbFileList
+
+    # Alternatively, can set from existing jobList.
+    # job.nbFileList = []
+    # for item in job.jobList:
+    #     newFile = Path(f"{Path(job.hostDefn[job.host]['nbProcDir'], Path(Path(item).stem).stem)}.ipynb")
+    #     job.nbFileList.append(newFile)
+    #
+    # job.nbFileList
 
 
 def setNotebookTemplate(self, template = 'nb-tpl-JR-v2'):
@@ -207,6 +249,8 @@ def tidyNotebooks(self, rename = True, cp = True, dryRun = False):
         # Set file name for jupyter-runner output (full path)
         JRFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], self.hostDefn[self.host]['nbTemplate'].stem)}_{n+1}.ipynb"
         newFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], Path(Path(item).stem).stem)}.ipynb"
+
+# TODO: change logic here to set nbFileList in cases where files are already renamed.
 
         # Check file exists
         result = self.c.run('[ -f "' + JRFile + '" ]', warn = True, hide = True)  # Test for destination file, will return True if exists
