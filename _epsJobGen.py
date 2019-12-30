@@ -51,7 +51,8 @@ def initConnection(self, host = None, user = None, IP = None):
     elif self.user is None:
         self.user = input("User name for machine? ")
 
-    if self.password is None:
+    if self.password is None:  # and not (self.host == 'localhost'):  # Assume local machine doesn't need logon, will also allow for autorun.
+                                                                      # TODO: workaround here - maybe with ssh key files?  Always use ssh, so still need pass for localhost here.
         self.password = getpass.getpass("Password for machine? ")
 
     print('Testing connection...')
@@ -92,7 +93,7 @@ def initConnection(self, host = None, user = None, IP = None):
             N = int(input('List item #: '))
             self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[N])
         else:
-            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir)
+            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[0])
 
         print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
 
