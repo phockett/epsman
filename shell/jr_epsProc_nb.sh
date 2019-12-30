@@ -7,7 +7,7 @@
 
 echo Starting Jupyter-runner batch run with nohup
 
-# Set env
+# Set env - NOTE THIS MAY FAIL if default shell is not enabled for Conda
 conda activate ePSproc-v1.2
 cd $1
 
