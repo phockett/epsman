@@ -2,8 +2,19 @@ For scripts which are called via Fabric, and run Conda first, they may fail with
 
 Q 29/12/19: Currently getting this issue for localhost running with Fabric, but not an issue on remote machines - did I already fix this somehow...?
 
+30/12/19: running test sh scripts seems to indicate that problem is not fixed on Jake, although now unclear why notebook processing script works!
+
+Fixes... set Conda paths explicitly.
+
+- Prefix commands: https://stackoverflow.com/questions/43811625/conda-activate-env-works-in-bash-but-not-fabric
+- Prefix with local symlinks: https://stackoverflow.com/questions/51469569/conda-and-python-shell-scripts
+- Prefix as Fabric task: https://stackoverflow.com/questions/54268390/how-to-deploy-my-conda-env-to-a-vps-using-fabric-or-othervise
+  >>> This works nicely, deploy...
 
 
+***
+
+Tested on Bemo: Running code for all users doesn't fix Fabric run issue.
 
 Conda currently prints the following message in this case (v4.5.12, Dec. 2019):
 
