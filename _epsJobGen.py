@@ -22,7 +22,7 @@ import getpass
 from pathlib import Path
 import datetime
 
-def initConnection(self, host = None, user = None, IP = None):
+def initConnection(self, host = None, user = None, IP = None, password = None):
     """Init connection to selected machine & test."""
 
     # Set values if passed (but don't overwrite set values)
@@ -32,7 +32,9 @@ def initConnection(self, host = None, user = None, IP = None):
         self.user = user
     if self.IP is None and IP is not None:
         self.IP = IP
-
+    if self.password is None and password is not None:
+        self.password = password
+    
     # Check if host definitions are already set, set if missing
     if self.host in self.hostDefn.keys():
         if 'IP' not in self.hostDefn[self.host].keys() and self.IP is None:
@@ -72,6 +74,13 @@ def initConnection(self, host = None, user = None, IP = None):
     test = self.c.run('hostname')
     # c.is_connected    # Another basic check.
 
+    # Set host name if not already supplied
+    if self.host is None:
+        self.host = test.stdout.strip()
+        # self.hostDefn[self.host] = self.hostDefn[None] # Set new hostDefn from None case
+        self.hostDefn[self.host] = self.hostDefn.pop(None) # Use .pop to also remove None case from dict
+        self.hostDefn[self.host]['host'] = self.host
+
     if test.return_code == 0:
         print('Connected OK')
         print(test)
@@ -97,12 +106,8 @@ def initConnection(self, host = None, user = None, IP = None):
 
         print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
 
-        # TODO: finish this... should add looping over necessary paths, functionalised and with more searching. Sigh.
-        # FOR NOW - set know paths based on above.
-        self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')
-        self.hostDefn[self.host]['jobPath'] = Path(self.hostDefn[self.host]['wrkdir'], 'jobs')
-        self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobPath'], 'completed')
-
+        # Set additional default paths for host.
+        self.setPaths()
 
 
 # Basic routine to create dir tree for new system (molecule)

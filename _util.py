@@ -7,6 +7,19 @@ Utility functions for use with ePSman.
 27/12/19    v1
 
 """
+import re
+
+# Parse digits from a line using re
+# https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python
+def parseLineDigits(testLine):
+    """
+    Use regular expressions to extract digits from a string.
+    https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python
+
+    """
+    return re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", testLine)
+
+
 
 def getFileList(self, scanDir, fileType = 'out', subDirs = True, verbose = True):
     """Get a file list from host - scan directory=dir for files of fileType.
@@ -51,3 +64,46 @@ def getFileList(self, scanDir, fileType = 'out', subDirs = True, verbose = True)
         print(*fileList, sep='\n')
 
     return fileList
+
+
+def checkFiles(self, fileList, scanDir = '', verbose = False):
+    """Check files exist on host.
+
+    Parameters
+    ----------
+    fileList : list of strs or Path objects
+        Files to check on host.
+        Names only, or full paths. Can optionally set directory with scanDir variable.
+
+    scanDir : str or Path, optional, default = ''
+        Directory to scan, defaults to Fabric default (home dir).
+
+    verbose : bool, optional, default = False
+        Print results to screen.
+
+    Returns
+    -------
+    checkList : list
+        List of Fabric results, bool.
+
+    """
+
+    if type(fileList) is not list:
+        fileList = [fileList]
+
+    checkList = []
+
+    for fileTest in fileList:
+
+        if hasattr(fileTest, 'as_posix'):
+            fileTest = fileTest.as_posix()
+
+        # Use cd here... although just as robust to set full path...?
+        with self.c.cd(scanDir):
+            result = self.c.run('[ -f "' + fileTest + '" ]', warn = True, hide = True)  # Test for destination file, will return True if exists
+            checkList.append(result.ok)
+
+            if verbose:
+                print(f"{fileTest}: {result.ok}")
+
+    return checkList

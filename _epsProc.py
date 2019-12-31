@@ -250,7 +250,7 @@ def tidyNotebooks(self, rename = True, cp = True, dryRun = False):
         JRFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], self.hostDefn[self.host]['nbTemplate'].stem)}_{n+1}.ipynb"
         newFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], Path(Path(item).stem).stem)}.ipynb"
 
-# TODO: change logic here to set nbFileList in cases where files are already renamed.
+# TODO: change logic here to set nbFileList in cases where files are already renamed - NOW set independently by getNotebookList()
 
         # Check file exists
         result = self.c.run('[ -f "' + JRFile + '" ]', warn = True, hide = True)  # Test for destination file, will return True if exists
