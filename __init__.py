@@ -38,9 +38,11 @@ class epsJob():
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
     from ._epsRun import runJobs, tidyJobs
     from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
-    from ._util import getFileList
+    from ._util import getFileList, checkFiles
+    from ._paths import setScripts, setPaths
+    from ._repo import nbWriteHeader, buildUploads
 
-    def __init__(self, host = None, user = None, IP = None):
+    def __init__(self, host = None, user = None, IP = None, password = None):
         """
         Init job.
 
@@ -51,31 +53,20 @@ class epsJob():
             TODO: convert to connection only, and bootstrap paths.
 
         """
-        # Set hostDefns - NOW paths set at connection init stage.
+        # Set hostDefns - NOW paths set at connection init stage, just set localhost here.
         # To set a given machine to be used locally, this will just need local IP setting.
         # TODO: set master dir list somewhere for reference.
-        self.hostDefn = {'AntonJr':{
-                'host':'AntonJr',
-                'ePSpath':Path('/opt/ePolyScat.E3/bin/ePolyScat')},
+        self.hostDefn = {
             'localhost':{'host':socket.gethostname(),
                 'IP':'127.0.0.1',
                 'home':Path.home(),
                 'wrkdir':Path.cwd()}
             }
 
-        # Set dictionary of Shell scripts for .inp file generation.
-        # Now also includes notebook templates... needs a tidy up!
-        self.scrDefn = {'basic':'ePS_input_write_template_basic.sh',
-                        'wf-sph':'ePS_input_write_template_wf_sph.sh',
-                        'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
-                        'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
-                        'nb-sh-JR':'jr_epsProc_nb.sh',
-                        'nb-post-doi':'nbHeaderPost.py'}
-
         # Settings for connection - init to None.
         self.host = host
         self.user = user
-        self.password = None
+        self.password = password
         self.IP = IP
 
         # Settings for job
@@ -84,6 +75,9 @@ class epsJob():
         self.batch = None
         self.genFile = None
         self.jobSettings = None
+
+        # Set default paths
+        self.setScripts()
 
 
     def setGenFile(self, genFile = None):
