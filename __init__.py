@@ -38,7 +38,7 @@ class epsJob():
     from ._epsJobGen import initConnection, createJobDirTree, writeInp
     from ._epsRun import runJobs, tidyJobs
     from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
-    from ._util import getFileList, checkFiles
+    from ._util import getFileList, checkFiles, pushFile
     from ._paths import setScripts, setPaths
     from ._repo import nbWriteHeader, buildUploads
 

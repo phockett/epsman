@@ -107,3 +107,44 @@ def checkFiles(self, fileList, scanDir = '', verbose = False):
                 print(f"{fileTest}: {result.ok}")
 
     return checkList
+
+# Routine to check and push file to remote
+# Follows basic method from genFile handling in createJobDirTree()
+def pushFile(self, fileLocal, fileRemote):
+    """
+    Routine to check and push file to remote
+
+    Follows basic method from genFile handling in createJobDirTree()
+
+    Parameters
+    ----------
+    fileLocal : Path object for local file to push. Full path, or file in working dir.
+
+    fileRemote : Path object for remote location. Full path, with or without filename. (If missing, filename will be unchanged.)
+
+    """
+
+    # Check fileRemote & set filename if not supplied
+    if not fileRemote.is_file():
+        fileRemote = fileRemote.joinpath(fileLocal.name)
+
+    print(f"\n***Pushing file: {fileLocal} to remote: {fileRemote}")
+
+    # Test if exists on remote
+    test = self.c.run('[ -f "' + fileRemote.as_posix() + '" ]', warn = True)
+    if test.ok:
+        wFlag = input(f"File {fileRemote} already exists, overwrite? (y/n) ")
+    else:
+        wFlag = 'y'
+
+    # Upload and test result.
+    if wFlag == 'y':
+        genResult = self.c.put(fileLocal.as_posix(), remote = fileRemote.as_posix())
+        test = self.c.run('[ -f "' + fileRemote.as_posix() + '" ]', warn = True)
+        if test.ok:
+            print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
+        else:
+            print('Failed to push file to host.')
+            return genResult
+
+    return True
