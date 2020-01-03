@@ -195,7 +195,7 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v2', scp = 'nb-sh-J
     #*** Write to file - set for local then push to remote.
 
     # Write params file for Jupyter Runner
-    paramsFile = 'JR-params.txt'
+    paramsFile = self.hostDefn[self.host]['nbProcDir'].name + '_' + self.host + '_JR-params.txt'
     self.JRParams = Path(self.hostDefn['localhost']['wrkdir'], paramsFile)
     with open(self.JRParams, 'w') as f:
         for item in self.jobList:
@@ -204,8 +204,9 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v2', scp = 'nb-sh-J
     print(f'\nJupyter-runner params set in local file: {self.JRParams}')
 
     # Push to host
-    print(f'Pushing file to host: {self.host}')
-    logResult = self.c.put(self.JRParams.as_posix(), remote = self.hostDefn[self.host]['nbProcDir'].as_posix())
+    # print(f'Pushing file to host: {self.host}')
+    # logResult = self.c.put(self.JRParams.as_posix(), remote = self.hostDefn[self.host]['nbProcDir'].as_posix())
+    logResult = self.pushFile(self.JRParams, self.hostDefn[self.host]['nbProcDir'])
 
     #*** Run post-processing with Jupyter-runner script
     # Set number of processors == job size

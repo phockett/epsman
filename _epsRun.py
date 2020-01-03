@@ -20,7 +20,7 @@ def runJobs(self):
 
     # With nohup wrapper script to allow job to run independently of terminal.
     # Turn warnings off, and set low timeout, to ensure hangup... probably...
-    result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 1)
+    result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 10)
 
 
 # Tidy up job files

@@ -88,6 +88,7 @@ def checkFiles(self, fileList, scanDir = '', verbose = False):
 
     """
 
+    # Set to list to avoid looping over chars for single file case.
     if type(fileList) is not list:
         fileList = [fileList]
 
@@ -110,17 +111,34 @@ def checkFiles(self, fileList, scanDir = '', verbose = False):
 
 # Routine to check and push file to remote
 # Follows basic method from genFile handling in createJobDirTree()
-def pushFile(self, fileLocal, fileRemote):
+def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
     """
     Routine to check and push file to remote
 
     Follows basic method from genFile handling in createJobDirTree()
+    (1) Test if file already exists on remote, prompt for overwrite if so (unless overwritePrompt is set to False or None).
+    (2) Push file.
+    (3) Check file on remote to verify.
+
 
     Parameters
     ----------
-    fileLocal : Path object for local file to push. Full path, or file in working dir.
+    fileLocal : Path object
+        Local file to push. Full path, or file in working dir.
 
-    fileRemote : Path object for remote location. Full path, with or without filename. (If missing, filename will be unchanged.)
+    fileRemote : Path object
+        Remote location. Full path, with or without filename. (If missing, filename will be unchanged.)
+
+    overwritePrompt : bool, default = True
+        If set to True, prompt user for file overwrite.
+        If set to False, overwrite existing files.
+        If set to None, do not overwrite.
+
+    Returns
+    -------
+    bool, True if sucessful.
+
+    Fabric object with details if failed.
 
     """
 
@@ -132,19 +150,25 @@ def pushFile(self, fileLocal, fileRemote):
 
     # Test if exists on remote
     test = self.c.run('[ -f "' + fileRemote.as_posix() + '" ]', warn = True)
-    if test.ok:
+    if test.ok and overwritePrompt:
         wFlag = input(f"File {fileRemote} already exists, overwrite? (y/n) ")
+    elif test.ok and (overwritePrompt is None):
+        print(f"File {fileRemote} already exists, skipping push.")
+        wFlag = 'n'
+    elif test.ok and not overwritePrompt:
+        print(f"File {fileRemote} already exists, overwritting.")
+        wFlag = 'y'
     else:
         wFlag = 'y'
 
     # Upload and test result.
     if wFlag == 'y':
-        genResult = self.c.put(fileLocal.as_posix(), remote = fileRemote.as_posix())
+        Result = self.c.put(fileLocal.as_posix(), remote = fileRemote.as_posix())
         test = self.c.run('[ -f "' + fileRemote.as_posix() + '" ]', warn = True)
         if test.ok:
-            print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
+            print("Uploaded \n{0.local}\n to \n{0.remote}".format(Result))
         else:
             print('Failed to push file to host.')
-            return genResult
+            return Result
 
     return True
