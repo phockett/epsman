@@ -61,6 +61,11 @@ def constructHeader(jobInfo, fileIn, doi = None):
 
     return sourceText
 
+# Routine to grab relevant electronic structure files and copy to job dir for packaging.
+# def getEstructureFiles(fileIn, fileInfo):
+#     """Copy electronic structure files to job output file structure"""
+
+
 
 # Write header info and save notebook
 def writeHeader(inputNB, jobInfo):

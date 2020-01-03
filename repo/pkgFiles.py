@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 import glob
 import re
+import datetime
 
 
 
@@ -86,21 +87,46 @@ def buildPkg(archName, fileList, pkgDir, cType = zipfile.ZIP_LZMA):
             print(f'*** Archive {archName} failed')
             return False
 
+# Additional code for checking archives.
+def checkArch(archName):
+    """Test archive & return info if OK"""
+
+    infoList = None
+    nameList = None
+
+    with ZipFile(archName, 'r') as checkZip:
+        if checkZip.testzip() is None:
+            infoList = checkZip.infolist()  # Get info & file list
+            nameList = checkZip.namelist()
+
+    return infoList, nameList
 
 
+# Code for CLI call from Fabric
+# Args: pkgDir, dryRun, archName, jRoot
+# If jRoot is not passed, pkg a directory, otherwise pkg single job as defined.
 if __name__ == "__main__":
-
-    dryRun = True
 
     # Passed args - this is root dir containing notebooks + ePS output subdirs.
     pkgDir = Path(sys.argv[1])
+
+    # Set for dryRun - this will only display pkgs to be built.
+    if sys.argv[2] == 'True':
+        dryRun = True
+    else:
+        dryRun = False
+        # Print header lines for job, will be in log file.
+        print("***Writing archives")
+        print(f"nbProcDir: {pkgDir}")
+        print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + '\n')
+
     # print(sys.argv)
     # print(len(sys.argv))
 
 
     # If args are passed, build archive for single job
-    if len(sys.argv) > 3:
-        jRoot = sys.argv[2]
+    if len(sys.argv) > 4:
+        jRoot = sys.argv[4]
         archName = Path(sys.argv[3])
 
         # Create file list for pkg
@@ -109,16 +135,27 @@ if __name__ == "__main__":
         # fileList
 
         # Write zip
-        buildPkg(archName, fileList, pkgDir)
+        if not dryRun:
+            buildPkg(archName, fileList, pkgDir)
+        else:
+            print('\n***Pkg dry run')
+            # print(f"Job: {item}")
+            print(f"Arch: {archName}")
+            print(f"jRoot: {jRoot}")
+            print(f"rePat: {rePat}")
+            print(*fileList, sep='\n')
 
     # Otherwise package full dir based on notebooks in root.
     else:
-        archDir = Path(sys.argv[2])
+        archDir = Path(sys.argv[3])
 
         # Create notebook file list for pkg
         rePat = ".ipynb$"
         nbFileList = getFilesPkg(pkgDir, rePat = rePat)
-        print(nbFileList)
+
+        if dryRun:
+            print("\n***Notebook file list:")
+            print(*nbFileList, sep='\n')
 
         zipList = []
         failList = []
@@ -150,4 +187,9 @@ if __name__ == "__main__":
                 print(f"rePat: {rePat}")
                 print(*fileList, sep='\n')
 
-            # TODO: print/pass/write results here?
+
+
+        if not dryRun:
+            print(f'\nArchives completed at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}\n')
+            # TODO: Additional print/pass/write results here?
+            # Currently included print() statements from buildPkg()

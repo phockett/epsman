@@ -10,6 +10,7 @@ Default paths etc. set here.
 
 from pathlib import Path
 import pprint  # For dict printing
+import inspect  # For module path
 
 def setScripts(self):
     """Set list of utility scripts & templates."""
@@ -19,8 +20,14 @@ def setScripts(self):
                     'wf-sph':'ePS_input_write_template_wf_sph.sh',
                     'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
-                    'nb-sh-JR':'jr_epsProc_nb.sh',
-                    'nb-post-doi':'nbHeaderPost.py'}
+                    'nb-sh-JR':'jr_epsProc_nb.sh'
+                    }
+
+    # Python scripts for repo processing & packaging, currently in /repo directory.
+    self.scpDefnRepo = {'nb-post-doi':'nbHeaderPost.py',
+                    'pkg':'pkgFiles.py',
+                    'pkgNohup':'pkgRemoteNohup.sh'
+                    }
 
 
 def setPaths(self):
@@ -35,9 +42,15 @@ def setPaths(self):
     # TODO: add check and test routine here.
     self.hostDefn[self.host]['ePSpath'] = Path('/opt/ePolyScat.E3/bin/ePolyScat')
 
+    # Paths for epsproc and epsman...? May not be required...
+    # Path(inspect.getfile(em))
+
     # Anaconda path, used for remote env setting.
     self.hostDefn[self.host]['condaPath'] = Path(self.hostDefn[self.host]['home'], 'anaconda3/bin/activate')
     self.hostDefn[self.host]['condaEnv'] = 'base'
+
+    # Set additional path for repo scripts - this should be moved somewhere more sensible!
+    self.hostDefn[self.host]['repoScpPath'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/repo')
 
     # Print
     print('\n***Default paths set')
