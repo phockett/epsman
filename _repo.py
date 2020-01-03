@@ -202,7 +202,7 @@ def getEpoints(jobInfo):
     return parseLineDigits(P)
 
 # Build notebook list & info
-def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None):
+def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False):
     """
     Build notebook file list + details + archives.
 
@@ -226,11 +226,16 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
     eSourceDir : str or path object, optional, default = None
         If supplied, use this as the source path for electronic structure files instead of original job definition.
 
+    nbSubDirs : bool, default = False
+        Search for notebooks in subdirs.
+        Default is to search in root dir only, as set in self.hostDefn[self.host]['nbProcDir']
+        Note this is only used if reconstructing nbFileList.
+
     """
 
     # Check if notebook file list is set, set if missing.
     if not hasattr(self, 'nbFileList'):
-        self.getNotebookList()
+        self.getNotebookList(subDirs = nbSubDirs)
 
     # Get header info and build dictionary
     # Currently using nbWriteHeader for this, will skip file writing if DOI not set.
