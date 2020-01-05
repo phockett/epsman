@@ -21,6 +21,34 @@ import re
 import datetime
 
 
+# Define job root schema for file sorting
+# Set here to allow for local function access & keep single set of definitions
+def setJobRoot(nbFileName, jobSchema):
+    """
+    Define job dir schema from processed notebook filename.
+
+    Parameters
+    ----------
+    nbFileName : str or Path
+        Notebook file defining job.
+
+    jobSchema : str
+        - '2016' Jobs defined as mol/jName_XX-XXeV/
+        - '2019' Jobs defined as mol/jName/
+        For 2019 schema, energies are interleaved, while for 2016 schema they are treated independently with different jobs.
+    """
+
+    nbFileName = Path(nbFileName)
+
+    if jobSchema == '2016':
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
+        return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
+    elif jobSchema == '2019':
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+        return f"{jRoot[1]}_{jRoot[2]}"
+    else:
+        return "Not supported"
+
 
 #*** FOLLOWING COMMANDS TO RUN LOCALLY on host
 
@@ -103,12 +131,16 @@ def checkArch(archName):
 
 
 # Code for CLI call from Fabric
-# Args: pkgDir, dryRun, archName, jRoot
+# Args: pkgDir, dryRun, archName, jobSchema, jRoot
 # If jRoot is not passed, pkg a directory, otherwise pkg single job as defined.
+# For jRoot case jobSchema is not used, but currently setting method by len(sys.argv), so required.
+# TODO: better logic here!
 if __name__ == "__main__":
 
     # Passed args - this is root dir containing notebooks + ePS output subdirs.
     pkgDir = Path(sys.argv[1])
+    jobSchema = sys.argv[4]
+    # print(jobSchema)
 
     # Set for dryRun - this will only display pkgs to be built.
     if sys.argv[2] == 'True':
@@ -125,8 +157,8 @@ if __name__ == "__main__":
 
 
     # If args are passed, build archive for single job
-    if len(sys.argv) > 4:
-        jRoot = sys.argv[4]
+    if len(sys.argv) > 3:
+        jRoot = sys.argv[5]
         archName = Path(sys.argv[3])
 
         # Create file list for pkg
@@ -163,11 +195,12 @@ if __name__ == "__main__":
 
             # Job keys
             item = Path(item)
-            jRoot = item.stem.rsplit(sep='_', maxsplit=2)
+            # jRoot = item.stem.rsplit(sep='_', maxsplit=2)
+            jRoot = setJobRoot(item, jobSchema)
             archName = Path(archDir, item.stem + '.zip')
 
             # Create file list for pkg
-            rePat = f".*{jRoot[1]}_{jRoot[2]}.*"
+            rePat = f".*{jRoot}.*"
             fileList = getFilesPkg(pkgDir, rePat = rePat)
 
             # Write zip

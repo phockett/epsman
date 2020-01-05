@@ -28,6 +28,7 @@ import datetime
 from pathlib import Path
 from ._util import parseLineDigits
 from .repo.nbHeaderPost import constructHeader
+from .repo.pkgFiles import setJobRoot
 
 # Import from /repo
 # from repo.pkgFiles import
@@ -93,8 +94,18 @@ def buildArch(self, localLoop = True, dryRun = True):
                 # Job keys
                 item = Path(self.nbDetails[key]['file'])
                 # dirBase = Path(self.nbDetails[key]['file']).parent  # Could set dirBase here instead of nbProcDir
-                jRoot = item.stem.rsplit(sep='_', maxsplit=2)
-                self.nbDetails[key]['jRoot'] = f"{jRoot[1]}_{jRoot[2]}"
+
+                # if self.hostDefn[self.host]['jobSchema'] == '2016':
+                #     jRoot = item.stem.rsplit(sep='_', maxsplit=3)
+                #     self.nbDetails[key]['jRoot'] = f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
+                # elif self.hostDefn[self.host]['jobSchema'] == '2019':
+                #     jRoot = item.stem.rsplit(sep='_', maxsplit=2)
+                #     self.nbDetails[key]['jRoot'] = f"{jRoot[1]}_{jRoot[2]}"
+
+                # Define using function  in pkgFiles.py
+                jRoot = setJobRoot(item, self.hostDefn[self.host]['jobSchema'])
+                self.nbDetails[key]['jRoot'] = jRoot
+
                 archName = Path(self.hostDefn[self.host]['pkgDir'], item.stem + '.zip')
 
                 # Generate filelist - based on code in getNotebookJobList()
@@ -111,9 +122,10 @@ def buildArch(self, localLoop = True, dryRun = True):
                     # result = job.c.run('python /home/femtolab/python/epsman/nbHeaderPost.py ' + f'{fileIn} {doi}')
                     # result = job.c.run('python /home/femtolab/python/epsman/repo/pkgFiles.py' + f" {job.hostDefn[job.host]['pkgDir'].as_posix()} {jRoot[1]}_{jRoot[2]} {archName}")
                     result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkg']).as_posix()} \
-                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.nbDetails[key]['jRoot']}")
+                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.hostDefn[self.host]['jobSchema']} {jRoot}")
 
                 if dryRun:
+                    self.nbDetails[key]['result'] = result
                     self.nbDetails[key]['pkgFileList'] = result.stdout.splitlines()
                 else:
                     self.nbDetails[key]['archName'] = archName
@@ -128,7 +140,7 @@ def buildArch(self, localLoop = True, dryRun = True):
 
             # Nohup version to allow for lengthy remote
             result = self.c.run(f"{Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkgNohup']).as_posix()} {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkg']).as_posix()} \
-                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {self.hostDefn[self.host]['pkgDir'].as_posix()}",
+                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {self.hostDefn[self.host]['pkgDir'].as_posix()} {self.hostDefn[self.host]['jobSchema']}",
                                         warn = True, timeout = 10)
 
         # TODO: Logic for handling stdout here.
@@ -202,7 +214,7 @@ def getEpoints(jobInfo):
     return parseLineDigits(P)
 
 # Build notebook list & info
-def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False):
+def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False, schema = '2016'):
     """
     Build notebook file list + details + archives.
 
