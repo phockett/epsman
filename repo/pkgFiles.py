@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
 
     # If args are passed, build archive for single job
-    if len(sys.argv) > 3:
+    if len(sys.argv) > 5:
         jRoot = sys.argv[5]
         archName = Path(sys.argv[3])
 

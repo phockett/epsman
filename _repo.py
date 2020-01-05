@@ -125,7 +125,7 @@ def buildArch(self, localLoop = True, dryRun = True):
                                         {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.hostDefn[self.host]['jobSchema']} {jRoot}")
 
                 if dryRun:
-                    self.nbDetails[key]['result'] = result
+                    # self.nbDetails[key]['result'] = result
                     self.nbDetails[key]['pkgFileList'] = result.stdout.splitlines()
                 else:
                     self.nbDetails[key]['archName'] = archName
@@ -246,8 +246,12 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
     """
 
     # Check if notebook file list is set, set if missing.
-    if not hasattr(self, 'nbFileList'):
-        self.getNotebookList(subDirs = nbSubDirs)
+    # if not hasattr(self, 'nbFileList'):
+    self.getNotebookList(subDirs = nbSubDirs)
+    # else:
+    #     nbReplace = input('***Use existing notebook list, or overwrite? (y/n): ')
+    #     if nbReplace == 'y':
+    #         self.getNotebookList(subDirs = nbSubDirs)
 
     # Get header info and build dictionary
     # Currently using nbWriteHeader for this, will skip file writing if DOI not set.
