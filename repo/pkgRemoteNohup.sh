@@ -11,4 +11,4 @@ echo Starting pkg run with nohup
 # conda activate ePSproc-v1.2
 
 stdoutTxt=$2/archLog_nohup.log
-nohup python $1 $2 $3 $4 > $stdoutTxt &
+nohup python $1 $2 $3 $4 $5 > $stdoutTxt &
