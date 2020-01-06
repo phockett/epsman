@@ -21,6 +21,18 @@ import re
 import datetime
 
 
+# Basic bytes to KB/Mb... conversion, from https://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python
+def convert_bytes(num):
+    """
+    This function will convert bytes to MB.... GB... etc
+    """
+    for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+        if num < 1024.0:
+#             return "%3.1f %s" % (num, x)
+            return [num, x]
+        num /= 1024.0
+
+
 # Define job root schema for file sorting
 # Set here to allow for local function access & keep single set of definitions
 def setJobRoot(nbFileName, jobSchema):
@@ -59,10 +71,27 @@ def setJobRoot(nbFileName, jobSchema):
 
 # Python version
 
-def getFilesPkg(pkgDir, globPat = r"/**/*[!zip]", rePat = None, recursive=True):
-    """Glob pkgDir with globPat, and optional re matching with rePat.
+def getFilesPkg(pkgDir, globPat = r"/**/*[!zip, !ipynb]", rePat = None, recursive=True):
+    """
+    Glob pkgDir with globPat, and optional re matching with rePat.
 
-       Used for getting file lists for packaging ePS job dirs.
+    Used for getting file lists for packaging ePS job dirs.
+
+    Parameters
+    ----------
+    pkgDir : str or Path object
+        Directory to search.
+
+    globPat : str, optional, default = r"/**/*[!zip, !ipynb]"
+        Default pattern for globbing, will search dir for all files, except .zip and .ipynb
+
+    rePat : str, optional, default = None
+        Regular expression for filtering glob output.
+        E.g. rePat = ".*substring.*"  to search for 'substring' in glob output.
+
+    recursive : bool, optional, default = True
+        Recursive glob: if True, search subdirs too (with ** pattern).
+
     """
     # Get file list using recursive glob and supplied pattern
     fileList = glob.glob(f"{pkgDir}{globPat}", recursive=recursive)
@@ -80,7 +109,25 @@ def getFilesPkg(pkgDir, globPat = r"/**/*[!zip]", rePat = None, recursive=True):
     return fileListRe
 
 
-def buildPkg(archName, fileList, pkgDir, cType = zipfile.ZIP_LZMA):
+# def addArchFile(archName, fileIn, cType = zipfile.ZIP_LZMA):
+#     """Add single file to an archive"""
+#     # Open archive & write files
+#     with ZipFile(archName, 'w', compression=cType) as pkgZip:
+#         # Write file, set also arcname to fix relative paths
+#         pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
+#
+#         # Check file is OK
+#         if pkgZip.testzip() is None:
+#             # zipList.append(archName)
+#             print(f'Written {archName} OK')
+#             return True
+#         else:
+#             # failList.append(archName)
+#             print(f'*** Archive {archName} failed')
+#             return False
+
+
+def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZMA):
     """Build pkg zip from fileList
 
     Parameters
@@ -94,22 +141,52 @@ def buildPkg(archName, fileList, pkgDir, cType = zipfile.ZIP_LZMA):
     pkgDir : str or Path object
         Directory to use as root in archive
 
+    archMode : char, optional, default = 'w'
+        Set to 'w'rite or 'a'ppend to existing archive.
+
     cType : int, default = zipfile.ZIP_LZMA (=14)
         Compression level.
 
     """
+    # Set variable for file additions
+    dupList = []
 
     # Create archive & write files
-    with ZipFile(archName, 'w', compression=cType) as pkgZip:
+    with ZipFile(archName, archMode, compression=cType) as pkgZip:
         for fileIn in fileList:
-            # Write file, set also arcname to fix relative paths
-            pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
+            dupPath = None
+            # Add file to existing arch, check file exists first.
+            if archMode == 'a':
+                # Check all files in arch, names only.
+                for fileName in pkgZip.namelist():
+                    # if Path(fileName).name == Path(fileIn).name:  # May want to use Path(fileIn).relative_to(pkgDir) here for consistency and to allow subdirs with same files?
+                    if Path(fileIn).relative_to(pkgDir) == Path(fileName):
+                        dupPath = fileName
+                        dupList.append([fileIn, fileName])
+                #
+                # if (fileIn[1:] in pkgZip.namelist()):  # FILE MISSING initial / in .namelist(). This only works if full paths preserved/identical
+                if dupPath is not None:
+                    print(f'File: {fileIn} already in archive as {fileName}.')
+                else:
+                    pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
+
+            else:
+                # Write file, set also arcname to fix relative paths
+                pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
 
         # Check file is OK
-        if pkgZip.testzip() is None:
+        if (pkgZip.testzip() is None) and (not dupList):
             # zipList.append(archName)
             print(f'Written {archName} OK')
+            fSize = convert_bytes(Path(archName).stat().st_size)
+            print(f"{round(fSize[0],2)} {fSize[1]}")
+            if (fSize[1] == 'GB') or (fSize[1] == 'TB'):
+                print("***LARGE FILE")
             return True
+        elif dupList:
+            print(f'Skipped duplicate files (new, in arch):')
+            print(*dupList, sep='\n')
+            return False
         else:
             # failList.append(archName)
             print(f'*** Archive {archName} failed')
@@ -133,6 +210,7 @@ def checkArch(archName):
 # Code for CLI call from Fabric
 # Args: pkgDir, dryRun, archName, jobSchema, jRoot
 # If jRoot is not passed, pkg a directory, otherwise pkg single job as defined.
+# If jRoot is a file, then add this to archive, otherwise search for files based on jRoot.
 # For jRoot case jobSchema is not used, but currently setting method by len(sys.argv), so required.
 # TODO: better logic here!
 if __name__ == "__main__":
@@ -140,7 +218,8 @@ if __name__ == "__main__":
     # Passed args - this is root dir containing notebooks + ePS output subdirs.
     pkgDir = Path(sys.argv[1])
     jobSchema = sys.argv[4]
-    # print(jobSchema)
+    # print(len(sys.argv))
+    # print((sys.argv))
 
     # Set for dryRun - this will only display pkgs to be built.
     if sys.argv[2] == 'True':
@@ -148,27 +227,36 @@ if __name__ == "__main__":
     else:
         dryRun = False
         # Print header lines for job, will be in log file.
-        print("***Writing archives")
+        print("\n***Writing archives")
         print(f"nbProcDir: {pkgDir}")
         print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M") + '\n')
 
     # print(sys.argv)
     # print(len(sys.argv))
 
+    # Set default to write/overwrite archive
+    archMode = 'w'
 
     # If args are passed, build archive for single job
     if len(sys.argv) > 5:
         jRoot = sys.argv[5]
         archName = Path(sys.argv[3])
 
-        # Create file list for pkg
-        rePat = f".*{jRoot}.*"
-        fileList = getFilesPkg(pkgDir, rePat = rePat)
-        # fileList
+        if Path(jRoot).is_file():
+            # If a single file is passed, set for this file only.
+            fileList = [jRoot]
+            rePat = None
+            archMode = 'a'  # Set to append to existing archive
+            print(f'Appending file: {jRoot}')
+        else:
+            # If a pattern is passed, create file list for pkg
+            rePat = f".*{jRoot}.*"
+            fileList = getFilesPkg(pkgDir, rePat = rePat)
+            # fileList
 
         # Write zip
         if not dryRun:
-            buildPkg(archName, fileList, pkgDir)
+            buildPkg(archName, fileList, pkgDir, archMode = archMode)
         else:
             print('\n***Pkg dry run')
             # print(f"Job: {item}")
@@ -183,7 +271,7 @@ if __name__ == "__main__":
 
         # Create notebook file list for pkg
         rePat = ".ipynb$"
-        nbFileList = getFilesPkg(pkgDir, rePat = rePat)
+        nbFileList = getFilesPkg(pkgDir, globPat = r"/**/*", rePat = rePat)
 
         if dryRun:
             print("\n***Notebook file list:")
@@ -205,7 +293,7 @@ if __name__ == "__main__":
 
             # Write zip
             if not dryRun:
-                test = buildPkg(archName, fileList, pkgDir)
+                test = buildPkg(archName, fileList, pkgDir, archMode = archMode)
 
                 if test:
                     zipList.append(archName)

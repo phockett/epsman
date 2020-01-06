@@ -127,8 +127,9 @@ def buildArch(self, localLoop = True, dryRun = True):
                 if dryRun:
                     # self.nbDetails[key]['result'] = result
                     self.nbDetails[key]['pkgFileList'] = result.stdout.splitlines()
+                    self.nbDetails[key]['archName'] = archName.as_posix()
                 else:
-                    self.nbDetails[key]['archName'] = archName
+                    self.nbDetails[key]['archName'] = archName.as_posix()
                     self.nbDetails[key]['archBuilt'] = result.stdout
 
     else:
@@ -150,7 +151,24 @@ def buildArch(self, localLoop = True, dryRun = True):
 
         return result
 
+# Update archive with new file(s)
+def updateArch(self, fileIn, archName):
+    """
+    Add file to existing archive.
 
+    NOTE: if file exists in archive it will be skipped, not be updated, since python ZipFile does not support this.
+
+    Parameters
+    ----------
+    fileIn : str or Path
+    """
+    with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
+        result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkg']).as_posix()} \
+                            {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.hostDefn[self.host]['jobSchema']} {fileIn}")
+
+# Basic function to copy files from original job electronic_structure to repo.
+# Generally better to just add file directly to pkg?
+# TODO: add some search logic here for related files?
 def cpESFiles(self, dryRun = True, eSourceDir = None):
     print('\n***Copying electronic structure files')
     if dryRun:
@@ -243,6 +261,12 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
         Default is to search in root dir only, as set in self.hostDefn[self.host]['nbProcDir']
         Note this is only used if reconstructing nbFileList.
 
+
+    TODO:
+    - Fix inconsistent handling of subDirs. Currently set for getNotebookList(), but not remote glob functions.
+    - move repo stuff to separate function, this will be called *after* archives are built.
+        Repo will only need files as set, plus job details.
+
     """
 
     # Check if notebook file list is set, set if missing.
@@ -263,8 +287,10 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
 
     # If eStructCp = True this will copy electronic structure files to job dirs.
     # If dryRun = True will just display commands.
+    # MAY BE CLEANER just add file to archive from original path later....?
     if eStructCp:
         self.cpESFiles(dryRun = dryRun, eSourceDir =  eSourceDir)
+
 
     # Reformat header data (as per notebook header) & set additional info.
     # This is written to file, and used for repo.
@@ -288,8 +314,6 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
                     self.nbDetails[key]['repoInfo'] = self.initRepo()
 
 
-
-
     # Set dir metadata
     self.nbDetails['proc'] = {'host':self.host,
                               'nbProcDir':self.hostDefn[self.host]['nbProcDir'].as_posix(),
@@ -303,8 +327,20 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
         result = self.buildArch(localLoop = False, dryRun = dryRun)
         self.nbDetails['proc']['archLog'] = f"{Path(self.hostDefn[self.host]['nbProcDir'], 'archLog_nohup.log').as_posix()}"
 
-    # if result.stduout ==
-    # print(result.stdout)
+    # UPDATE NOTEBOOKS & ARCHIVES with DOI.
+    #
+    #
+    # With pkg version
+    # for key in job.nbDetails:
+    #     # Skip metadata key if present
+    #     if key!='proc':
+    #         dryRun = False
+    #         fileIn = job.nbDetails[key]['file']
+    #         # jRoot = '/home/femtolab/temp2/aniline/aniline_wf_0.1-1.1eV_orb26_A1.ipynb'
+    #         archName = job.nbDetails[key]['archName']
+    #         with job.c.prefix(f"source {job.hostDefn[job.host]['condaPath']} {job.hostDefn[job.host]['condaEnv']}"):
+    #             result = job.c.run(f"python /home/femtolab/python/epsman/repo/pkgFiles.py {job.hostDefn[job.host]['nbProcDir'].as_posix()} {dryRun} {archName} '2016' {fileIn}")
+
 
     # Write to json file
     # Follow previous file IO scheme: set locally, and push to host
