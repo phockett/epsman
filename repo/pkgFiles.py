@@ -46,6 +46,7 @@ def setJobRoot(nbFileName, jobSchema):
 
     jobSchema : str
         - '2016' Jobs defined as mol/jName_XX-XXeV/
+        - '2016sub' Jobs defined by eV, with subdirs, as mol/*_XX-XXeV/jName
         - '2019' Jobs defined as mol/jName/
         For 2019 schema, energies are interleaved, while for 2016 schema they are treated independently with different jobs.
     """
@@ -55,11 +56,14 @@ def setJobRoot(nbFileName, jobSchema):
     if jobSchema == '2016':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
         return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
+    elif jobSchema == '2016sub':
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
+        return f"{jRoot[1]}//.*{jRoot[2]}_{jRoot[3]}"
     elif jobSchema == '2019':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
         return f"{jRoot[1]}_{jRoot[2]}"
     else:
-        return "Not supported"
+        return None # "Not supported"
 
 
 #*** FOLLOWING COMMANDS TO RUN LOCALLY on host
