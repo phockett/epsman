@@ -141,7 +141,8 @@ def buildArch(self, localLoop = True, dryRun = True):
 
             # Nohup version to allow for lengthy remote
             result = self.c.run(f"{Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkgNohup']).as_posix()} {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkg']).as_posix()} \
-                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {self.hostDefn[self.host]['pkgDir'].as_posix()} {self.hostDefn[self.host]['jobSchema']}",
+                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {self.hostDefn[self.host]['pkgDir'].as_posix()} {self.hostDefn[self.host]['jobSchema']} \
+                                        {self.nbDetails['proc']['archLog']}",
                                         warn = True, timeout = 10)
 
         # TODO: Logic for handling stdout here.
@@ -232,7 +233,7 @@ def getEpoints(jobInfo):
     return parseLineDigits(P)
 
 # Build notebook list & info
-def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False, schema = '2016'):
+def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False, schema = '2016', writeDict = None):
     """
     Build notebook file list + details + archives.
 
@@ -260,6 +261,9 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
         Search for notebooks in subdirs.
         Default is to search in root dir only, as set in self.hostDefn[self.host]['nbProcDir']
         Note this is only used if reconstructing nbFileList.
+
+    writeDict : bool, default = None
+        Set to overwrite ndDetails() dictionary.
 
 
     TODO:
@@ -324,8 +328,10 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
     # Pkg files - build archives for all jobs on remote
     if not dryRun:
         print('\n***Running archive creation on remote.')
+        self.nbDetails['proc']['archLog'] = Path(self.hostDefn[self.host]['nbProcDir'],
+                                                f'archLog_nohup_{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")}.log').as_posix()
         result = self.buildArch(localLoop = False, dryRun = dryRun)
-        self.nbDetails['proc']['archLog'] = f"{Path(self.hostDefn[self.host]['nbProcDir'], 'archLog_nohup.log').as_posix()}"
+
 
     # UPDATE NOTEBOOKS & ARCHIVES with DOI.
     #
@@ -358,15 +364,24 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
 
 
 # Processed job file header creation
-def nbWriteHeader(self):
+def nbWriteHeader(self, writeDict = None):
     """
     Read job info and set header cell for ePSproc Notebooks for repo upload.
     """
     # Init empty dictionary if not set, or use existing details.
-    if not hasattr(self, 'nbDetails'):
+    # This logic seems to fail in some cases... not sure why!
+    # Added manual override in function call.
+    # Also overridden in case that key is missing.
+    if not hasattr(self, 'nbDetails') or writeDict:
         self.nbDetails = {}
         writeDict = True
-    else:
+    elif hasattr(self, 'nbDetails') and (writeDict is None):
+        writeFlag = input('nbDetails already exists, overwrite? (y/n): ')
+        if writeFlag == 'y':
+            writeDict = True
+        else:
+            writeDict = False
+    elif writeDict is None:
         writeDict = False
 
     # Load notebook, write header & save
@@ -388,7 +403,8 @@ def nbWriteHeader(self):
             result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi}')
 
         # Store job info locally
-        if writeDict:
+        # If key is missing ignore writeDict setting and add to dict
+        if writeDict or (n not in self.nbDetails.keys()):
             jobInfo = result.stdout.splitlines()
 
             if '***Missing' in jobInfo[2]:
