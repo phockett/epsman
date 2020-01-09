@@ -40,7 +40,10 @@ class epsJob():
     from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
     from ._util import getFileList, checkFiles, pushFile
     from ._paths import setScripts, setPaths
-    from ._repo import nbWriteHeader, buildUploads, buildArch, getArchLogs, cpESFiles
+    from ._repo import nbWriteHeader, buildUploads, updateUploads, submitUploads,
+                        buildArch, updateArch, getArchLogs, checkArchFiles, cpESFiles,
+                        initRepo, delRepoItem, uploadRepoFiles,
+                        writeNBdetailsJSON, readNBdetailsJSON 
 
     def __init__(self, host = None, user = None, IP = None, password = None):
         """

@@ -26,7 +26,9 @@ def setScripts(self):
     # Python scripts for repo processing & packaging, currently in /repo directory.
     self.scpDefnRepo = {'nb-post-doi':'nbHeaderPost.py',
                     'pkg':'pkgFiles.py',
-                    'pkgNohup':'pkgRemoteNohup.sh'
+                    'pkgNohup':'pkgRemoteNohup.sh',
+                    'upload':'remoteUpload.py',
+                    'uploadNohup':'remoteUploadNohup.sh'
                     }
 
 
@@ -51,6 +53,7 @@ def setPaths(self):
 
     # Set additional path for repo scripts - this should be moved somewhere more sensible!
     self.hostDefn[self.host]['repoScpPath'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/repo')
+    self.hostDefn[self.host]['localSettings'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/localSettings')
 
     # Print
     print('\n***Default paths set')

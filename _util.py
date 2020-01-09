@@ -55,7 +55,7 @@ def getFileList(self, scanDir, fileType = 'out', subDirs = True, verbose = True)
         # Globstar: shopt -s globstar
         Result = self.c.run(f"shopt -s globstar; ls -d -1 '{scanDir}/'**/* | grep \.{fileType}$", warn = True, hide = True)
     else:
-        Result = self.c.run('ls ' + self.hostDefn[self.host]['nbProcDir'].as_posix() + '*.{fileType}', warn = True, hide = True)
+        Result = self.c.run(f"ls {scanDir}/*.{fileType}", warn = True, hide = True)
 
     fileList = Result.stdout.split()
 

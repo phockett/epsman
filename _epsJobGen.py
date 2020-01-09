@@ -22,8 +22,23 @@ import getpass
 from pathlib import Path
 import datetime
 
-def initConnection(self, host = None, user = None, IP = None, password = None):
-    """Init connection to selected machine & test."""
+def initConnection(self, host = None, user = None, IP = None, password = None, home = None):
+    """
+    Init connection to selected machine & test.
+
+    Parameters
+    ----------
+    host
+
+    user
+
+    IP
+
+    password
+
+    home 
+
+    """
 
     # Set values if passed (but don't overwrite set values)
     if self.host is None and host is not None:
@@ -34,7 +49,7 @@ def initConnection(self, host = None, user = None, IP = None, password = None):
         self.IP = IP
     if self.password is None and password is not None:
         self.password = password
-    
+
     # Check if host definitions are already set, set if missing
     if self.host in self.hostDefn.keys():
         if 'IP' not in self.hostDefn[self.host].keys() and self.IP is None:
@@ -91,8 +106,15 @@ def initConnection(self, host = None, user = None, IP = None, password = None):
     # Build dir list if not already set
     if 'home' not in self.hostDefn[self.host].keys():
         print('\n\nSetting host dir tree.')
-        self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
-        testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
+
+        if home is None:
+            self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
+        else:
+            self.hostDefn[self.host]['home'] = Path(home)
+
+        # testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
+        testwrkdir = self.c.run(f'cd {home}; ls -d eP*', hide = True, warn = True).stdout.split()
+
         if len(testwrkdir) > 1:
             print('Found multiple ePS directories, please select working dir:')
             # print(testwrkdir)
@@ -101,8 +123,11 @@ def initConnection(self, host = None, user = None, IP = None, password = None):
 
             N = int(input('List item #: '))
             self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[N])
-        else:
+        elif testwrkdir:
             self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[0])
+        else:
+            print('No ePS* subdirs found, setting work dir as home dir.')
+            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'])
 
         print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
 
