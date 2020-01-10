@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     # Upload files & log result.
     for key in nbDetails:
-        if key!='proc' and nbDetails[key]['pkg']:
+        if key!='proc' and nbDetails[key]['pkg'] and self.nbDetails[key]['archFilesOK']:
             nbDetails[key]['repoFilesUpload'] = uploadRepoFiles(nbDetails, key, ACCESS_TOKEN)
 
     # Write to new JSON file

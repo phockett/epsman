@@ -112,7 +112,9 @@ def getFilesPkg(pkgDir, globPat = r"/**/*[!zip, !ipynb]", rePat = None, recursiv
 
     return fileListRe
 
-
+# THIS IS NOT REQUIRED - just call this script with single file.
+# See _repo.updateArch()
+#
 # def addArchFile(archName, fileIn, cType = zipfile.ZIP_LZMA):
 #     """Add single file to an archive"""
 #     # Open archive & write files
@@ -151,6 +153,10 @@ def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZM
     cType : int, default = zipfile.ZIP_LZMA (=14)
         Compression level.
 
+    TODO:
+    - Check if arch exists for 'w' case?
+    - File size checks to add?
+
     """
     # Set variable for file additions
     dupList = []
@@ -159,12 +165,20 @@ def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZM
     with ZipFile(archName, archMode, compression=cType) as pkgZip:
         for fileIn in fileList:
             dupPath = None
+
+            # Test & set relative paths for file in archive - may fail in some cases if path root is different.
+            try:
+                arcFile = Path(fileIn).relative_to(pkgDir)
+            except ValueError:
+                arcFile = Path(fileIn).name  # In this case just take file name, will go in archive root
+
             # Add file to existing arch, check file exists first.
             if archMode == 'a':
                 # Check all files in arch, names only.
                 for fileName in pkgZip.namelist():
                     # if Path(fileName).name == Path(fileIn).name:  # May want to use Path(fileIn).relative_to(pkgDir) here for consistency and to allow subdirs with same files?
-                    if Path(fileIn).relative_to(pkgDir) == Path(fileName):
+                    # if Path(fileIn).relative_to(pkgDir) == Path(fileName):
+                    if arcFile == Path(fileName):
                         dupPath = fileName
                         dupList.append([fileIn, fileName])
                 #
@@ -172,11 +186,11 @@ def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZM
                 if dupPath is not None:
                     print(f'File: {fileIn} already in archive as {fileName}.')
                 else:
-                    pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
+                    pkgZip.write(fileIn, arcname = arcFile)
 
             else:
                 # Write file, set also arcname to fix relative paths
-                pkgZip.write(fileIn, arcname = Path(fileIn).relative_to(pkgDir))
+                pkgZip.write(fileIn, arcname = arcFile)
 
         # Check file is OK
         if (pkgZip.testzip() is None) and (not dupList):
@@ -195,6 +209,7 @@ def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZM
             # failList.append(archName)
             print(f'*** Archive {archName} failed')
             return False
+
 
 # Additional code for checking archives.
 def checkArch(archName):
