@@ -214,8 +214,8 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v2', scp = 'nb-sh-J
     proc = len(self.jobList)
 
     # With nohup wrapper script to allow job to run independently of terminal.
-    # Turn warnings off, and set low timeout, to ensure hangup... probably...
-    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 20)
+    # Turn warnings off, and set low timeout, to ensure hangup after jobs started (note: if too short, this will throw an error even if successful)
+    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 40)
 
 # Tidy up auto-generated notebook files on remote.
 def tidyNotebooks(self, rename = True, cp = True, dryRun = False):
@@ -297,3 +297,23 @@ def getNotebooks(self):
     for item in self.nbFileList:
         result = self.c.get(item)
         print(f"Pulled notebook {result.remote} to {result.local}")
+
+# Kill all running notebooks on remote
+def killNotebooks(self, jobName = "ZMQbg/1"):
+    """
+    Run pkill on remote to stop running notebooks.
+
+    Parameters
+    -----------
+    jobName : str, default "ZMQbg/1"
+        Jobs to kill, will be passed to remote machine as `pkill {jobName}`.
+        Default corresponds to background tasks started with nohup script.
+
+    """
+
+    print(f'\n***Killing remote jobs {jobName}')
+    # Kill all jobs on remote...
+    result = self.c.run(f'pkill {jobName}')
+
+    if result.ok:
+        print("OK")

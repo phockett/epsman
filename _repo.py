@@ -27,6 +27,7 @@ import json
 import datetime
 from pathlib import Path
 import requests
+import pprint  # For dict printing
 
 # Local
 from ._util import parseLineDigits
@@ -48,7 +49,7 @@ def initZenodo(fileIn):
 
 
 # Zenodo API interface
-def initRepo(self, key, dryRun = True):
+def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
     """
     Basic API calls for repo uploading
 
@@ -66,7 +67,7 @@ def initRepo(self, key, dryRun = True):
     # MAY WANT TO SET TEMPLATE for this elsewhere...?
 
     keyURL = 'test'
-    stringHTML = f'{self.nbDetails[key]['title']} - photoionization calculations with ePolyScat + ePSproc.' + \
+    stringHTML = f"{self.nbDetails[key]['title']} - photoionization calculations with ePolyScat + ePSproc." + \
                  f"\n*Web version*: <a href=http://github.pages/{keyURL}>http://github.pages/{keyURL}</a>" + \
                  "\nFor more details of the calculations, see: " + \
                  "<ul><li><a href=http://github.pages/about>About the data</a>" + \
@@ -95,42 +96,85 @@ def initRepo(self, key, dryRun = True):
                  }
              }
 
+    # Info & verify - belt and braces approach at the moment.
+    print(f"\n***Init repo for job: {self.nbDetails[key]['title']}, with {self.nbDetails[key]['repo']}")
+
+    if manualVerify and self.nbDetails[key]['pkg'] and not dryRun:
+        uploadFlag = input(f"Confirm repo init? (y/n) ")
+
+        if uploadFlag == 'y':
+            self.nbDetails[key]['repoVerify'] = True
+        else:
+            self.nbDetails[key]['repoVerify'] = False
+
+    elif not manualVerify and self.nbDetails[key]['pkg'] and not dryRun:
+        self.nbDetails[key]['repoVerify'] = True
+
+    else:
+        self.nbDetails[key]['repoVerify'] = False
+
+
     #*** Confirm job is set for packaging & upload, and init repo.
     # As it stands, this will create a deposition, and get info from Zenodo (doi etc.)
     # TODO: SET additional upload flag/checks here?
-    if self.nbDetails[key]['pkg'] and not dryRun:
+    if self.nbDetails[key]['repoVerify'] and self.nbDetails[key]['pkg'] and not dryRun:
+
         # Set new upload with metadata
-        ACCESS_TOKEN = initZenodo(self.hostDefn[self.host]['localSettings']/'zenodoSettings.dat')
-        headers = {"Content-Type": "application/json"}
-        r = requests.post('https://zenodo.org/api/deposit/depositions',
-                           params={'access_token': ACCESS_TOKEN}, json={}, data=json.dumps(data),
-                           headers=headers)
+        ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
+        record = None
+
+        # Check record doesn't exist already
+        r = requests.get('https://zenodo.org/api/deposit/depositions',
+                        params={'q': self.nbDetails[key]['title'], 'access_token': ACCESS_TOKEN})
+
+        if r.json():
+            print(f"{self.nbDetails[key]['title']} repo already exists, repo details recovered.")
+            if len(r.json()) > 1:
+                print(f"***Warning: found {len(r.json())} matching repo records...")
+                for n, item in enumerate(r.json()):
+                    print(f"Record {n}: {item['title']}, created {item['created']}")
+
+                record = input('Set record to use: ')
+                # r.json() = r.json()[record]
+            else:
+                record = 0  #r.json() = r.json()[0]
+
+        else:
+            headers = {"Content-Type": "application/json"}
+            r = requests.post('https://zenodo.org/api/deposit/depositions',
+                               params={'access_token': ACCESS_TOKEN}, json={}, data=json.dumps(data),
+                               headers=headers)
+            print(f"{self.nbDetails[key]['title']} repo created.")
 
         # deposition_id = r.json()['id']
 
         if r.ok:
-            self.nbDetails[key]['repoInfo'] = r.json()  # Returns metadata plus repo settings
+            if record is None:
+                self.nbDetails[key]['repoInfo'] = r.json()  # Returns metadata plus repo settings
+            else:
+                self.nbDetails[key]['repoInfo'] = r.json()[record]  # Case where multiple records are returned
+
             self.nbDetails[key]['doi'] = self.nbDetails[key]['repoInfo']['metadata']['prereserve_doi']['doi']
             print(f"Repo details set.")
             if verbose:
-                print(self.nbDetails[key]['repoInfo'])
+                pprint.pprint(self.nbDetails[key]['repoInfo'])
         else:
             self.nbDetails[key]['repoInfo'] = r.status_code  # Returns error code
             print(f"Repo comms failed, code: {r.status_code}")  # Should return 201
 
     else:
-        print(f"self.nbDetails[key]['title'] skipped repo creation.")
+        print(f"\n***{self.nbDetails[key]['title']} skipped repo creation.")
 
     if dryRun:
-        print('***Repo init dry run')
+        print('\n***Repo init dry run')
         print(stringHTML)
-        print(data)
+        pprint.pprint(data)
 
 
 def delRepoItem(self, key):
     """Delete item from repo (Zenodo) - for unpublished items only."""
 
-    ACCESS_TOKEN = initZenodo(self.hostDefn[self.host]['localSettings']/'zenodoSettings.dat')
+    ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
     r = requests.delete('https://zenodo.org/api/deposit/depositions/%s' % self.nbDetails[key]['repoInfo']['id'],
                         params={'access_token': ACCESS_TOKEN})
     if r.ok:
@@ -148,7 +192,7 @@ def uploadRepoFiles(self, key):
 
     """
 
-    ACCESS_TOKEN = initZenodo(self.hostDefn[self.host]['localSettings']/'zenodoSettings.dat')
+    ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
     url = f"https://zenodo.org/api/deposit/depositions/{self.nbDetails[key]['repoInfo']['id']}/files?access_token={ACCESS_TOKEN}"
 
     outputs = []
@@ -200,6 +244,7 @@ def buildArch(self, localLoop = True, dryRun = True):
     To do
     -----
     - Search logic for electronic structure files.
+    - Call
 
     """
 
@@ -238,6 +283,8 @@ def buildArch(self, localLoop = True, dryRun = True):
                 self.nbDetails[key]['jRoot'] = jRoot
 
                 archName = Path(self.hostDefn[self.host]['pkgDir'], item.stem + '.zip')
+
+                # Check if archive exists & get file list
 
                 # Generate filelist - based on code in getNotebookJobList()
                 # Glob for files matching job, inc. subdirs, skip any zip files found.
@@ -284,7 +331,7 @@ def buildArch(self, localLoop = True, dryRun = True):
         return result
 
 # Update archive with new file(s)
-def updateArch(self, fileIn, archName):
+def updateArch(self, fileIn, archName, dryRun = True):
     """
     Add file to existing archive.
 
@@ -306,27 +353,102 @@ def updateArch(self, fileIn, archName):
 
     return result
 
-def checkArchFiles(self, key):
-    """Check archive file contents on remote and compare with local contents list"""
 
-    # Get arch contents from remote via Fabric.
-    with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
-        result = self.c.run(f"python -m zipfile -l {self.nbDetails[key][archName]}")
+def checkArchFiles(self, key = None, archName = None, verbose = False):
+    """
+    Check archive file contents on remote and compare with local contents list
 
-    # Compare with local lsit
-    archFiles = results.stdout.spltlines()
-    localList = self.nbDetails[key]['pkgFileList'][5:]
-    fileComp = list(set(localList) - set(archFiles))  # Compare lists as sets
+    Parameters
+    -----------
+    key : int or str
+        Item key in self.nbDetails
 
-    # Results
-    print(f"***Checking archive: {self.nbDetails[key][archName]}")
-    print(f"Found {len(archFiles)} on remote. Local list length {len(localList)}.")
+    archName : str or Path object
+        If supplied, use instead of self.nbDetails[key]['archName']
+
+    Either key or archName must be supplied.
+
+    Returns
+    --------
+    localListRel, archFiles : list
+        Local files with relative paths & archive file list.
+
+    fileComp : list
+        Difference between lists.
+
+    result : Fabric object
+        Full return from remote, .stdout includes archFiles and file details.
+
+    """
+
+    # Set archive from passed args.
+    if key is not None and archName is None:
+        archName = self.nbDetails[key]['archName']
+    elif key is None and archName is None:
+        print('Skipping archive checks, no archive supplied.')
+        return None
+
+    # Check if file exists on remote
+    # Note this returns a list
+    archExists = self.checkFiles(archName)
+
+    if archExists[0]:
+        # Get arch contents from remote via Fabric.
+        with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
+            result = self.c.run(f"python -m zipfile -l {archName}", hide = True)
+
+        # Compare with local lsit
+        # archFiles = result.stdout.splitlines()
+        # localList = self.nbDetails[key]['pkgFileList'][5:]
+        # fileComp = list(set(localList) - set(archFiles))  # Compare lists as sets
+        archFiles = [(line.split()[0]) for line in result.stdout.splitlines()[1:]]  # Keep file names only (drop header, and file properties)
+        localList = self.nbDetails[key]['pkgFileList'][5:]
+
+        # Test & set relative paths for local files in archive
+        localListRel = []
+        for fileIn in localList:
+            try:
+                localListRel.append(Path(fileIn).relative_to(self.hostDefn[self.host]['nbProcDir']).as_posix())
+            except ValueError:
+                localListRel.append(Path(fileIn).name)  # In this case just take file name, will go in archive root
+
+        fileComp = list(set(localListRel) - set(archFiles))  # Compare lists as sets
+
+        # Results
+        print(f"\n***Checking archive: {archName}")
+        print(f"Found {len(archFiles)} on remote. Local list length {len(localList)}.")
+
+        # This will run if fileComp is not an empty list
+        if fileComp:
+            print(f"Difference: {len(archFiles) - len(localList)}")
+            print("File differences:")
+            print(*fileComp, sep = '\n')
+
+        else:
+            print("Local and remote file lists match.")
+
+
+    else:
+        print(f"***Missing archive: {archName}")
+        fileComp = None
+
+    # Set fileComp
+    # Either empty, None or list of differences.
+    self.nbDetails[key]['archFileCheck'] = fileComp
     if fileComp:
-        print(f"Difference: {len(archFiles) - len(localList)}")
-        print("File differences:")
-        print(*fileComp, sep = '\n')
+        self.nbDetails[key]['archFilesOK'] = False
+    elif fileComp is None:
+        self.nbDetails[key]['archFilesOK'] = False
+    else:
+        self.nbDetails[key]['archFilesOK'] = True
 
-    return fileComp
+    if verbose:
+        print("\n***Local file list:")
+        print(*localListRel, sep='\n')
+        print("\n***Archive file list:")
+        print(*archFiles, sep='\n')
+
+    return localListRel, archFiles, fileComp, result
 
 
 # Basic function to copy files from original job electronic_structure to repo.
@@ -362,6 +484,10 @@ def cpESFiles(self, dryRun = True, eSourceDir = None):
                 if checkList[0] and not dryRun:
                     result = self.c.run('mkdir -p ' + eDir.as_posix())
                     result = self.c.run(f"cp {self.nbDetails[key]['elecStructure']} {eDir}")
+                    if result.ok:
+                        print(f"cp {self.nbDetails[key]['elecStructure']} {eDir} OK")
+                    else:
+                        print(f"*** cp {self.nbDetails[key]['elecStructure']} {eDir} failed")
 
                 else:
                     print(f"Skipping command: cp {self.nbDetails[key]['elecStructure']} {eDir}")
@@ -383,6 +509,8 @@ def getArchLogs(self):
     else:
         print(f"Archives not yet written.")
 
+#*********************************************
+#***  Additional utility functions
 
 # Get E points from jobInfo
 def getEpoints(jobInfo):
@@ -394,11 +522,25 @@ def getEpoints(jobInfo):
 
     return parseLineDigits(P)
 
+def nbDetailsSummary(self):
+    """Print notebook stats."""
+
+    # Get totals
+    nbTotal = len(self.nbDetails.keys()) - 1
+    pkgTotal = sum([1 for key in self.nbDetails.keys() if key!='proc' and self.nbDetails[key]['pkg']])
+    pkgList = [Path(self.nbDetails[key]['file']).relative_to(self.hostDefn[self.host]['nbProcDir']).as_posix() \
+                for key in self.nbDetails.keys() if key!='proc' and self.nbDetails[key]['pkg']];
+
+    print("\n***nbDetails summary")
+    print(f"Found {nbTotal} notebooks, {pkgTotal} marked for packaging:")
+    print(*pkgList, sep='\n')
+
+
 #***********************************************************************************************
 #***High-level functions for building and updating uploads (packages)
 
 # Build notebook list & info
-def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = True, eSourceDir = None, nbSubDirs = False, schema = '2016', writeDict = None):
+def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = False, dryRun = True, eStructCp = True, eSourceDir = None, nbSubDirs = False, schema = '2016', writeDict = None):
     """
     Build notebook file list + details + archives.
 
@@ -412,7 +554,14 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
     repo : str, default = 'Zenodo'
         Set repo for uploading. Currenly only supports Zenodo.
 
-    dryRun : bool, default = False
+    repoDryRun : bool, default = True
+        Set to False to initiate job with repo (passed to initRepo(dryRun = repoDryRun)).
+        If True, details will be printed to screen only.
+
+    verbose : bool, default = False
+        If True, print repo details.
+
+    dryRun : bool, default = True
         Set to True to get file info etc, but skip writing archives.
 
     eStructCp : bool, default = True
@@ -481,7 +630,7 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
                 if int(self.nbDetails[key]['E'][-1]) > Emin:
                     self.nbDetails[key]['pkg'] = True
                     self.nbDetails[key]['repo'] = repo
-                    self.initRepo(dryRun = dryRun)  # This will init comms with repo (Zenodo) and get doi etc.
+                    self.initRepo(key, dryRun = repoDryRun, verbose = verbose)  # This will init comms with repo (Zenodo) and get doi etc.
 
 
     # Set dir metadata
@@ -504,13 +653,22 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', dryRun = False, eStructCp = Tr
     # Write nbDetials to JSON file
     self.writeNBdetailsJSON()
 
+    self.nbDetailsSummary()
 
-def updateUploads(self)
+
+def updateUploads(self, dryRun = True, verbose = False):
 
     # UPDATE NOTEBOOKS & ARCHIVES with DOI.
     # PLUS add missing files to archives.
     # Should init repo here too? Keep it separate from archive build. ACTUALLY OK to set above, since DOI remains reserved for at least 24hrs.
     #
+
+    # Check repo is initialized - may not be in some cases of manual arch build.
+    # May also want to check for self.nbDetails[key]['repoInfo'] here.
+    for key in self.nbDetails:
+        if key!='proc' and self.nbDetails[key]['pkg']:
+            if self.nbDetails[key]['doi'] is None:
+                self.initRepo(key, dryRun = False, verbose = verbose)
 
     # Rerun nbWriteHeader() to set DOIs correctly in notebooks flagged for repo - don't overwrite nbDetails.
     # TODO: pull info here on notebook writing...?  Currently will be printed to screen only.
@@ -526,16 +684,24 @@ def updateUploads(self)
             fileList = [self.nbDetails[key]['file'], self.nbDetails[key]['elecStructure']]
 
             for fileIn in fileList:
-                result = self.updateArch(fileIn, self.nbDetails[key]['archName'])
+                result = self.updateArch(fileIn, self.nbDetails[key]['archName'], dryRun = dryRun)
 
                 if result.ok:
                     self.nbDetails[key]['pkgFileList'].append(fileIn)  # Update pkg filelist
 
-            # TODO: check archives here...?
+            # Check archives.
+            # NOTE: if the above code is rerun it will append the same files repeatedly, but they won't be added to the archive.
+            # TODO: additional error checking above!
+            self.checkArchFiles(key);
+
+
             # TODO: consider filesize, might be upload limit (100Mb per file on Zenodo...?)
 
             # Set file list for repo upload
             self.nbDetails[key]['repoFiles'] = [self.nbDetails[key]['file'], self.nbDetails[key]['archName']]
+
+    # Update nbDetials JSON file
+    self.writeNBdetailsJSON()
 
 
 def submitUploads(self, local = False):
@@ -544,12 +710,12 @@ def submitUploads(self, local = False):
     if local:
         for key in self.nbDetails:
             # Skip metadata key if present
-            if key!='proc' and self.nbDetails[key]['pkg']:
+            if key!='proc' and self.nbDetails[key]['pkg'] and self.nbDetails[key]['archFilesOK']:
                 self.uploadRepoFiles(key)
 
     else:
     # Upload on remote machine.
-        ACCESS_TOKEN = initZenodo(self.hostDefn[self.host]['localSettings']/'zenodoSettings.dat')
+        ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
         with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
             result = self.c.run(f"{Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['uploadNohup']).as_posix()} \
                                 {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['upload']).as_posix()} \
@@ -573,9 +739,9 @@ def writeNBdetailsJSON(self):
     # Follow previous file IO scheme: set locally, and push to host
 
     # Set filename if not already set.
-    if not hasattr(self, jsonProcFile):
+    if not hasattr(self, 'jsonProcFile'):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
-        jsonProcFile = self.hostDefn[self.host]['nbProcDir'].name + '_' + self.host + '_nbProc' + timestamp + '.json'
+        jsonProcFile = self.hostDefn[self.host]['nbProcDir'].name + '_' + self.host + '_nbProc_' + timestamp + '.json'
         self.jsonProcFile = Path(self.hostDefn['localhost']['wrkdir'], jsonProcFile)
 
     # Write to JSON.  Note Path() objects won't serialize.
@@ -598,7 +764,7 @@ def readNBdetailsJSON(self, overwrite = None):
     print("***Reading local JSON file for nbDetails.")
 
     # Get filename if not already set.
-    if not hasattr(self, jsonProcFile):
+    if not hasattr(self, 'jsonProcFile'):
         print("nbDetails JSON filename not set.")
         fileIn = input('Filename?: ')
         if Path(fileIn).is_file():
@@ -608,7 +774,7 @@ def readNBdetailsJSON(self, overwrite = None):
             return False
 
     # Check for existing data
-    if not hasattr(self, nbDetails) and (overwrite is None):
+    if not hasattr(self, 'nbDetails') and (overwrite is None):
         owInput = input("nbDetails already exists, overwrite? (y/n): ")
         if owInput == 'y':
             overwrite = True
@@ -635,8 +801,9 @@ def nbWriteHeader(self, writeDict = None):
         self.nbDetails = {}
         writeDict = True
     elif hasattr(self, 'nbDetails') and (writeDict is None):
-        writeFlag = input('nbDetails already exists, overwrite? (y/n): ')
+        writeFlag = input('nbDetails already exists, reinit and overwrite? (y/n): ')
         if writeFlag == 'y':
+            self.nbDetails = {}  # Reinit dict in this case, otherwise may retain some old entries
             writeDict = True
         else:
             writeDict = False
@@ -646,7 +813,7 @@ def nbWriteHeader(self, writeDict = None):
     # Load notebook, write header & save
     # NOTE - this requires doi to be preset.
     for n, nb in enumerate(self.nbFileList):
-        # Register job with repo - to do.
+        # Register job with repo - NOW DONE LATER in buildUploads() and initRepo()
         # For now just check for doi setting here, pass None if not set (to read header only).
         if n in self.nbDetails.keys():
             if 'doi' in self.nbDetails[n]:
@@ -671,13 +838,14 @@ def nbWriteHeader(self, writeDict = None):
                 title = None
             else:
                 Elist = getEpoints(jobInfo)
-                title = jobInfo[1].split(',')[0]
+                title = jobInfo[3].split(',')[0].strip()
 
             self.nbDetails.update({n:{'file':nb,  # Path(nb),  # Setting Path object here gives issues with json seralization later!
                                      'doi':doi,
                                      'title':title,
                                      'jobInfo':jobInfo,
-                                     'E':Elist
+                                     'E':Elist,
+                                     'pkg':False  # Set pkg default = False, used later to check for arch creation & repo upload.
                                     }})
 
 

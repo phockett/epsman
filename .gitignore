@@ -2,3 +2,4 @@ __pycache__
 *.bk
 .ipynb_checkpoints
 localSettings
+tests

@@ -61,10 +61,37 @@ def constructHeader(jobInfo, fileIn, doi = None):
 
     return sourceText
 
+
+# Define footer info
+# TODO: add citation info here
+def constructFooter(jobInfo, fileIn, doi = None):
+
+    return None
+
+    # Ensure fileIn is Path object
+    # fileIn = Path(fileIn)
+    #
+    # # Construct new header with file info + DOI.
+    # # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.
+    # sourceText = ("\n".join(['# Cite this: ' + jobInfo[1].split(',')[0],
+    #                             "<br>".join([
+    #                                 '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
+    #                                 '*ePS output file*: ' + fileIn.stem + '.inp.out',
+    #                                 f"*Web version*: http://github.pages/{fileIn.stem}",
+    #                                 f"DOI (dataset): [http://dx.doi.org/{doi}]({doi})"]),
+    #                             '',
+    #                             '## Job details',
+    #                              "<br>".join(jobInfo[0:4])]))
+    #
+    # return sourceText
+
+
+
 # Routine to grab relevant electronic structure files and copy to job dir for packaging.
 # def getEstructureFiles(fileIn, fileInfo):
 #     """Copy electronic structure files to job output file structure"""
-
+#
+#  *** THIS IS NOW SET IN _repo.py, cpESFiles()
 
 
 # Write header info and save notebook
@@ -75,6 +102,12 @@ def writeHeader(inputNB, jobInfo):
     inputNB['cells'][0] = nbformat.v4.new_markdown_cell(source = sourceText)
     nbformat.write(inputNB, fileIn.as_posix(), version = 4)
 
+# Write header info and save notebook
+def writeFooter(inputNB):
+    # Replace header cell and save.
+    # inputNB['cells'][0] = nbformat.v4.new_markdown_cell(source = ['doi: ', doi])
+    inputNB['cells'].append(nbformat.v4.new_markdown_cell(source = sourceText))
+    nbformat.write(inputNB, fileIn.as_posix(), version = 4)
 
 # If running as main, take passed args and run functions.
 if __name__ == "__main__":
@@ -99,6 +132,8 @@ if __name__ == "__main__":
         # Generate header from jobInfo
         sourceText = constructHeader(jobInfo, fileIn, doi)
         writeHeader(inputNB, sourceText)
+        # sourceText = constructFooter(jobInfo, fileIn, doi)
+        # writeFooter(inputNB, sourceText)
         print(f'\n***Written notebook header: {fileIn}')
 
     else:

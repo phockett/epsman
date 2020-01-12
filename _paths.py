@@ -20,6 +20,7 @@ def setScripts(self):
                     'wf-sph':'ePS_input_write_template_wf_sph.sh',
                     'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
+                    'nb-tpl-JR-v3':'ePSproc_epsman_template_tidy_100119_JR-single.ipynb',
                     'nb-sh-JR':'jr_epsProc_nb.sh'
                     }
 
@@ -53,7 +54,12 @@ def setPaths(self):
 
     # Set additional path for repo scripts - this should be moved somewhere more sensible!
     self.hostDefn[self.host]['repoScpPath'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/repo')
-    self.hostDefn[self.host]['localSettings'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/localSettings')
+    self.hostDefn['localhost']['localSettings'] = Path(self.hostDefn['localhost']['home'], 'python/epsman/localSettings')  # Local settings required on localhost only...?
+                                                                                                                          # So far just used for access tokens and such.
+    # self.hostDefn[self.host]['localSettings'] = self.hostDefn['localhost']['localSettings']
+
+    # Set web paths
+    self.hostDefn[self.host]['webDir'] = Path(self.hostDefn[self.host]['home'], 'epsdata')
 
     # Print
     print('\n***Default paths set')
