@@ -21,6 +21,7 @@ def setScripts(self):
                     'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
                     'nb-tpl-JR-v3':'ePSproc_epsman_template_tidy_100119_JR-single.ipynb',
+                    'nb-tpl-JR-v4':'ePSproc_epsman_template_tidy_120119_JR-single.ipynb',
                     'nb-sh-JR':'jr_epsProc_nb.sh'
                     }
 

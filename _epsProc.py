@@ -235,6 +235,10 @@ def tidyNotebooks(self, rename = True, cp = True, dryRun = False):
     dryRun : bool, default = False
         Set to True for dry run, print file commands but don't execute.
 
+    TODO
+    -----
+    - Add options for tidy/move/delete processing results from original dirs.
+
     """
 
     # Tidy up output notebooks
