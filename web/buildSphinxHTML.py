@@ -28,14 +28,16 @@ def genSphinxIndex(sourceDir):
 
     # Set main index string.
     indexSting = f"""
-ePS data
-==========================================
+ePS data: Photoionization calculations archive
+===============================================
 
 .. toctree::
  :maxdepth: 2
  :caption: Contents:
 
  about
+ methods
+ cite
                 """
 
     # Set toc per dir
