@@ -7,6 +7,8 @@ Can be called from Fabric for remote run case, only requires standard libs.
 
 May be a better way to do this?
 
+15/01/20    Change file type pattern matching from globPat to rePat - fixes bug with some files being ignored erroneously.
+
 01/01/20    v1
 
 """
@@ -58,7 +60,8 @@ def setJobRoot(nbFileName, jobSchema):
         return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
     elif jobSchema == '2016sub':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
-        return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
+        # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
+        return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
     elif jobSchema == '2019':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
         return f"{jRoot[1]}_{jRoot[2]}"
@@ -75,7 +78,7 @@ def setJobRoot(nbFileName, jobSchema):
 
 # Python version
 
-def getFilesPkg(pkgDir, globPat = r"/**/*[!zip, !ipynb]", rePat = None, recursive=True):
+def getFilesPkg(pkgDir, globPat = r"/**/*[!zip]", rePat = None, recursive=True):
     """
     Glob pkgDir with globPat, and optional re matching with rePat.
 
@@ -86,12 +89,14 @@ def getFilesPkg(pkgDir, globPat = r"/**/*[!zip, !ipynb]", rePat = None, recursiv
     pkgDir : str or Path object
         Directory to search.
 
-    globPat : str, optional, default = r"/**/*[!zip, !ipynb]"
-        Default pattern for globbing, will search dir for all files, except .zip and .ipynb
+    globPat : str, optional, default = r"/**/*"
+        Default pattern for globbing, will search dir for all files.
+        Supports basic pattern matching, e.g. r"/**/*[!zip], but note glob matches chars - use re for more control.
 
     rePat : str, optional, default = None
         Regular expression for filtering glob output.
         E.g. rePat = ".*substring.*"  to search for 'substring' in glob output.
+        rePat = ".*substring.*$(?<zip)" to exclude zip files.
 
     recursive : bool, optional, default = True
         Recursive glob: if True, search subdirs too (with ** pattern).
@@ -156,6 +161,7 @@ def buildPkg(archName, fileList, pkgDir, archMode = 'w', cType = zipfile.ZIP_LZM
     TODO:
     - Check if arch exists for 'w' case?
     - File size checks to add?
+    - Summary for files & dirs, and verbosity level.
 
     """
     # Set variable for file additions
@@ -232,6 +238,8 @@ def checkArch(archName):
 # If jRoot is a file, then add this to archive, otherwise search for files based on jRoot.
 # For jRoot case jobSchema is not used, but currently setting method by len(sys.argv), so required.
 # TODO: better logic here!
+# NOTE: for no jRoot case, rePat = f".*{jobSchema def}.*$(?<!zip)(?<!ipynb)"
+#        Otherwise rePat = f".*{jRoot}.*" for basic substring match.
 if __name__ == "__main__":
 
     # Passed args - this is root dir containing notebooks + ePS output subdirs.
@@ -307,7 +315,8 @@ if __name__ == "__main__":
             archName = Path(archDir, item.stem + '.zip')
 
             # Create file list for pkg
-            rePat = f".*{jRoot}.*"
+            # rePat = f".*{jRoot}.*"
+            rePat = f".*{jRoot}.*$(?<!zip)(?<!ipynb)"  # Use this for file end exclusion, rather than glob, from https://stackoverflow.com/a/10055688
             fileList = getFilesPkg(pkgDir, rePat = rePat)
 
             # Write zip
