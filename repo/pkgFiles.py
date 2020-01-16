@@ -78,7 +78,7 @@ def setJobRoot(nbFileName, jobSchema):
 
 # Python version
 
-def getFilesPkg(pkgDir, globPat = r"/**/*[!zip]", rePat = None, recursive=True):
+def getFilesPkg(pkgDir, globPat = r"/**/*", rePat = None, recursive=True):
     """
     Glob pkgDir with globPat, and optional re matching with rePat.
 
@@ -277,7 +277,8 @@ if __name__ == "__main__":
             print(f'Appending file: {jRoot}')
         else:
             # If a pattern is passed, create file list for pkg
-            rePat = f".*{jRoot}.*"
+            # NOTE: currently set to ignore zip and ipynb files for later inclusion via single-file calls.
+            rePat = f".*{jRoot}.*$(?<!zip)(?<!ipynb)"
             fileList = getFilesPkg(pkgDir, rePat = rePat)
             # fileList
 
