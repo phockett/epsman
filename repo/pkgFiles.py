@@ -61,7 +61,8 @@ def setJobRoot(nbFileName, jobSchema):
     elif jobSchema == '2016sub':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
         # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
-        return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
+        # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
+        return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
     elif jobSchema == '2019':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
         return f"{jRoot[1]}_{jRoot[2]}"
