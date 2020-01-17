@@ -624,19 +624,32 @@ def fileListCheck(self, key = None, verbose = True, errorCheck = True):
             #     print("***Warning: No .dat files found")
             # elif (c['.dat'] != self.nbDetails[key]['E'][2]*5):
             #     print(f"***Warning: found {c['.dat']} dat files, expected {self.nbDetails[key]['E'][2]*5} for wavefunction job.")
+            fPerE = 5 # Set files per energy point for numerical checks
             if self.nbDetails[key]['E'] is None:
                 En = 0
             else:
-                En = int(self.nbDetails[key]['E'][3])*5
+                En = int(self.nbDetails[key]['E'][3])*fPerE
 
             if En == 0:
                 print(f"***Warning: found {c['.dat']} dat files, missing job E details for wavefunction job.")
                 self.nbDetails[key]['fileListCheck'] = False
-            elif (c['.dat'] is None) or (c['.dat'] != En):
-                print(f"***Warning: found {c['.dat']} dat files, expected {En} for wavefunction job.")
+            elif (c['.dat'] is None) or (c['.dat'] < En):
+                print(f"***Warning: found {c['.dat']} dat files, expected {En}*syms for wavefunction job.")
                 self.nbDetails[key]['fileListCheck'] = False
             else:
-                print(f"Wavefunction job, with {c['.dat']} dat files OK")
+                # Check symmetries...
+                # SnTest = [En%Sn for Sn in range(1,6)]
+                Sn = c['.dat']/En
+                if c['.dat']%En == 0:
+                    print(f"Wavefunction job, with {c['.dat']} dat files OK (for {Sn} syms)")
+                else:
+                    print(f"***Warning: Wavefunction job, with {c['.dat']} dat files indeterminate symmetries {Sn}")
+                    self.nbDetails[key]['fileListCheck'] = False
+
+        if c['.nc'] != 2:
+            # TODO: change to checking by number of symmetries
+            print(f"***Warning: found {c['.nc']} ePSproc nc files, expected 2.")
+            self.nbDetails[key]['fileListCheck'] = False
 
 
 #***********************************************************************************************

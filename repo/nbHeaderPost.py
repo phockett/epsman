@@ -27,9 +27,11 @@ def getInfo(inputNB):
     # Grab job details - template specific, this grabs lines from cell with job summary output.
     # Basic try/except functionality here for cases with bad/missing data - likley indicates an aborted eps job.
     # TODO: add search routine here.
+    # TODO: add additional job info - currently commented out since it needs to be correctly propagated.
     try:
         # jobInfo = inputNB['cells'][6]['outputs'][0]['text'].split('\n')[2:6]  # Job info output
         jobInfo = inputNB['cells'][9]['outputs'][0]['text'].split('\n')[2:8]  # Job summary output
+        # jobInfo.extend(inputNB['cells'][7]['outputs'][0]['text'].split('\n')[16:])  #ePSproc file read info
         print(*jobInfo, sep='\n')  # Print info to terminal, can also use to pass info via Fabric connection object when run remotely.
 
     except KeyError:
