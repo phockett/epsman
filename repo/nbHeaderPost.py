@@ -54,7 +54,10 @@ def constructHeader(jobInfo, fileIn, doi = None):
     # Set webroot assuming molecule/notebook format for both fileIn and web.
     webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
     # Format for Zenodo, e.g. doi 10.5281/zenodo.3600654 corresponds to https://zenodo.org/record/3600654
-    zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
+    if doi is not None:
+        zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
+    else:
+        zenodoURL = ''
 
     # Construct new header with file info + DOI.
     # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.

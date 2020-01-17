@@ -68,6 +68,7 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
     # For schema: https://developers.zenodo.org/#representation
     # MAY WANT TO SET TEMPLATE for this elsewhere...?
     # Some overlap with nbHeaderPost()
+    # May want to pull from self.nbDetails[key]['jobText']
 
     # keyURL = 'test'
     # zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
