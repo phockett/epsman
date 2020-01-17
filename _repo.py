@@ -25,6 +25,7 @@ For dev codes see notebooks:
 # Imports
 import json
 import datetime
+import os
 from pathlib import Path
 import requests
 import pprint  # For dict printing
@@ -66,12 +67,18 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
     #*** Add metadata
     # For schema: https://developers.zenodo.org/#representation
     # MAY WANT TO SET TEMPLATE for this elsewhere...?
+    # Some overlap with nbHeaderPost()
 
-    keyURL = 'test'
+    # keyURL = 'test'
+    # zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
+    fileIn = Path(self.nbDetails[key]['file'])
+    webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
+    self.nbDetails[key]['webURL'] = webURL
+
     stringHTML = f"{self.nbDetails[key]['title']} - photoionization calculations with ePolyScat + ePSproc." + \
-                 f"\n*Web version*: <a href=http://github.pages/{keyURL}>http://github.pages/{keyURL}</a>" + \
+                 f"\n*Web version*: <a href={webURL}>{webURL}</a>" + \
                  "\nFor more details of the calculations, see: " + \
-                 "<ul><li><a href=http://github.pages/about>About the data</a>" + \
+                 "<ul><li><a href=https://phockett.github.io/ePSdata/about.html>About the data</a>" + \
                  "<li><a href=http://epsproc.readthedocs.io>About the analysis</a></ul>"
 
 
@@ -580,6 +587,7 @@ def fileListCheck(self, key = None, verbose = True, errorCheck = True):
         else:
             fileList.append(fileListTest[n])
 
+    self.nbDetails[key]['pkgRootDir'] = os.path.commonpath(fileListTest)
     self.nbDetails[key]['pkgDirList'] = dirList
     self.nbDetails[key]['pkgSuffixCount'] = c
 
@@ -589,13 +597,14 @@ def fileListCheck(self, key = None, verbose = True, errorCheck = True):
         print(f"Job {key}, title: {self.nbDetails[key]['title']}")
         print(f"Notebook file: {self.nbDetails[key]['file']}")
         print(*self.nbDetails[key]['pkgInfo'][2:], sep='\n')
+        print(f"Root dir: {self.nbDetails[key]['pkgRootDir']}")
         print(f"Found {len(fileListTest)} items, with file types:")
         # Throw out full dictionary here, may want to switch to formatted list.
         # Set small width to force vertical format
         pprint.pprint(c, width=50)
 
         if dirList:
-            print("Dirs:")
+            print("SubDirs:")
             print(*dirList, sep='\n')
 
 

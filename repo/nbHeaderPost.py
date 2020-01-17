@@ -16,7 +16,9 @@ TO DO:
 
 import nbformat
 import sys
+import os
 from pathlib import Path
+from datetime import datetime
 
 # Settings
 nbVersion = 4  # May not be required?
@@ -49,14 +51,21 @@ def constructHeader(jobInfo, fileIn, doi = None):
     # Ensure fileIn is Path object
     fileIn = Path(fileIn)
 
+    # Set webroot assuming molecule/notebook format for both fileIn and web.
+    webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
+    # Format for Zenodo, e.g. doi 10.5281/zenodo.3600654 corresponds to https://zenodo.org/record/3600654
+    zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
+
     # Construct new header with file info + DOI.
     # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.
     sourceText = ("\n".join(['# ePSproc: ' + jobInfo[1].split(',')[0],
                                 "<br>".join([
                                     '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
                                     '*ePS output file*: ' + fileIn.stem + '.inp.out',
-                                    f"*Web version*: http://github.pages/{fileIn.stem}",
-                                    f"DOI (dataset): [http://dx.doi.org/{doi}]({doi})"]),
+                                    f"*Web version*: {webURL}",
+                                    f"Dataset: "
+                                    f"DOI (dataset): [{doi}](http://dx.doi.org/{doi})",
+                                    '[Citation details](#Cite-this-dataset)']),
                                 '',
                                 '## Job details',
                                  "<br>".join(jobInfo[0:4])]))
@@ -68,24 +77,38 @@ def constructHeader(jobInfo, fileIn, doi = None):
 # TODO: add citation info here
 def constructFooter(jobInfo, fileIn, doi = None):
 
-    return None
+    #Job details
+    datasetName = jobInfo[1].split(',')[0]
+    title = 'ePSproc: ' + datasetName
 
-    # Ensure fileIn is Path object
-    # fileIn = Path(fileIn)
-    #
-    # # Construct new header with file info + DOI.
-    # # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.
-    # sourceText = ("\n".join(['# Cite this: ' + jobInfo[1].split(',')[0],
-    #                             "<br>".join([
-    #                                 '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
-    #                                 '*ePS output file*: ' + fileIn.stem + '.inp.out',
-    #                                 f"*Web version*: http://github.pages/{fileIn.stem}",
-    #                                 f"DOI (dataset): [http://dx.doi.org/{doi}]({doi})"]),
-    #                             '',
-    #                             '## Job details',
-    #                              "<br>".join(jobInfo[0:4])]))
-    #
-    # return sourceText
+    # Set webroot assuming molecule/notebook format for both fileIn and web.
+    webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
+
+    # year = datetime.now().year  # Set as current year
+    year = jobInfo[3].split()[-1] # Set as ePS job year
+
+    sourceText = f"""
+## Cite this dataset
+
+Hockett, Paul ({year}). *{title}*. Dataset on Zenodo. DOI: {doi}. URL: {webURL}
+
+*Bibtex*:
+```bibtex
+@data{{{datasetName},
+    title = {{{title}}}
+    author = {{Hockett, Paul}},
+    doi = {{{doi}}},
+    publisher = {{Zenodo}},
+    year = {{{year}}},
+    url = {{{webURL}}}
+  }}
+```
+
+See [citation notes on ePSdata](https://phockett.github.io/ePSdata/cite.html) for further details.
+
+"""
+
+    return sourceText
 
 
 
@@ -97,7 +120,7 @@ def constructFooter(jobInfo, fileIn, doi = None):
 
 
 # Write header info and save notebook
-def writeHeader(inputNB, jobInfo):
+def writeHeader(inputNB, sourceText):
 
     # Replace header cell and save.
     # inputNB['cells'][0] = nbformat.v4.new_markdown_cell(source = ['doi: ', doi])
@@ -105,10 +128,11 @@ def writeHeader(inputNB, jobInfo):
     nbformat.write(inputNB, fileIn.as_posix(), version = 4)
 
 # Write header info and save notebook
-def writeFooter(inputNB):
+def writeFooter(inputNB, sourceText):
     # Replace header cell and save.
     # inputNB['cells'][0] = nbformat.v4.new_markdown_cell(source = ['doi: ', doi])
-    inputNB['cells'].append(nbformat.v4.new_markdown_cell(source = sourceText))
+    # inputNB['cells'].append(nbformat.v4.new_markdown_cell(source = sourceText))
+    inputNB['cells'][-1] = nbformat.v4.new_markdown_cell(source = sourceText)
     nbformat.write(inputNB, fileIn.as_posix(), version = 4)
 
 # If running as main, take passed args and run functions.
@@ -134,9 +158,11 @@ if __name__ == "__main__":
         # Generate header from jobInfo
         sourceText = constructHeader(jobInfo, fileIn, doi)
         writeHeader(inputNB, sourceText)
-        # sourceText = constructFooter(jobInfo, fileIn, doi)
-        # writeFooter(inputNB, sourceText)
         print(f'\n***Written notebook header: {fileIn}')
+
+        sourceText = constructFooter(jobInfo, fileIn, doi)
+        writeFooter(inputNB, sourceText)
+        print(f'\n***Written notebook footer: {fileIn}')
 
     else:
         pass
