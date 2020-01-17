@@ -28,6 +28,7 @@ import datetime
 from pathlib import Path
 import requests
 import pprint  # For dict printing
+from collections import Counter
 
 # Local
 from ._util import parseLineDigits
@@ -224,7 +225,7 @@ def uploadRepoFiles(self, key):
 # - Add optional elec structure file to pkg.
 # - Check if arch exists before running
 # - Consider moving main loop to remote code - what are the dependecies here?  Should just be able to pass a dir path, or maybe write list to file and push to host?
-def buildArch(self, localLoop = True, dryRun = True):
+def buildArch(self, localLoop = True, dryRun = True, hide = True):
     """
     Build archives/packages for job.
 
@@ -240,6 +241,10 @@ def buildArch(self, localLoop = True, dryRun = True):
     dryRun : bool, default = True
         Get fileLists to be archived, but don't build.
         Most useful for localLoop = True case.
+
+    hide : bool, default = True
+        If false, print all Fabric output to screen (localLoop = True case only)
+        If true, only summary data is printed.
 
     To do
     -----
@@ -300,12 +305,17 @@ def buildArch(self, localLoop = True, dryRun = True):
                     # result = job.c.run('python /home/femtolab/python/epsman/nbHeaderPost.py ' + f'{fileIn} {doi}')
                     # result = job.c.run('python /home/femtolab/python/epsman/repo/pkgFiles.py' + f" {job.hostDefn[job.host]['pkgDir'].as_posix()} {jRoot[1]}_{jRoot[2]} {archName}")
                     result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['pkg']).as_posix()} \
-                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.hostDefn[self.host]['jobSchema']} {jRoot}")
+                                        {self.hostDefn[self.host]['nbProcDir'].as_posix()} {dryRun} {archName} {self.hostDefn[self.host]['jobSchema']} {jRoot}", hide = hide)
 
                 if dryRun:
                     # self.nbDetails[key]['result'] = result
-                    self.nbDetails[key]['pkgFileList'] = result.stdout.splitlines()
+                    output = result.stdout.splitlines()
+                    self.nbDetails[key]['pkgInfo'] = output[:5]
+                    self.nbDetails[key]['pkgFileList'] = output[5:]
                     self.nbDetails[key]['archName'] = archName.as_posix()
+                    # print(f"Found {len(self.nbDetails[key]['pkgFileList'][5:])} items.")
+                    self.fileListCheck(key)  # Print info to screen & basic error checking.
+
                 else:
                     self.nbDetails[key]['archName'] = archName.as_posix()
                     self.nbDetails[key]['archBuilt'] = result.stdout
@@ -402,7 +412,7 @@ def checkArchFiles(self, key = None, archName = None, verbose = False):
         # localList = self.nbDetails[key]['pkgFileList'][5:]
         # fileComp = list(set(localList) - set(archFiles))  # Compare lists as sets
         archFiles = [(line.split()[0]) for line in result.stdout.splitlines()[1:]]  # Keep file names only (drop header, and file properties)
-        localList = self.nbDetails[key]['pkgFileList'][5:]
+        localList = self.nbDetails[key]['pkgFileList']
 
         # Test & set relative paths for local files in archive
         localListRel = []
@@ -522,6 +532,7 @@ def getEpoints(jobInfo):
 
     return parseLineDigits(P)
 
+# Summary info from nbDetails dict.
 def nbDetailsSummary(self):
     """Print notebook stats."""
 
@@ -534,6 +545,98 @@ def nbDetailsSummary(self):
     print("\n***nbDetails summary")
     print(f"Found {nbTotal} notebooks, {pkgTotal} marked for packaging:")
     print(*pkgList, sep='\n')
+
+
+# Parse and sort pkg file list and related info.
+def fileListCheck(self, key = None, verbose = True, errorCheck = True):
+    """
+    Pkg job filelist sorting & summary
+
+    Parse pkg file list (nbDetails[key]['pkgFileList']) for details:
+    - Dirs
+    - Files and types
+    - Check against expected numbers
+
+    NOTE: this is currently done based on path formats, since os or path methods only work on local machine.
+    This may not be robust.
+
+    """
+
+    # if key is not None:
+
+    fileListTest = self.nbDetails[key]['pkgFileList']
+
+    # Count file suffixes
+    suffixList = [Path(item).suffix for item in fileListTest]
+    c = Counter(suffixList)
+
+    # Check for dirs & log
+    dirList = []
+    fileList = []
+    for n, item in enumerate(suffixList):
+        # if Path(item).is_dir():       # Checking with Path OK for local files, but not for a list from another machine.
+        if item == '':
+            dirList.append(fileListTest[n])
+        else:
+            fileList.append(fileListTest[n])
+
+    self.nbDetails[key]['pkgDirList'] = dirList
+    self.nbDetails[key]['pkgSuffixCount'] = c
+
+    # Print details
+    if verbose:
+        print('\n***Pkg job summary')
+        print(f"Job {key}, title: {self.nbDetails[key]['title']}")
+        print(f"Notebook file: {self.nbDetails[key]['file']}")
+        print(*self.nbDetails[key]['pkgInfo'][2:], sep='\n')
+        print(f"Found {len(fileListTest)} items, with file types:")
+        # Throw out full dictionary here, may want to switch to formatted list.
+        # Set small width to force vertical format
+        pprint.pprint(c, width=50)
+
+        if dirList:
+            print("Dirs:")
+            print(*dirList, sep='\n')
+
+
+    # Check if wavefunction job, and if files are present.
+    # TODO: propagate this issue!!! For init self.nbDetails[key]['pkg'] is not yet set... may need to move this check to later?
+    self.nbDetails[key]['wf'] = any(['waveFn' in item for item in self.nbDetails[key]['pkgDirList']])|any(['wf' in item for item in self.nbDetails[key]['pkgDirList']])
+    # if self.nbDetails[key]['wf']:
+    #     print(f"Wavefunction job, with {c['.dat']} dat files, expected {self.nbDetails[key]['E'][2]*5}")
+
+    # Error checking based on file types
+    # Set pass/fail in self.nbDetails[key]['fileListCheck']
+    if errorCheck:
+        self.nbDetails[key]['fileListCheck'] = True
+
+        if c['.out'] > 1:
+            print(f"***Warning: found {c['.out']} ePS output files.")
+            self.nbDetails[key]['fileListCheck'] = False
+
+        if c['.idy'] != 3:
+            # TODO: change to checking by number of symmetries
+            print(f"***Warning: found {c['.idy']} ePS idy files.")
+            self.nbDetails[key]['fileListCheck'] = False
+
+        if self.nbDetails[key]['wf']:
+            # if (c['.dat'] is None):
+            #     print("***Warning: No .dat files found")
+            # elif (c['.dat'] != self.nbDetails[key]['E'][2]*5):
+            #     print(f"***Warning: found {c['.dat']} dat files, expected {self.nbDetails[key]['E'][2]*5} for wavefunction job.")
+            if self.nbDetails[key]['E'] is None:
+                En = 0
+            else:
+                En = int(self.nbDetails[key]['E'][3])*5
+
+            if En == 0:
+                print(f"***Warning: found {c['.dat']} dat files, missing job E details for wavefunction job.")
+                self.nbDetails[key]['fileListCheck'] = False
+            elif (c['.dat'] is None) or (c['.dat'] != En):
+                print(f"***Warning: found {c['.dat']} dat files, expected {En} for wavefunction job.")
+                self.nbDetails[key]['fileListCheck'] = False
+            else:
+                print(f"Wavefunction job, with {c['.dat']} dat files OK")
 
 
 #***********************************************************************************************
@@ -627,7 +730,8 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
                 # Note that jobInfo here has additional lines from version in nbHeaderWrite.py, so drop start.
                 self.nbDetails[key]['jobText'] = constructHeader(self.nbDetails[key]['jobInfo'][2:], self.nbDetails[key]['file'], self.nbDetails[key]['doi'])
 
-                if int(self.nbDetails[key]['E'][-1]) > Emin:
+                # Currently set to skip pkg if test job (<Emin) or info missing, or failed error checking in fileListCheck()
+                if (int(self.nbDetails[key]['E'][-1]) > Emin) and self.nbDetails[key]['fileListCheck']:
                     self.nbDetails[key]['pkg'] = True
                     self.nbDetails[key]['repo'] = repo
                     self.initRepo(key, dryRun = repoDryRun, verbose = verbose)  # This will init comms with repo (Zenodo) and get doi etc.
@@ -692,6 +796,7 @@ def updateUploads(self, dryRun = True, verbose = False):
             # Check archives.
             # NOTE: if the above code is rerun it will append the same files repeatedly, but they won't be added to the archive.
             # TODO: additional error checking above!
+            # TODO: Update arch files with any missing items?
             self.checkArchFiles(key);
 
 

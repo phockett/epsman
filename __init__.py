@@ -41,7 +41,8 @@ class epsJob():
     from ._util import getFileList, checkFiles, pushFile
     from ._paths import setScripts, setPaths
     from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads,       \
-                        buildArch, updateArch, getArchLogs, checkArchFiles, cpESFiles,  \
+                        buildArch, updateArch, getArchLogs, checkArchFiles,             \
+                        cpESFiles, fileListCheck,                                     \
                         initRepo, delRepoItem, uploadRepoFiles,                         \
                         writeNBdetailsJSON, readNBdetailsJSON
 
