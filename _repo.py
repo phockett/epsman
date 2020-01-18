@@ -176,8 +176,11 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
 
     if dryRun:
         print('\n***Repo init dry run')
-        print(stringHTML)
-        pprint.pprint(data)
+        if verbose:
+            # print(stringHTML)
+            pprint.pprint(data)
+
+        self.nbDetails[key]['repoHeaderData'] = data
 
 
 def delRepoItem(self, key):
@@ -469,9 +472,49 @@ def checkArchFiles(self, key = None, archName = None, verbose = False):
     return localListRel, archFiles, fileComp, result
 
 
+# Set electronic structure file
+def setESFiles(self, eSourceDir = None, verbose = False):
+    """
+    Set electronic structure file from job info.
+
+    Use alternative path eSourceDir if passed.
+
+    Check also if file exists.
+
+    """
+
+    print('\n***Setting electronic structure files')
+    for key in self.nbDetails:
+        # Skip metadata key if present
+        if key!='proc':
+            # Check and set electronic structure file for packaging.
+            if '***Missing' in self.nbDetails[key]['jobInfo'][2]:
+                self.nbDetails[key]['elecStructure'] = None
+            else:
+                if eSourceDir is not None:
+                    # Copy electronic structure files to package using supplied path
+                     fileName = Path(self.nbDetails[key]['jobInfo'][-1].split()[-1].strip("'"))
+                     self.nbDetails[key]['elecStructure'] = Path(eSourceDir, fileName.name).as_posix()
+
+                else:
+                    # Copy electronic structure files to package, based on full path from original job
+                    self.nbDetails[key]['elecStructure'] = self.nbDetails[key]['jobInfo'][-1].split()[-1].strip("'")
+
+                checkList = self.checkFiles(self.nbDetails[key]['elecStructure'])
+
+                # If file is missing, set to "missing"
+                if not checkList[0]:
+                    self.nbDetails[key]['elecStructure'] = f"***Missing file: {self.nbDetails[key]['elecStructure']}"
+
+            if verbose:
+                print(f"Job {key}: {self.nbDetails[key]['title']}")
+                print(f"Set file: {self.nbDetails[key]['elecStructure']}")
+
+
 # Basic function to copy files from original job electronic_structure to repo.
 # Generally better to just add file directly to pkg?
 # TODO: add some search logic here for related files?
+# TODO: Deprecated, remove or repurpose.  File info now set by setESFiles()
 def cpESFiles(self, dryRun = True, eSourceDir = None):
     print('\n***Copying electronic structure files')
     if dryRun:
@@ -733,9 +776,9 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
     # If eStructCp = True this will copy electronic structure files to job dirs.
     # If dryRun = True will just display commands.
     # MAY BE CLEANER just add file to archive from original path later....?
-    if eStructCp:
-        self.cpESFiles(dryRun = dryRun, eSourceDir =  eSourceDir)
-
+    # if eStructCp:
+    #     self.cpESFiles(dryRun = dryRun, eSourceDir =  eSourceDir)
+    # SKIP THIS... just add files in updateArch()
 
     # Reformat header data (as per notebook header) & set additional info.
     # This is written to file, and used for repo.
@@ -772,8 +815,7 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
         print('\n***Running archive creation on remote.')
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
         self.nbDetails['proc']['archLog'] = Path(self.hostDefn[self.host]['nbProcDir'],
-                                                f"{self.hostDefn[self.host]['nbProcDir'].name}_{self.host}_\
-                                                archLog_nohup_{timestamp}.log").as_posix()
+                                            f"{self.hostDefn[self.host]['nbProcDir'].name}_{self.host}_archLog_nohup_{timestamp}.log").as_posix()
         result = self.buildArch(localLoop = False, dryRun = dryRun)
 
 
@@ -795,7 +837,7 @@ def updateUploads(self, dryRun = True, verbose = False):
     for key in self.nbDetails:
         if key!='proc' and self.nbDetails[key]['pkg']:
             if self.nbDetails[key]['doi'] is None:
-                self.initRepo(key, dryRun = False, verbose = verbose)
+                self.initRepo(key, dryRun = dryRun, verbose = verbose)
 
     # Rerun nbWriteHeader() to set DOIs correctly in notebooks flagged for repo - don't overwrite nbDetails.
     # TODO: pull info here on notebook writing...?  Currently will be printed to screen only.

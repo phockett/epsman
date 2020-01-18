@@ -42,7 +42,7 @@ class epsJob():
     from ._paths import setScripts, setPaths
     from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads,       \
                         buildArch, updateArch, getArchLogs, checkArchFiles,             \
-                        cpESFiles, fileListCheck,                                     \
+                        setESFiles, cpESFiles, fileListCheck,                                     \
                         initRepo, delRepoItem, uploadRepoFiles,                         \
                         writeNBdetailsJSON, readNBdetailsJSON
 
