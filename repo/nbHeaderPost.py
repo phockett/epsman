@@ -72,8 +72,9 @@ def constructHeader(jobInfo, fileIn, doi = None):
     #                             '',
     #                             '## Job details',
     #                              "<br>".join(jobInfo[0:4])]))
+    # NOTE: <br> case doesn't propagate through nbsphinx... use \n and list formatting instead.
     sourceText = ("\n".join(['# ePSproc: ' + jobInfo[1].split(',')[0],
-                                "-".join([
+                                "\n- ".join(['\n- '
                                     '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
                                     '*ePS output file*: ' + fileIn.stem + '.inp.out',
                                     f"*Web version*: {webURL}",
@@ -82,7 +83,7 @@ def constructHeader(jobInfo, fileIn, doi = None):
                                     '[Citation details](#Cite-this-dataset)']),
                                 '',
                                 '## Job details',
-                                 "-".join(jobInfo[0:4])]))
+                                 "\n- ".join(jobInfo[0:4])]))
 
     return sourceText
 
