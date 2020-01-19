@@ -80,7 +80,7 @@ if __name__ == "__main__":
     jsonProcFile = sys.argv[1]
     ACCESS_TOKEN = sys.argv[2]
 
-    print("***Running uploads to repo.")
+    print("***Uploading to repo.")
 
     # Get details from file
     nbDetails = readNBdetailsJSON(jsonProcFile)

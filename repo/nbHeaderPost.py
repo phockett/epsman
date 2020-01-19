@@ -61,8 +61,19 @@ def constructHeader(jobInfo, fileIn, doi = None):
 
     # Construct new header with file info + DOI.
     # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.
+    # sourceText = ("\n".join(['# ePSproc: ' + jobInfo[1].split(',')[0],
+    #                             "<br>".join([
+    #                                 '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
+    #                                 '*ePS output file*: ' + fileIn.stem + '.inp.out',
+    #                                 f"*Web version*: {webURL}",
+    #                                 f"Dataset: "
+    #                                 f"DOI (dataset): [{doi}](http://dx.doi.org/{doi})",
+    #                                 '[Citation details](#Cite-this-dataset)']),
+    #                             '',
+    #                             '## Job details',
+    #                              "<br>".join(jobInfo[0:4])]))
     sourceText = ("\n".join(['# ePSproc: ' + jobInfo[1].split(',')[0],
-                                "<br>".join([
+                                "-".join([
                                     '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
                                     '*ePS output file*: ' + fileIn.stem + '.inp.out',
                                     f"*Web version*: {webURL}",
@@ -71,7 +82,7 @@ def constructHeader(jobInfo, fileIn, doi = None):
                                     '[Citation details](#Cite-this-dataset)']),
                                 '',
                                 '## Job details',
-                                 "<br>".join(jobInfo[0:4])]))
+                                 "-".join(jobInfo[0:4])]))
 
     return sourceText
 
