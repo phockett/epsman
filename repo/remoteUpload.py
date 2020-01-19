@@ -80,6 +80,8 @@ if __name__ == "__main__":
     jsonProcFile = sys.argv[1]
     ACCESS_TOKEN = sys.argv[2]
 
+    print("***Running uploads to repo.")
+
     # Get details from file
     nbDetails = readNBdetailsJSON(jsonProcFile)
 
@@ -87,6 +89,8 @@ if __name__ == "__main__":
     for key in nbDetails:
         if key!='proc' and nbDetails[key]['pkg'] and self.nbDetails[key]['archFilesOK']:
             nbDetails[key]['repoFilesUpload'] = uploadRepoFiles(nbDetails, key, ACCESS_TOKEN)
+        else:
+            print(f"***Skipping item {key} upload")
 
     # Write to new JSON file
     writeNBdetailsJSON(jsonProcFile + '.upload', nbDetails)

@@ -136,27 +136,49 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
         r = requests.get('https://zenodo.org/api/deposit/depositions',
                         params={'q': self.nbDetails[key]['title'], 'access_token': ACCESS_TOKEN})
 
+        record = None
+        # if r.json():
+        #     print(f"{self.nbDetails[key]['title']} repo already exists, repo details recovered.")
+        #     if len(r.json()) > 1:
+        #         print(f"***Warning: found {len(r.json())} matching repo records...")
+        #         for n, item in enumerate(r.json()):
+        #             print(f"Record {n}: {item['title']}, created {item['created']}")
+        #
+        #         record = input('Set record to use: ')
+        #         # r.json() = r.json()[record]
+        #     else:
+        #         record = 0  #r.json() = r.json()[0]
+
+        # BASIC search grabs also similar titles, so will need to check more carefully.
+        record = None
         if r.json():
-            print(f"{self.nbDetails[key]['title']} repo already exists, repo details recovered.")
-            if len(r.json()) > 1:
-                print(f"***Warning: found {len(r.json())} matching repo records...")
-                for n, item in enumerate(r.json()):
-                    print(f"Record {n}: {item['title']}, created {item['created']}")
+            print(f"Found {len(r.json())} possible repo matches...")
 
-                record = input('Set record to use: ')
-                # r.json() = r.json()[record]
-            else:
-                record = 0  #r.json() = r.json()[0]
+            for n, item in enumerate(r.json()):
+                print(f"Item {n}: {item['title']}")
 
-        else:
+                # Confirm match based on str.rfind to match substring and ignore prefixing.
+                # Should be more robust to future changes...?
+                ind = item['title'].rfind(self.nbDetails[key]['title'])
+                if item['title'][ind:] == self.nbDetails[key]['title']:
+                      print(f"Confirm match: ID {item['id']}, created {item['created']}, selecting record.")
+                      record = n
+                      break
+                else:
+                      print('No match.')
+
+
+        # If no matching record is found, init new.
+        if record is None:
             headers = {"Content-Type": "application/json"}
             r = requests.post('https://zenodo.org/api/deposit/depositions',
                                params={'access_token': ACCESS_TOKEN}, json={}, data=json.dumps(data),
                                headers=headers)
-            print(f"{self.nbDetails[key]['title']} repo created.")
+            print(f"***{self.nbDetails[key]['title']} repo created.")
 
         # deposition_id = r.json()['id']
 
+        # Confirm details returned and set in nbDetails.
         if r.ok:
             if record is None:
                 self.nbDetails[key]['repoInfo'] = r.json()  # Returns metadata plus repo settings
@@ -841,7 +863,7 @@ def updateUploads(self, dryRun = True, verbose = False):
 
     # Rerun nbWriteHeader() to set DOIs correctly in notebooks flagged for repo - don't overwrite nbDetails.
     # TODO: pull info here on notebook writing...?  Currently will be printed to screen only.
-    self.nbWriteHeader(writeDict = False)
+    self.nbWriteHeader(writeDict = False, hide = (not verbose))
 
     # Update archives
     for key in self.nbDetails:
@@ -850,13 +872,22 @@ def updateUploads(self, dryRun = True, verbose = False):
 
             # Set file list for adding to archive
             # TODO: decide on electronic structure file(s) - see cpESFiles()
-            fileList = [self.nbDetails[key]['file'], self.nbDetails[key]['elecStructure']]
+            # NOW SET VIA setESFiles() and added here instead.
+            fileList = []
+            if not (self.nbDetails[key]['file'] in self.nbDetails[key]['pkgFileList']):
+                fileList.append(self.nbDetails[key]['file'])
+            if not (self.nbDetails[key]['elecStructure'] in self.nbDetails[key]['pkgFileList']):
+                fileList.append(self.nbDetails[key]['elecStructure'])
 
-            for fileIn in fileList:
-                result = self.updateArch(fileIn, self.nbDetails[key]['archName'], dryRun = dryRun)
+            if (self.nbDetails[key]['doi'] is None) and not dryRun:
+                print(f"***Skipping archive updates, repo not yet initialized (DOI not set) and not dryRun.")
+            else:
+                for fileIn in fileList:
+                    result = self.updateArch(fileIn, self.nbDetails[key]['archName'], dryRun = dryRun)
 
-                if result.ok:
-                    self.nbDetails[key]['pkgFileList'].append(fileIn)  # Update pkg filelist
+                    if result.ok:
+                        self.nbDetails[key]['pkgFileList'].append(fileIn)  # Update pkg filelist
+
 
             # Check archives.
             # NOTE: if the above code is rerun it will append the same files repeatedly, but they won't be added to the archive.
@@ -892,6 +923,7 @@ def submitUploads(self, local = False):
                                 {self.hostDefn[self.host]['nbProcDir']/self.jsonProcFile.name} {ACCESS_TOKEN}",
                                 warn = True, timeout = 10)
 
+        print(f"Log file set: {self.hostDefn[self.host]['nbProcDir']/self.jsonProcFile.name}")
     # Remote upload set to run via nohup... will need to pull logs later.
 
     # Publish
@@ -959,7 +991,7 @@ def readNBdetailsJSON(self, overwrite = None):
 
 
 # Processed job file header creation
-def nbWriteHeader(self, writeDict = None):
+def nbWriteHeader(self, writeDict = None, hide = False):
     """
     Read job info and set header cell for ePSproc Notebooks for repo upload.
     """
@@ -996,7 +1028,7 @@ def nbWriteHeader(self, writeDict = None):
         with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
             # job.c.run('/home/femtolab/python/epsman/shell/conda_test.sh')  # Still have issues here, due to code in script
             # result = job.c.run('python /home/femtolab/python/epsman/nbHeaderPost.py ' + f'{fileIn} {doi}')
-            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi}')
+            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi}', hide = hide)
 
         # Store job info locally
         # If key is missing ignore writeDict setting and add to dict
