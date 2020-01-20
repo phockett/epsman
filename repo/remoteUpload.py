@@ -18,6 +18,8 @@ import json
 import sys
 import pprint
 import requests
+import os
+import glob
 
 #from epsman.repo.pkgFiles import convert_bytes
 # Basic bytes to KB/Mb... conversion, from https://stackoverflow.com/questions/2104080/how-to-check-file-size-in-python
@@ -54,7 +56,7 @@ def readNBdetailsJSON(jsonProcFile):
         return None
 
 
-def splitArchFiles(nbDetails, key, ACCESS_TOKEN, dryRun = True, chunk = 90):
+def splitArchFiles(nbDetails, key, dryRun = True, chunk = 90, verbose = True):
     """
     Basic routine to split existing archive files into chunks for upload.
     
@@ -131,7 +133,7 @@ def uploadRepoFiles(nbDetails, key, ACCESS_TOKEN, dryRun = True):
             print("Dry run only...")
             print(f"URL: {url}")
             print(f"data: {data}")
-            print(f"File: {files}")
+            print(f"File: {fileIn}")
             outputs.append([url, data, files])
 
     # nbDetails[key]['repoFilesUpload'] = outputs
@@ -168,6 +170,7 @@ if __name__ == "__main__":
     # Upload files & log result.
     for key in nbDetails:
         if key!='proc' and nbDetails[key]['pkg'] and nbDetails[key]['archFilesOK']:
+            splitArchFiles(nbDetails, key, dryRun = dryRun, verbose = verbose)
             nbDetails[key]['repoFilesUpload'] = uploadRepoFiles(nbDetails, key, ACCESS_TOKEN, dryRun=dryRun)
         else:
             print(f"***Skipping item {key} upload")
