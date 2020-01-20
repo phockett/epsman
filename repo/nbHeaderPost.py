@@ -83,7 +83,9 @@ def constructHeader(jobInfo, fileIn, doi = None):
                                     '[Citation details](#Cite-this-dataset)']),
                                 '',
                                 '## Job details',
-                                 "\n- ".join(jobInfo[0:4])]))
+                                 # "\n- ".join(jobInfo[0:4])]))
+                                 "".join(map('\n- {}'.format, jobInfo[0:4]))]))  #With map to allow prefix on all lines.
+
 
     return sourceText
 
