@@ -872,7 +872,7 @@ def updateUploads(self, dryRun = True, verbose = False):
 
             # Set file list for adding to archive
             # TODO: decide on electronic structure file(s) - see cpESFiles()
-            # NOW SET VIA setESFiles() and added here instead.
+            # NOW: SET VIA setESFiles() and added here instead.
             fileList = []
             if not (self.nbDetails[key]['file'] in self.nbDetails[key]['pkgFileList']):
                 fileList.append(self.nbDetails[key]['file'])
