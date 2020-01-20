@@ -24,7 +24,9 @@ def genSphinxIndex(sourceDir):
     # Generate dir list using os.scandir
     # See https://stackoverflow.com/questions/973473/getting-a-list-of-all-subdirectories-in-the-current-directory
     # Additionally set here for relative paths.
-    dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir()]
+    # dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir()]
+    # Skip _ dits - bit of an ugly one-liner but works... probably a neater way to do this.
+    dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir() and not Path(f.path).relative_to(sourceDir).as_posix().startswith('_')]
 
     # Set main index string.
     indexSting = f"""
