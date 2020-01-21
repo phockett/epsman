@@ -33,9 +33,11 @@ def genSphinxIndex(sourceDir):
 ePS data: Photoionization calculations archive
 ===============================================
 
+Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rgroup/lucchese/>`_ and `ePSproc <https://epsproc.readthedocs.io>`_ - data and processed results, Jupyter notebooks and HTML.
+
 .. toctree::
  :maxdepth: 2
- :caption: Contents:
+ :caption: Intro:
 
  about
  methods
