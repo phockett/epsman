@@ -59,48 +59,48 @@ def readNBdetailsJSON(jsonProcFile):
 def splitArchFiles(nbDetails, key, dryRun = True, chunk = 90, verbose = True):
     """
     Basic routine to split existing archive files into chunks for upload.
-    
+
     Split existing archives into size = chunk (MB) files using system zip package.
     See, e.g., https://serverfault.com/questions/760337/how-to-zip-files-with-a-size-limit/760341
-    
+
     TODO: replace with better logic...?  Package files for E sets to avoid large archives? Use Tar?
-    
+
     """
-        
+
     arch = Path(nbDetails[key]['archName'])
     archSize = convert_bytes(os.stat(arch).st_size)
-    
+
     if ('MB' in archSize[1]) and (archSize[0] > chunk):
         print(f"***File greater than {chunk}Mb: {arch}")
         print(f"Splitting into chunks...")
-        
+
         # Set new file name for chunked arch
         fileOut = arch.with_name(arch.stem + '_multiPart.zip')
-        
+
         # Just need to run this at command line on remote (Linux)
         # TODO: add some checking logic here, at the moment can fail if fileOut already exists.
         os.system(f"zip -s {chunk}m {fileOut} {arch}")
-        
-        # TO REBUILD: 
+
+        # TO REBUILD:
         # zip -s 0 testMultipart.zip --out testRecon.zip
-    
+
         # Get filelist of archive parts
         fileList = glob.glob(Path(fileOut.parent, fileOut.stem).as_posix() + '*')
-        
+
         # THEN - update repoFile list with parts
 #        updatedList = [item for item in nbDetails[key]['repoFiles'] if (item not in arch.as_posix())]
         updatedList = [item for item in nbDetails[key]['repoFiles'] if (item != arch.as_posix())]
-            
+
         for item in fileList:
             if not (item in updatedList):
                 updatedList.append(item)
-            
+
         nbDetails[key]['repoFiles'] = updatedList
-        
+
         if verbose or dryRun:
             print("Updated repoFiles list with multipart archive.")
             print(*updatedList, sep="\n")
-        
+
 
 def uploadRepoFiles(nbDetails, key, ACCESS_TOKEN, dryRun = True):
     """Upload files to repo (from local machine)
@@ -141,7 +141,10 @@ def uploadRepoFiles(nbDetails, key, ACCESS_TOKEN, dryRun = True):
     return outputs
 
 def writeNBdetailsJSON(jsonProcFile, nbDetails):
-    """Write nbDetails dictionary to JSON file."""
+    """Write nbDetails dictionary to JSON file.
+
+    See _repo.writeNBdetailsJSON() for local version.
+    """
 
     # Write to json file
     # Write to JSON.  Note Path() objects won't serialize.
@@ -152,6 +155,7 @@ def writeNBdetailsJSON(jsonProcFile, nbDetails):
 
 
 # If running as main, take passed args and run functions.
+# TODO: add log file per job writing here?
 if __name__ == "__main__":
     # Passed args
     jsonProcFile = sys.argv[1]

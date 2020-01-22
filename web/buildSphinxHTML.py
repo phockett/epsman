@@ -42,6 +42,8 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
  about
  methods
  cite
+
+ .. image:: http://femtolab.ca/wordpress/wp-content/uploads/2017/03/grav_box_img23164957.jpg 
                 """
 
     # Set toc per dir

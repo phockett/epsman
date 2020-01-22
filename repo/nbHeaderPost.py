@@ -87,6 +87,8 @@ def constructHeader(jobInfo, fileIn, doi = None):
                                  "".join(map('\n- {}'.format, jobInfo[0:4]))]))  #With map to allow prefix on all lines.
 
 
+    # TODO: DOI badge to add, format [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18914.svg)](http://dx.doi.org/10.5281/zenodo.18914)
+
     return sourceText
 
 
@@ -152,6 +154,13 @@ def writeFooter(inputNB, sourceText):
     inputNB['cells'][-1] = nbformat.v4.new_markdown_cell(source = sourceText)
     nbformat.write(inputNB, fileIn.as_posix(), version = 4)
 
+
+# Write markdown readme file to include with job
+def writeReadme(sourceTextHead, sourceTextFoot):
+    pass
+
+
+
 # If running as main, take passed args and run functions.
 if __name__ == "__main__":
     # Passed args
@@ -173,12 +182,12 @@ if __name__ == "__main__":
     # If passed at command line this may be a string
     if ((doi is not None) and (doi!='None')) and (jobInfo is not None):
         # Generate header from jobInfo
-        sourceText = constructHeader(jobInfo, fileIn, doi)
-        writeHeader(inputNB, sourceText)
+        sourceTextHead = constructHeader(jobInfo, fileIn, doi)
+        writeHeader(inputNB, sourceTextHead)
         print(f'\n***Written notebook header: {fileIn}')
 
-        sourceText = constructFooter(jobInfo, fileIn, doi)
-        writeFooter(inputNB, sourceText)
+        sourceTextFoot = constructFooter(jobInfo, fileIn, doi)
+        writeFooter(inputNB, sourceTextFoot)
         print(f'\n***Written notebook footer: {fileIn}')
 
     else:
