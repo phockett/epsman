@@ -44,7 +44,7 @@ class epsJob():
                         buildArch, updateArch, getArchLogs, checkArchFiles,             \
                         setESFiles, cpESFiles, fileListCheck,                                     \
                         initRepo, delRepoItem, uploadRepoFiles,                         \
-                        writeNBdetailsJSON, readNBdetailsJSON
+                        writeNBdetailsJSON, readNBdetailsJSON, writeJobJSON
 
     def __init__(self, host = None, user = None, IP = None, password = None):
         """

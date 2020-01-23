@@ -46,6 +46,9 @@ def getInfo(inputNB):
 
 
 # Define header info
+# Note on badges: these appear centered in Jupyter viewer, so put at head and tail of page only.
+# Left aligned in HTML via nbSphinx.
+# Don't include in nbSphine header at HTML gen time, since this is missing DOI info.
 def constructHeader(jobInfo, fileIn, doi = None):
 
     # Ensure fileIn is Path object
@@ -56,8 +59,17 @@ def constructHeader(jobInfo, fileIn, doi = None):
     # Format for Zenodo, e.g. doi 10.5281/zenodo.3600654 corresponds to https://zenodo.org/record/3600654
     if doi is not None:
         zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
+        zenodoBadge = f"[![DOI](https://zenodo.org/badge/doi/{doi}.svg)](http://dx.doi.org/{doi})"
     else:
         zenodoURL = ''
+
+    # Creative Commons licensing
+    # Raw HTML - doesn't pass through nbSphinx
+    # ccText = 'Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)</a>'
+    # ccBadge = '<img src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" alt="Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)">'
+    # MD version...
+    ccText = 'Licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)'
+    ccBadge = '[![Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)'
 
     # Construct new header with file info + DOI.
     # Note formatting for Markdown - \n\n or <br> to ensure newline, but need \n after headings, and \n\n or <br> for bodytext.
@@ -73,13 +85,15 @@ def constructHeader(jobInfo, fileIn, doi = None):
     #                             '## Job details',
     #                              "<br>".join(jobInfo[0:4])]))
     # NOTE: <br> case doesn't propagate through nbsphinx... use \n and list formatting instead.
-    sourceText = ("\n".join(['# ePSproc: ' + jobInfo[1].split(',')[0],
+    sourceText = ("\n".join([f"{zenodoBadge}  {ccBadge}", '\n# ePSproc: ' + jobInfo[1].split(',')[0],
                                 "\n- ".join(['\n- '
                                     '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
                                     '*ePS output file*: ' + fileIn.stem + '.inp.out',
                                     f"*Web version*: {webURL}",
-                                    f"Dataset: "
-                                    f"DOI (dataset): [{doi}](http://dx.doi.org/{doi})",
+                                    f"Dataset: {zenodoURL}",
+                                    f"DOI (dataset): [{doi}](http://dx.doi.org/{doi})",  # Plain text
+                                    # f"DOI (dataset): {zenodoBadge}",   # Badge version.
+                                    ccText,
                                     '[Citation details](#Cite-this-dataset)']),
                                 '',
                                 '## Job details',
@@ -125,6 +139,8 @@ Hockett, Paul ({year}). *{title}*. Dataset on Zenodo. DOI: {doi}. URL: {webURL}
 
 See [citation notes on ePSdata](https://phockett.github.io/ePSdata/cite.html) for further details.
 
+[![DOI](https://zenodo.org/badge/doi/{doi}.svg)](http://dx.doi.org/{doi})  [![Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
 """
 
     return sourceText
@@ -157,7 +173,55 @@ def writeFooter(inputNB, sourceText):
 
 # Write markdown readme file to include with job
 def writeReadme(sourceTextHead, sourceTextFoot):
-    pass
+
+    # Set files
+    textFile = fileIn.with_suffix('.md')
+    readmeFile = Path(fileIn.parent, 'readme.txt')
+
+    # Format and write summary file, markdown format
+    sourceText = f"""
+# ePSdata dataset
+
+See [about ePSdata](https://phockett.github.io/ePSdata/about.html) for details.
+
+{sourceTextHead}
+
+{sourceTextFoot}
+
+    """
+
+    with open(textFile, 'w') as f:
+        f.write(sourceText)
+
+    print(f"***Written md summary file: {textFile}")
+
+
+    # Format and write generic readme
+    sourceText = f"""
+ePSdata dataset general readme
+
+This dataset contains files:
+- readme.txt    This file.
+- <file>.md     Markdown (text) file summarising the dataset, including dataset-specific links and citation information.
+- <file>.ipynb  Jupyter notebook file with basic post-processing (for an HTML version, see https://phockett.github.io/ePSdata).
+- <file>.zip    Archive of source files, may be in a multipart zip format due to repository file-size limits.*
+- <file>.json   Full job details in JSON format, including archive file list.
+
+For more details, see:
+https://phockett.github.io/ePSdata/about.html
+https://github.com/phockett/ePSdata/
+
+Licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0) https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+* To rebuild a multipart zip (Linux):
+$ zip -s 0 multipart.zip --out output.zip
+
+    """
+
+    with open(readmeFile, 'w') as f:
+        f.write(sourceText)
+
+    print(f"***Written readme file: {readmeFile}")
 
 
 
@@ -189,6 +253,8 @@ if __name__ == "__main__":
         sourceTextFoot = constructFooter(jobInfo, fileIn, doi)
         writeFooter(inputNB, sourceTextFoot)
         print(f'\n***Written notebook footer: {fileIn}')
+
+        writeReadme(sourceTextHead, sourceTextFoot)
 
     else:
         pass

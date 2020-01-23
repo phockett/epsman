@@ -800,7 +800,8 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
     # MAY BE CLEANER just add file to archive from original path later....?
     # if eStructCp:
     #     self.cpESFiles(dryRun = dryRun, eSourceDir =  eSourceDir)
-    # SKIP THIS... just add files in updateArch()
+    # SKIP THIS... just set files here and add in updateArch()
+    self.setESFiles(eSourceDir=eSourceDir, verbose=verbose)
 
     # Reformat header data (as per notebook header) & set additional info.
     # This is written to file, and used for repo.
@@ -843,6 +844,7 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
 
     # Write nbDetials to JSON file
     self.writeNBdetailsJSON()
+
 
     self.nbDetailsSummary()
 
@@ -895,14 +897,21 @@ def updateUploads(self, dryRun = True, verbose = False):
             # TODO: Update arch files with any missing items?
             self.checkArchFiles(key);
 
-
             # TODO: consider filesize, might be upload limit (100Mb per file on Zenodo...?)
+            # NOW HANDLED on remote at upload time by converting to multipart archive.
 
             # Set file list for repo upload
-            self.nbDetails[key]['repoFiles'] = [self.nbDetails[key]['file'], self.nbDetails[key]['archName']]
+            self.nbDetails[key]['repoFiles'] = [Path(Path(self.nbDetails[key]['file']).parent, 'readme.txt').as_posix(),
+                                                self.nbDetails[key]['file'],
+                                                Path(self.nbDetails[key]['file']).with_suffix('.md').as_posix(),
+                                                Path(self.nbDetails[key]['file']).with_suffix('.json').as_posix(),
+                                                self.nbDetails[key]['archName']]
 
     # Update nbDetials JSON file
     self.writeNBdetailsJSON()
+
+    # Write per-job JSON files on remote
+    self.writeJobJSON()
 
 
 def submitUploads(self, local = False):
@@ -1049,6 +1058,20 @@ def nbWriteHeader(self, writeDict = None, hide = False):
                                      'E':Elist,
                                      'pkg':False  # Set pkg default = False, used later to check for arch creation & repo upload.
                                     }})
+
+
+
+# Write JSON files for individual jobs for repo
+def writeJobJSON(self):
+    """
+    Write job JSON files on remote from existing master file self.jsonProcFile.
+
+    """
+
+    with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
+        result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['jobJSON']).as_posix()} {self.jsonProcFile}")
+
+    return result
 
 
 #*** Repo uploader

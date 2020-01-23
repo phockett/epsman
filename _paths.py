@@ -29,6 +29,7 @@ def setScripts(self):
     self.scpDefnRepo = {'nb-post-doi':'nbHeaderPost.py',
                     'pkg':'pkgFiles.py',
                     'pkgNohup':'pkgRemoteNohup.sh',
+                    'jobJSON':'jobJSON.py',
                     'upload':'remoteUpload.py',
                     'uploadNohup':'remoteUploadNohup.sh'
                     }
