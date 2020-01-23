@@ -62,6 +62,7 @@ def constructHeader(jobInfo, fileIn, doi = None):
         zenodoBadge = f"[![DOI](https://zenodo.org/badge/doi/{doi}.svg)](http://dx.doi.org/{doi})"
     else:
         zenodoURL = ''
+        zenodoBadge = ''
 
     # Creative Commons licensing
     # Raw HTML - doesn't pass through nbSphinx
