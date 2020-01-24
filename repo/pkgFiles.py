@@ -276,6 +276,8 @@ if __name__ == "__main__":
             rePat = None
             archMode = 'a'  # Set to append to existing archive
             print(f'Appending file: {jRoot}')
+        elif Path(jRoot).is_dir():
+            print(f'Skipping dir: {jRoot}')
         else:
             # If a pattern is passed, create file list for pkg
             # NOTE: currently set to ignore zip and ipynb files for later inclusion via single-file calls.
@@ -319,7 +321,9 @@ if __name__ == "__main__":
 
             # Create file list for pkg
             # rePat = f".*{jRoot}.*"
-            rePat = f".*{jRoot}.*$(?<!zip)(?<!ipynb)"  # Use this for file end exclusion, rather than glob, from https://stackoverflow.com/a/10055688
+            # rePat = f".*{jRoot}.*$(?<!zip)(?<!ipynb)"  # Use this for file end exclusion, rather than glob, from https://stackoverflow.com/a/10055688
+            # Also skips files of type .zNN, which are multipart zip files.
+            rePat = f".*{jRoot}.*$(?<!zip)(?<!z[0-9][0-9])(?<!ipynb)"
             fileList = getFilesPkg(pkgDir, rePat = rePat)
 
             # Write zip
