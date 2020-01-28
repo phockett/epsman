@@ -232,16 +232,19 @@ if __name__ == "__main__":
     # Passed args
     fileIn = Path(sys.argv[1])
 
-    if len(sys.argv)>2:
-        doi = sys.argv[2]
-    else:
-        doi = None
+    # if len(sys.argv)>2:
+    #     doi = sys.argv[2]
+    # else:
+    #     doi = None
+    #
+    # if len(sys.argv)>3:
+    #     title = sys.argv[3]
+    # else:
+    #     title = None
 
-    if len(sys.argv)>3:
-        title = sys.argv[3]
-    else:
-        title = None
-
+    # Case for passing all args, but may be None
+    doi = sys.argv[2]
+    title = sys.argv[3]
 
     # Read notebook
     print(f'\n***Reading notebook: {fileIn}')
@@ -254,15 +257,15 @@ if __name__ == "__main__":
     # If passed at command line this may be a string
     if ((doi is not None) and (doi!='None')) and (jobInfo is not None):
 
-        if title is None:
+        if (title is None) or (title == 'None'):
             title = jobInfo[1].split(',')[0]  # Default job name if not overridden
 
         # Generate header from jobInfo
-        sourceTextHead = constructHeader(jobInfo, fileIn, doi, title)
+        sourceTextHead = constructHeader(jobInfo, fileIn, title, doi)
         writeHeader(inputNB, sourceTextHead)
         print(f'\n***Written notebook header: {fileIn}, job name: {title}')
 
-        sourceTextFoot = constructFooter(jobInfo, fileIn, doi, title)
+        sourceTextFoot = constructFooter(jobInfo, fileIn, title, doi)
         writeFooter(inputNB, sourceTextFoot)
         print(f'\n***Written notebook footer: {fileIn}, job name: {title}')
 

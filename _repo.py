@@ -1222,7 +1222,7 @@ def readNBdetailsJSON(self, overwrite = None):
 
 
 # Processed job file header creation
-def nbWriteHeader(self, writeDict = None, hide = False):
+def nbWriteHeader(self, writeDict = None, hide = False, verbose = False):
     """
     Read job info and set header cell for ePSproc Notebooks for repo upload.
     """
@@ -1257,12 +1257,15 @@ def nbWriteHeader(self, writeDict = None, hide = False):
             doi = None
             title = None
 
+        if verbose:
+            print(f"Running nbHeaderPost for item {n}, title = {title}, doi = {doi}")
+
         # Run python script for notebook post-process, with Anaconda env set (requires python3 and nbformat)
         # See https://stackoverflow.com/questions/54268390/how-to-deploy-my-conda-env-to-a-vps-using-fabric-or-othervise
         with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
             # job.c.run('/home/femtolab/python/epsman/shell/conda_test.sh')  # Still have issues here, due to code in script
             # result = job.c.run('python /home/femtolab/python/epsman/nbHeaderPost.py ' + f'{fileIn} {doi}')
-            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi} {title}', hide = hide)
+            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f" {nb} {doi} '{title}'", hide = hide)
 
         # Store job info locally
         # If key is missing ignore writeDict setting and add to dict
@@ -1274,7 +1277,7 @@ def nbWriteHeader(self, writeDict = None, hide = False):
                 title = None
             else:
                 Elist = getEpoints(jobInfo)
-                if title is not None:
+                if title is None:
                     title = jobInfo[3].split(',')[0].strip()  # Set to default if not set
 
             self.nbDetails.update({n:{'file':nb,  # Path(nb),  # Setting Path object here gives issues with json seralization later!

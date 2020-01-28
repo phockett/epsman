@@ -40,7 +40,7 @@ class epsJob():
     from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
     from ._util import getFileList, checkFiles, pushFile
     from ._paths import setScripts, setPaths
-    from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads, publishUploads,      \  # Top level methods.
+    from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads, publishUploads,      \
                         buildArch, updateArch, getArchLogs, checkArchFiles,             \
                         setESFiles, cpESFiles, fileListCheck, pkgOverride,                                     \
                         initRepo, delRepoItem, uploadRepoFiles, searchRepo, publishRepoItem,                        \
