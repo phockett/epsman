@@ -51,7 +51,7 @@ def initZenodo(fileIn):
 
 
 # Zenodo API interface
-def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
+def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True, update = False):
     """
     Basic API calls for repo uploading
 
@@ -76,11 +76,12 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
     webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
     self.nbDetails[key]['webURL'] = webURL
 
-    stringHTML = f"{self.nbDetails[key]['title']} - photoionization calculations with ePolyScat + ePSproc." + \
-                 f"\n*Web version*: <a href={webURL}>{webURL}</a>" + \
-                 "\nFor more details of the calculations, see: " + \
-                 "<ul><li><a href=https://phockett.github.io/ePSdata/about.html>About the data</a>" + \
-                 "<li><a href=http://epsproc.readthedocs.io>About the analysis</a></ul>"
+    stringHTML = f"{self.nbDetails[key]['title']} - photoionization calculations with ePolyScat (ePS) + ePSproc." + \
+                 f"<br><br>*Web version*: <a href={webURL}>{webURL}</a>" + \
+                 "<br><br>For more details of the calculations, see readme.txt, or: " + \
+                 "<ul><li><a href=https://phockett.github.io/ePSdata/about.html>About ePSdata</a></li>" + \
+                 "<li><a href=http://epsproc.readthedocs.io/en/latest/about.html>About ePSproc</a></li>" + \
+                 "<li><a href=http://www.chem.tamu.edu/rgroup/lucchese/ePolyScat.E3.manual/manual.html>About ePS</li></ul>"
 
 
     data = {
@@ -130,13 +131,26 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
 
         # Set new upload with metadata
         ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
-        record = None
+        # record = None
 
         # Check record doesn't exist already
+        searchString = self.nbDetails[key]['title'].split()[0]  # Set to use first item in job title, should be molecule name. Seems to work better than full title.
         r = requests.get('https://zenodo.org/api/deposit/depositions',
-                        params={'q': self.nbDetails[key]['title'], 'access_token': ACCESS_TOKEN})
+                        params={'q': searchString, 'access_token': ACCESS_TOKEN})
 
-        record = None
+        # Invalid search string may return server error, status = 500
+        # In this case just retry with molecule name only.
+        # TODO: Make this better.  ':' in search string is definitely an issue, not sure what else. RTFM.
+        # TODO: Try/fail would be clenaer here?  Type is list for real response, but dict if error.
+        # TODO: Further testing here - this may actually be a cleaner search than the full title string! NOW SET ABOVE to use this as default.
+        # if r.json() and hasattr(response.json(), 'status') and (r.json()['status'] == 500):
+        if r.json() and (type(r.json()) == dict) and ('status' in r.json().keys()) and r.json()['status'] == 500:
+            print("***Zenodo search error, retrying with molecule name only.")
+            r = requests.get('https://zenodo.org/api/deposit/depositions',
+                            params={'q': self.nbDetails[key]['title'].split()[0], 'access_token': ACCESS_TOKEN})
+
+
+        # record = None
         # if r.json():
         #     print(f"{self.nbDetails[key]['title']} repo already exists, repo details recovered.")
         #     if len(r.json()) > 1:
@@ -150,8 +164,10 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
         #         record = 0  #r.json() = r.json()[0]
 
         # BASIC search grabs also similar titles, so will need to check more carefully.
+        # TODO: add more error checking here - at the moment will still run even if server returns error code.
         record = None
-        if r.json():
+        # if r.json() and r.json()['status'] != 500:
+        if r.json() and (type(r.json()) != dict):
             print(f"Found {len(r.json())} possible repo matches...")
 
             for n, item in enumerate(r.json()):
@@ -163,6 +179,7 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
                 if item['title'][ind:] == self.nbDetails[key]['title']:
                       print(f"Confirm match: ID {item['id']}, created {item['created']}, selecting record.")
                       record = n
+                      id = item['id']
                       break
                 else:
                       print('No match.')
@@ -175,6 +192,14 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
                                params={'access_token': ACCESS_TOKEN}, json={}, data=json.dumps(data),
                                headers=headers)
             print(f"***{self.nbDetails[key]['title']} repo created.")
+
+        # If a matching record is found, and update is True, update record details.
+        elif update:
+            headers = {"Content-Type": "application/json"}
+            r = requests.put('https://zenodo.org/api/deposit/depositions/%s' % id,
+                               params={'access_token': ACCESS_TOKEN}, json={}, data=json.dumps(data),
+                               headers=headers)
+            print(f"***{self.nbDetails[key]['title']} repo data updated.")
 
         # deposition_id = r.json()['id']
 
@@ -203,6 +228,30 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True):
             pprint.pprint(data)
 
         self.nbDetails[key]['repoHeaderData'] = data
+
+
+def searchRepo(self, key, searchString = None, verbose = False):
+    """Search Zenodo for item"""
+
+    print(f"***Seaching on Zenodo")
+    ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
+
+    # Set default search string
+    if searchString is None:
+        searchString = self.nbDetails[key]['title'].split()[0]  # Set to use first item in job title, should be molecule name. Seems to work better than full title.
+
+    # Search
+    r = requests.get('https://zenodo.org/api/deposit/depositions',
+                    params={'q': searchString, 'access_token': ACCESS_TOKEN})
+
+    print(f"Seachstring: {searchString}")
+    for n, item in enumerate(r.json()):
+        print(f"Item {n}: {item['title']}")
+        print(f"ID {item['id']}, DOI {item['doi']}, created {item['created']}, submitted {item['submitted']}.\n")
+
+    if verbose:
+        pp = pprint.PrettyPrinter(indent=1)
+        pp.pprint(r.json())
 
 
 def delRepoItem(self, key):
@@ -246,7 +295,36 @@ def uploadRepoFiles(self, key):
 
     self.nbDetails[key]['repoFilesUpload'] = outputs
 
-    return 'Not implemented'
+    # return 'Not implemented'
+
+
+
+def publishRepoItem(self, key, manualVerify = True):
+    """Publish item/record on Zenodo."""
+
+    ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
+
+    print(f"\n***Publish repo for job: {self.nbDetails[key]['title']}, with {self.nbDetails[key]['repo']}")
+    if manualVerify and self.nbDetails[key]['pkg']:
+        uploadFlag = input(f"Confirm publishing? (y/n) ")
+
+        if uploadFlag == 'y':
+            r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % job.nbDetails[key]['repoInfo']['id'],
+                                 params={'access_token': ACCESS_TOKEN} )
+            print(r.json())
+
+        else:
+            print("Skipping publication.")
+
+
+    elif self.nbDetails[key]['pkg']:
+        r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % job.nbDetails[key]['repoInfo']['id'],
+                             params={'access_token': ACCESS_TOKEN} )
+        print(r.json())
+
+    else:
+        print(f"Item not set for packaging, skipping key = {key}.")
+
 
 
 #***************************************************************************
@@ -380,6 +458,7 @@ def updateArch(self, fileIn, archName, dryRun = True):
 
     NOTE: if file exists in archive it will be skipped, not be updated, since python ZipFile does not support this.
     NOTE: if file path root is different from archive root path (as set in call below) it will be addded to the archive root, otherwise relative path will be preserved.
+    TODO: error checking, will fail if file is missing.
 
     Parameters
     ----------
@@ -527,10 +606,24 @@ def setESFiles(self, eSourceDir = None, verbose = False):
                 # If file is missing, set to "missing"
                 if not checkList[0]:
                     self.nbDetails[key]['elecStructure'] = f"***Missing file: {self.nbDetails[key]['elecStructure']}"
+                    self.nbDetails[key]['elecStructureGamess'] = f"***Missing file: {self.nbDetails[key]['elecStructure']}"
+
+                # If file is present, check also for corresponding files
+                else:
+                    # Assuming above is molden file, check also for corresponding Gamess file
+                    gFile = Path(self.nbDetails[key]['elecStructure']).with_suffix('.log')
+                    checkList = self.checkFiles(gFile)
+                    if checkList[0]:
+                        # self.nbDetails[key]['elecStructure'].append(gFile.as_posix())  # Set here to append... hopefully works OK with arch update code...
+                        self.nbDetails[key]['elecStructureGamess'] = gFile.as_posix()  # Set here as separate item
+                    else:
+                        self.nbDetails[key]['elecStructureGamess'] = f"***Missing file: {gFile.as_posix()}"
+                    #
 
             if verbose:
                 print(f"Job {key}: {self.nbDetails[key]['title']}")
                 print(f"Set file: {self.nbDetails[key]['elecStructure']}")
+                print(f"Set file: {self.nbDetails[key]['elecStructureGamess']}")
 
 
 # Basic function to copy files from original job electronic_structure to repo.
@@ -849,11 +942,15 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
     self.nbDetailsSummary()
 
 
-def updateUploads(self, dryRun = True, verbose = False):
+def updateUploads(self, dryRun = True, verbose = False, repo = 'Zenodo'):
 
     # UPDATE NOTEBOOKS & ARCHIVES with DOI.
     # PLUS add missing files to archives.
     # Should init repo here too? Keep it separate from archive build. ACTUALLY OK to set above, since DOI remains reserved for at least 24hrs.
+    #
+    # 22/01/20 Now decided to add proc files independently to repo - should be easier for archiving and updating.
+    #
+    # TODO: add manual override for job pkg - now set as pkgOverride()
     #
 
     # Check repo is initialized - may not be in some cases of manual arch build.
@@ -861,6 +958,7 @@ def updateUploads(self, dryRun = True, verbose = False):
     for key in self.nbDetails:
         if key!='proc' and self.nbDetails[key]['pkg']:
             if self.nbDetails[key]['doi'] is None:
+                self.nbDetails[key]['repo'] = repo  # This may be missing if pkg - True set manually.
                 self.initRepo(key, dryRun = dryRun, verbose = verbose)
 
     # Rerun nbWriteHeader() to set DOIs correctly in notebooks flagged for repo - don't overwrite nbDetails.
@@ -873,21 +971,36 @@ def updateUploads(self, dryRun = True, verbose = False):
         if key!='proc' and self.nbDetails[key]['pkg']:
 
             # Set file list for adding to archive
+            # TODO: Decide on archive protocol - include only raw ePS files here? At the moment also includes .nc files.
+            #
             # TODO: decide on electronic structure file(s) - see cpESFiles()
             # NOW: SET VIA setESFiles() and added here instead.
             fileList = []
-            if not (self.nbDetails[key]['file'] in self.nbDetails[key]['pkgFileList']):
-                fileList.append(self.nbDetails[key]['file'])
+            # if not (self.nbDetails[key]['file'] in self.nbDetails[key]['pkgFileList']):
+            #     fileList.append(self.nbDetails[key]['file'])
             if not (self.nbDetails[key]['elecStructure'] in self.nbDetails[key]['pkgFileList']):
-                fileList.append(self.nbDetails[key]['elecStructure'])
+                if self.nbDetails[key]['elecStructure'].startswith('***Missing'):
+                    pass
+                else:
+                    fileList.append(self.nbDetails[key]['elecStructure'])
+
+            # Repeat for Gamess file - UGLY should change to parse as list here
+            # TODO: change elecStructure files to list format
+            if not (self.nbDetails[key]['elecStructureGamess'] in self.nbDetails[key]['pkgFileList']):
+                if self.nbDetails[key]['elecStructureGamess'].startswith('***Missing'):
+                    pass
+                else:
+                    fileList.append(self.nbDetails[key]['elecStructureGamess'])
+
 
             if (self.nbDetails[key]['doi'] is None) and not dryRun:
                 print(f"***Skipping archive updates, repo not yet initialized (DOI not set) and not dryRun.")
             else:
                 for fileIn in fileList:
+                    # TODO: add error checking here, will currently fail if file is missing.
                     result = self.updateArch(fileIn, self.nbDetails[key]['archName'], dryRun = dryRun)
 
-                    if result.ok:
+                    if result.ok and not dryRun:
                         self.nbDetails[key]['pkgFileList'].append(fileIn)  # Update pkg filelist
 
 
@@ -914,7 +1027,80 @@ def updateUploads(self, dryRun = True, verbose = False):
     self.writeJobJSON()
 
 
+# Overrides for packaging
+def pkgOverride(self, keyList = None, pkgFlag = True, titleFlag = None):
+    """
+    Override packaging defaults and force packaging of job.
+
+    keyList : int, str, list
+        Items to override.  Keys in self.nbDetails.
+
+    pkgFlag : bool, default = True
+        Set packing variables to True, including override of ArchFileCheck
+
+    titleFlag : bool, default = None
+        Override default job title - set to True/False or None. If None, prompt for each job.
+
+    """
+
+    # Quick and dirty check for list type.
+    if type(keyList) is not list:
+        keyList = [keyList]
+
+
+    print('\n***Packaging override...')
+
+    # Manual set for pkg override of selected jobs
+    for key in keyList:
+        print(f"\n***Job {key}: {self.nbDetails[key]['title']}")
+        print(self.nbDetails[key]['jobInfo'])
+
+        # Check and change title if desired
+        if titleFlag is not None:
+            # Manual title overrides, ugh.
+            titleFlag = input("Change title? (y/n)  ")
+            if titleFlag == 'y': titleFlag = True
+            else: titleFlag = False
+
+
+        if titleFlag:
+            test = input(f"Suggested title: {self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0]} (y/n)")
+
+            if test == 'y':
+                self.nbDetails[key]['title'] = self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0]
+            else:
+                self.nbDetails[key]['title'] = input("New title? ")
+
+        if pkgFlag:
+
+            # Set for packaging
+            self.nbDetails[key]['pkg'] = True
+            self.nbDetails[key]['repo'] = 'Zenodo'
+            print("Set pkg = True")
+
+            # Override arch check
+            if 'archFileCheck' in self.nbDetails[key].keys():
+                print(f"Arch file check: {self.nbDetails[key]['archFileCheck']}")
+                print(f"Arch files OK: {self.nbDetails[key]['archFilesOK']}")
+                print("Setting to True")
+                self.nbDetails[key]['archFileCheck'] = True
+                self.nbDetails[key]['archFilesOK'] = True
+            else:
+                print(f"Arch files not yet set and checked - run this again after updateUploads().")
+
+
+    # Reset eStructure
+    # job.setESFiles(eSourceDir=job.hostDefn[job.host]['jobDir']/'electronic_structure', verbose=True)
+
+    # job.nbDetails[5]['pkg'] = False
+    # job.delRepoItem(4)
+    # Rewrite JSON
+    # Update remote
+    self.writeNBdetailsJSON()
+
+
 def submitUploads(self, local = False):
+    """Submit uploads to repo - for packaged jobs, upload files to initialized repo from local or remote machine."""
 
     # Set and upload files to repo using uploadRepoFiles()
     if local:
@@ -938,6 +1124,42 @@ def submitUploads(self, local = False):
     # Publish
 
     # return 'Not implemented'
+
+
+def publishUploads(self, manualVerify = True):
+    """Finialise repo upload by publishing."""
+    for key in self.nbDetails:
+        # Skip metadata key if present
+        if key!='proc' and self.nbDetails[key]['pkg'] and self.nbDetails[key]['archFilesOK']:
+            self.publishRepoItem(key, manualVerify = manualVerify)
+
+
+
+# Remove items from Zenodo repo (unpublished only)
+# https://developers.zenodo.org/#delete28
+def removeRepoFiles(self, key = None):
+    #*** Remove files from repo
+
+    # for item in response.json():
+    #     print(item['id'])
+    #     for fileItem in item['files']:
+    #         r = requests.delete(f"https://zenodo.org/api/deposit/depositions/{item['id']}/files/{fileItem['id']}",
+    #                         params={'access_token': ACCESS_TOKEN})
+    #         print(r.status_code)
+    #
+    #         if r.status_code == 204:
+    #             print('***Item removed')
+    pass
+
+# List items
+# TODO: finish and add search option.
+def listRepoItems(self):
+    # https://developers.zenodo.org/#list
+    # response = requests.get('https://zenodo.org/api/deposit/depositions',
+    #                         params={'q': '',
+    #                                 'access_token': ACCESS_TOKEN})
+    print("Use searchRepo(self, key, searchString = None, verbose = False) for now.")
+
 
 
 #***************************************************************************************
@@ -1029,15 +1251,18 @@ def nbWriteHeader(self, writeDict = None, hide = False):
         if n in self.nbDetails.keys():
             if 'doi' in self.nbDetails[n]:
                 doi = self.nbDetails[n]['doi']
+            if 'title' in self.nbDetails[n]:
+                title = self.nbDetails[n]['title']
         else:
             doi = None
+            title = None
 
         # Run python script for notebook post-process, with Anaconda env set (requires python3 and nbformat)
         # See https://stackoverflow.com/questions/54268390/how-to-deploy-my-conda-env-to-a-vps-using-fabric-or-othervise
         with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
             # job.c.run('/home/femtolab/python/epsman/shell/conda_test.sh')  # Still have issues here, due to code in script
             # result = job.c.run('python /home/femtolab/python/epsman/nbHeaderPost.py ' + f'{fileIn} {doi}')
-            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi}', hide = hide)
+            result = self.c.run('python ' + Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['nb-post-doi']).as_posix() + f' {nb} {doi} {title}', hide = hide)
 
         # Store job info locally
         # If key is missing ignore writeDict setting and add to dict
@@ -1049,7 +1274,8 @@ def nbWriteHeader(self, writeDict = None, hide = False):
                 title = None
             else:
                 Elist = getEpoints(jobInfo)
-                title = jobInfo[3].split(',')[0].strip()
+                if title is not None:
+                    title = jobInfo[3].split(',')[0].strip()  # Set to default if not set
 
             self.nbDetails.update({n:{'file':nb,  # Path(nb),  # Setting Path object here gives issues with json seralization later!
                                      'doi':doi,
@@ -1069,7 +1295,7 @@ def writeJobJSON(self):
     """
 
     with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
-        result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['jobJSON']).as_posix()} {self.jsonProcFile}")
+        result = self.c.run(f"python {Path(self.hostDefn[self.host]['repoScpPath'], self.scpDefnRepo['jobJSON']).as_posix()} {self.hostDefn[self.host]['nbProcDir']/self.jsonProcFile.name}")
 
     return result
 

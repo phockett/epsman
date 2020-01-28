@@ -49,7 +49,7 @@ def getInfo(inputNB):
 # Note on badges: these appear centered in Jupyter viewer, so put at head and tail of page only.
 # Left aligned in HTML via nbSphinx.
 # Don't include in nbSphine header at HTML gen time, since this is missing DOI info.
-def constructHeader(jobInfo, fileIn, doi = None):
+def constructHeader(jobInfo, fileIn, title, doi = None):
 
     # Ensure fileIn is Path object
     fileIn = Path(fileIn)
@@ -86,7 +86,8 @@ def constructHeader(jobInfo, fileIn, doi = None):
     #                             '## Job details',
     #                              "<br>".join(jobInfo[0:4])]))
     # NOTE: <br> case doesn't propagate through nbsphinx... use \n and list formatting instead.
-    sourceText = ("\n".join([f"{zenodoBadge}  {ccBadge}", '\n# ePSproc: ' + jobInfo[1].split(',')[0],
+    sourceText = ("\n".join([f"{zenodoBadge}  {ccBadge}", '\n# ePSproc: ' + title,
+    # sourceText = ("\n".join([f"{zenodoBadge}  {ccBadge}", '\n# ' + title,   # For web case, may want to remove 'ePSproc'...?
                                 "\n- ".join(['\n- '
                                     '*electronic structure input*: ' + Path(jobInfo[-1].split()[-1]).name[0:-1], # Grab name, -1 to drop ''
                                     '*ePS output file*: ' + fileIn.stem + '.inp.out',
@@ -109,10 +110,10 @@ def constructHeader(jobInfo, fileIn, doi = None):
 
 # Define footer info
 # TODO: add citation info here
-def constructFooter(jobInfo, fileIn, doi = None):
+def constructFooter(jobInfo, fileIn, datasetName, doi = None):
 
     #Job details
-    datasetName = jobInfo[1].split(',')[0]
+    # TODO: fix this for old jobs or add override.
     title = 'ePSproc: ' + datasetName
 
     # Set webroot assuming molecule/notebook format for both fileIn and web.
@@ -236,6 +237,12 @@ if __name__ == "__main__":
     else:
         doi = None
 
+    if len(sys.argv)>3:
+        title = sys.argv[3]
+    else:
+        title = None
+
+
     # Read notebook
     print(f'\n***Reading notebook: {fileIn}')
     inputNB = nbformat.read(fileIn.as_posix(), as_version = nbVersion)
@@ -246,14 +253,18 @@ if __name__ == "__main__":
     # Set file info if doi is passed
     # If passed at command line this may be a string
     if ((doi is not None) and (doi!='None')) and (jobInfo is not None):
-        # Generate header from jobInfo
-        sourceTextHead = constructHeader(jobInfo, fileIn, doi)
-        writeHeader(inputNB, sourceTextHead)
-        print(f'\n***Written notebook header: {fileIn}')
 
-        sourceTextFoot = constructFooter(jobInfo, fileIn, doi)
+        if title is None:
+            title = jobInfo[1].split(',')[0]  # Default job name if not overridden
+
+        # Generate header from jobInfo
+        sourceTextHead = constructHeader(jobInfo, fileIn, doi, title)
+        writeHeader(inputNB, sourceTextHead)
+        print(f'\n***Written notebook header: {fileIn}, job name: {title}')
+
+        sourceTextFoot = constructFooter(jobInfo, fileIn, doi, title)
         writeFooter(inputNB, sourceTextFoot)
-        print(f'\n***Written notebook footer: {fileIn}')
+        print(f'\n***Written notebook footer: {fileIn}, job name: {title}')
 
         writeReadme(sourceTextHead, sourceTextFoot)
 
