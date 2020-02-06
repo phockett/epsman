@@ -53,9 +53,11 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
 
     """
 
-    # Grab list of files from jobs completed folder
-
+    # Grab list of files from jobs completed folder - note choice of job root name here.
+    # With genFile as root
     Result = self.c.run('ls ' + Path(self.hostDefn[self.host]['jobComplete'], self.genFile.stem).as_posix() + '*.out', warn = True, hide = True)
+    # With job.batch_job.orb as root.
+    # Result = self.c.run('ls ' + Path(self.hostDefn[self.host]['jobComplete'], self.jobRoot).as_posix() + '*.out', warn = True, hide = True)
     self.fileList = Result.stdout.split()
 
     #*** Check number of files, .out should be equal to number of .inp, or 3x for stem check only.

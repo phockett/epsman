@@ -45,7 +45,8 @@ source $jobConfFile   # Full path - maybe better to aviod ambiguities on remote 
 
 # file=$job\_E$Emin\-$Emax\eV\_$orb
 # file=$job\_E$Emin\-$Emax\_$Estep\eV
-file=$job\_E$Emin\_$Estep\_$Emax\eV
+# file=$job\_E$Emin\_$Estep\_$Emax\eV
+file=$job.$orb\_E$Emin\_$Estep\_$Emax\eV
 
 # Echo to screen
 echo %%%%%%%%
