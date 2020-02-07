@@ -36,7 +36,7 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
 
     password
 
-    home 
+    home
 
     """
 
@@ -256,7 +256,7 @@ def writeInp(self, scrType = 'basic', wLog = True):
     Parameters
     ----------
     scrType : str, default = 'basic'
-        Type of shell script to call, as defined in self.scrDefn
+        Type of shell script to call, as defined in self.scrDefn (see setScripts() function for details)
 
     wLog : bool, default = True
         Write local log file from script run stdout.
