@@ -282,7 +282,7 @@ if __name__ == "__main__":
             # If a pattern is passed, create file list for pkg
             # NOTE: currently set to ignore zip and ipynb files for later inclusion via single-file calls.
             # Also skips files of type .zNN, which are multipart zip files.
-            rePat = f".*{jRoot}.*$(?<!zip)(?<!z[0-9][0-9])(?<!ipynb)"
+            rePat = f".*{jRoot}.*$(?<!zip)(?<!z[0-9][0-9])(?<!ipynb)(?<!sh)"
             fileList = getFilesPkg(pkgDir, rePat = rePat)
             # fileList
 
@@ -323,7 +323,7 @@ if __name__ == "__main__":
             # rePat = f".*{jRoot}.*"
             # rePat = f".*{jRoot}.*$(?<!zip)(?<!ipynb)"  # Use this for file end exclusion, rather than glob, from https://stackoverflow.com/a/10055688
             # Also skips files of type .zNN, which are multipart zip files.
-            rePat = f".*{jRoot}.*$(?<!zip)(?<!z[0-9][0-9])(?<!ipynb)"
+            rePat = f".*{jRoot}.*$(?<!zip)(?<!z[0-9][0-9])(?<!ipynb)(?<!sh)"
             fileList = getFilesPkg(pkgDir, rePat = rePat)
 
             # Write zip
