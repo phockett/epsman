@@ -79,7 +79,8 @@ def splitArchFiles(nbDetails, key, dryRun = True, chunk = 90, verbose = True):
 
         # Just need to run this at command line on remote (Linux)
         # TODO: add some checking logic here, at the moment can fail if fileOut already exists.
-        os.system(f"zip -s {chunk}m {fileOut} {arch}")
+        # Note -j for junking the path, see http://manpages.ubuntu.com/manpages/precise/man1/zip.1.html
+        os.system(f"zip -j -s {chunk}m {fileOut} {arch}")
 
         # TO REBUILD:
         # zip -s 0 testMultipart.zip --out testRecon.zip
