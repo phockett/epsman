@@ -9,6 +9,8 @@ Can be called from Fabric for remote run case, only requires standard libs.
 
 """
 import os
+import sys
+from pathlib import Path
 
 def genSphinxIndex(sourceDir):
     """
@@ -26,7 +28,9 @@ def genSphinxIndex(sourceDir):
     # Additionally set here for relative paths.
     # dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir()]
     # Skip _ dits - bit of an ugly one-liner but works... probably a neater way to do this.
-    dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir() and not Path(f.path).relative_to(sourceDir).as_posix().startswith('_')]
+    dirList = [Path(f.path).relative_to(sourceDir) for f in os.scandir(sourceDir) if f.is_dir() and not (Path(f.path).relative_to(sourceDir).as_posix().startswith('_') or Path(f.path).relative_to(sourceDir).as_posix().startswith('.'))]
+    dirList.sort()  # Alphebetical order.
+    print(dirList)
 
     # Set main index string.
     indexSting = f"""
@@ -43,7 +47,6 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
  methods
  cite
 
- .. image:: http://femtolab.ca/wordpress/wp-content/uploads/2017/03/grav_box_img23164957.jpg 
                 """
 
     # Set toc per dir
@@ -52,7 +55,7 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
         dirName = Path(item).name
         dirString += f"""
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: {dirName}
    :glob:
 
@@ -61,6 +64,9 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
                        """
 
     footerString = """
+
+.. image:: _figs/grav_box_img23164957.jpg
+
 Indices and tables
 ==================
 
@@ -70,3 +76,19 @@ Indices and tables
                     """
 
     return (indexSting + dirString + footerString)
+
+
+# Run full site gen if run as main. Pass root to ePSdata dir.
+if __name__ == "__main__":
+    # Set paths
+    webDir = Path(sys.argv[1])
+    sourceDir = webDir/'source'
+    buildDir = webDir/'buildTmp'
+    docsDir = webDir/'docs'
+
+    # Generate index file for Sphinx
+    indexRST = genSphinxIndex(sourceDir)
+    with open(sourceDir/'index.rst', 'w') as f:
+        f.write(indexRST)
+
+    #

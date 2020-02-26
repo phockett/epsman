@@ -10,6 +10,7 @@ Fixes... set Conda paths explicitly.
 - Prefix with local symlinks: https://stackoverflow.com/questions/51469569/conda-and-python-shell-scripts
 - Prefix as Fabric task: https://stackoverflow.com/questions/54268390/how-to-deploy-my-conda-env-to-a-vps-using-fabric-or-othervise
   >>> This works nicely, deploy...
+  (See http://localhost:8888/notebooks/python/epsman/tests/Remote_run_tests_301219.ipynb)
 
 
 ***
