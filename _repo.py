@@ -253,6 +253,8 @@ def searchRepo(self, key, searchString = None, verbose = False):
         pp = pprint.PrettyPrinter(indent=1)
         pp.pprint(r.json())
 
+    return r
+
 
 def delRepoItem(self, key):
     """Delete item from repo (Zenodo) - for unpublished items only."""
@@ -266,6 +268,28 @@ def delRepoItem(self, key):
         self.nbDetails[key]['doi'] = None
     else:
         print(f"Failed to remove item {self.nbDetails[key]['title']}, code: {r.status_code}")
+
+
+def delRepoFiles(self, key):
+    """Delete file(s) from repo (Zenodo) - for unpublished items only."""
+    #*** Remove files from repo (unpublished only)
+
+    print('NOT IMPLEMENTED')
+
+    # TODO: adapt code here. Need to confirm that files details are set locally before running this.
+    # ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
+    #
+    # TODO: Change to use self.nbDetails[key]['repoInfo']
+    # for item in response.json():
+    #     print(item['id'])
+    #     if 'files' in item.keys():
+    #         for fileItem in item['files']:
+    #             r = requests.delete(f"https://zenodo.org/api/deposit/depositions/{item['id']}/files/{fileItem['id']}",
+    #                             params={'access_token': ACCESS_TOKEN})
+    #             print(r.status_code)
+    #
+    #             if r.status_code == 204:
+    #                 print('***Item removed')
 
 
 def uploadRepoFiles(self, key):
@@ -298,6 +322,38 @@ def uploadRepoFiles(self, key):
     # return 'Not implemented'
 
 
+def checkRepoFiles(self, key = None, searchString = None):
+    """Check repo remote files
+
+    Supply either item key or search string.
+
+    TODO: add comparison with local file list if key supplied.
+
+    """
+
+    ACCESS_TOKEN = initZenodo(self.hostDefn['localhost']['localSettings']/'zenodoSettings.dat')
+
+    # Use existing search routine, should be OK to search on ID, although might be better to just use directly?
+    if searchString is not None:
+        r = self.searchRepo(searchString = searchString)
+    elif key is not None:
+        # Use ID if no search string supplied
+        r = requests.get(f"https://zenodo.org/api/deposit/depositions/{self.nbDetails[key]['repoInfo']['id']}?access_token={ACCESS_TOKEN}")
+    else:
+        print('*** Must supply key or search string.')
+        return None
+
+    for n, item in enumerate(r.json()):
+        print(f"Item {n}: {item['title']}")
+        print(f"ID {item['id']}, DOI {item['doi']}, created {item['created']}, submitted {item['submitted']}.\n")
+
+        if 'files' in item.keys():
+            for m, file in enumerate(item['files']):
+                print(f"File {m}: {file['filename']}")
+                print(f"Size: {convert_bytes(file['filesize'])}")
+
+    return r
+
 
 def publishRepoItem(self, key, manualVerify = True):
     """Publish item/record on Zenodo."""
@@ -309,7 +365,7 @@ def publishRepoItem(self, key, manualVerify = True):
         uploadFlag = input(f"Confirm publishing? (y/n) ")
 
         if uploadFlag == 'y':
-            r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % job.nbDetails[key]['repoInfo']['id'],
+            r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % self.nbDetails[key]['repoInfo']['id'],
                                  params={'access_token': ACCESS_TOKEN} )
             print(r.json())
 
@@ -318,7 +374,7 @@ def publishRepoItem(self, key, manualVerify = True):
 
 
     elif self.nbDetails[key]['pkg']:
-        r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % job.nbDetails[key]['repoInfo']['id'],
+        r = requests.post('https://zenodo.org/api/deposit/depositions/%s/actions/publish' % self.nbDetails[key]['repoInfo']['id'],
                              params={'access_token': ACCESS_TOKEN} )
         print(r.json())
 
@@ -910,7 +966,7 @@ def buildUploads(self, Emin = 3, repo = 'Zenodo', repoDryRun = True, verbose = F
             else:
                 # Use function from nbHeaderWrite.py for consistency with notebook IO code.
                 # Note that jobInfo here has additional lines from version in nbHeaderWrite.py, so drop start.
-                self.nbDetails[key]['jobText'] = constructHeader(self.nbDetails[key]['jobInfo'][2:], self.nbDetails[key]['file'], self.nbDetails[key]['doi'])
+                self.nbDetails[key]['jobText'] = constructHeader(self.nbDetails[key]['jobInfo'][2:], self.nbDetails[key]['file'], self.nbDetails[key]['title'], self.nbDetails[key]['doi'])
 
                 # Currently set to skip pkg if test job (<Emin) or info missing, or failed error checking in fileListCheck()
                 if (int(self.nbDetails[key]['E'][-1]) > Emin) and self.nbDetails[key]['fileListCheck']:
@@ -1056,7 +1112,7 @@ def pkgOverride(self, keyList = None, pkgFlag = True, titleFlag = None):
         print(self.nbDetails[key]['jobInfo'])
 
         # Check and change title if desired
-        if titleFlag is not None:
+        if titleFlag is None:
             # Manual title overrides, ugh.
             titleFlag = input("Change title? (y/n)  ")
             if titleFlag == 'y': titleFlag = True
@@ -1067,7 +1123,10 @@ def pkgOverride(self, keyList = None, pkgFlag = True, titleFlag = None):
             test = input(f"Suggested title: {self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0]} (y/n)")
 
             if test == 'y':
-                self.nbDetails[key]['title'] = self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0]
+                # For old-style jobs, use longer version of title
+                # self.nbDetails[key]['title'] = self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0]
+                # Version + energy range.
+                self.nbDetails[key]['title'] = self.nbDetails[key]['jobInfo'][3].strip().rsplit(',',1)[0] + f", {self.nbDetails[key]['E'][0]} - {self.nbDetails[key]['E'][2]} eV"
             else:
                 self.nbDetails[key]['title'] = input("New title? ")
 

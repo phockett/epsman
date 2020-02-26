@@ -254,6 +254,7 @@ if __name__ == "__main__":
     # Set for dryRun - this will only display pkgs to be built.
     if sys.argv[2] == 'True':
         dryRun = True
+        print("\n***Archive dry run")
     else:
         dryRun = False
         # Print header lines for job, will be in log file.

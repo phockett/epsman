@@ -43,7 +43,7 @@ class epsJob():
     from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads, publishUploads,      \
                         buildArch, updateArch, getArchLogs, checkArchFiles,             \
                         setESFiles, cpESFiles, fileListCheck, pkgOverride,                                     \
-                        initRepo, delRepoItem, uploadRepoFiles, searchRepo, publishRepoItem,                        \
+                        initRepo, delRepoItem, uploadRepoFiles, searchRepo, publishRepoItem, checkRepoFiles,    \
                         writeNBdetailsJSON, readNBdetailsJSON, writeJobJSON
 
     def __init__(self, host = None, user = None, IP = None, password = None):
