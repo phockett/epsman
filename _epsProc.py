@@ -173,7 +173,7 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v4', scp = 'nb-sh-J
         Jupyter notebook template file for post-processing.
         File list set in self.scrDefn, assumed to be in self.hostDefn[self.host]['scpdir'] unless self.hostDefn[self.host]['nbTemplateDir'] is defined.
 
-    scp : str, optional, default = 'nb-sh-JR-v4'
+    scp : str, optional, default = 'nb-sh-JR'
         Script for running batch job on remote.
         TODO: should set scp and template relations in input dict.
 
@@ -226,7 +226,12 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v4', scp = 'nb-sh-J
 
     # With nohup wrapper script to allow job to run independently of terminal.
     # Turn warnings off, and set low timeout, to ensure hangup after jobs started (note: if too short, this will throw an error even if successful)
-    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 40)
+    # 07/03/20 - added conda wrapper.
+    with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
+        print('Running with conda...')
+        print(f"{Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix()} {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}")
+        result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 40)
+
 
 # Tidy up auto-generated notebook files on remote.
 def tidyNotebooks(self, rename = True, cp = True, dryRun = False, multiEChunck = False):

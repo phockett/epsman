@@ -11,6 +11,20 @@ Fixes... set Conda paths explicitly.
 - Prefix as Fabric task: https://stackoverflow.com/questions/54268390/how-to-deploy-my-conda-env-to-a-vps-using-fabric-or-othervise
   >>> This works nicely, deploy...
   (See http://localhost:8888/notebooks/python/epsman/tests/Remote_run_tests_301219.ipynb)
+  e.g. with c.prefix(f"source {job.hostDefn[job.host]['condaPath']} ePSproc-v1.2"):
+            c.run....
+  For env as var:
+  with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}")
+  (See runNotebooks(), submitUploads() for examples)
+
+***
+
+Fix in script option (implemented on Jake local version, ~/ePS/scripts2019/jr_epsProc_nb.sh )
+>>> This is OK, but needs to be set on local machine (although conda dir is standard)
+
+# Set env
+source ~/anaconda3/etc/profile.d/conda.sh  # For conda use set up as per https://github.com/conda/conda/issues/7980
+conda activate ePSproc-v1.2
 
 
 ***
