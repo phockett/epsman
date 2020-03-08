@@ -228,8 +228,8 @@ def runNotebooks(self, subDirs = True, template = 'nb-tpl-JR-v4', scp = 'nb-sh-J
     # Turn warnings off, and set low timeout, to ensure hangup after jobs started (note: if too short, this will throw an error even if successful)
     # 07/03/20 - added conda wrapper.
     with self.c.prefix(f"source {self.hostDefn[self.host]['condaPath']} {self.hostDefn[self.host]['condaEnv']}"):
-        print('Running with conda...')
-        print(f"{Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix()} {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}")
+        print(f"Running Notebooks with conda env {self.hostDefn[self.host]['condaEnv']}")
+        print(f"CMD: {Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix()} {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}")
         result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scp]).as_posix() + f" {self.hostDefn[self.host]['nbProcDir'].as_posix()} {proc} {paramsFile} {self.hostDefn[self.host]['nbTemplate'].as_posix()}", warn = True, timeout = 40)
 
 
