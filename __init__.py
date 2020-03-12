@@ -45,6 +45,7 @@ class epsJob():
                         setESFiles, cpESFiles, fileListCheck, pkgOverride,                                     \
                         initRepo, delRepoItem, uploadRepoFiles, searchRepo, publishRepoItem, checkRepoFiles,    \
                         writeNBdetailsJSON, readNBdetailsJSON, writeJobJSON
+    from ._web import updateWebNotebookFiles, buildSite
 
     def __init__(self, host = None, user = None, IP = None, password = None):
         """
@@ -106,6 +107,8 @@ class epsJob():
             self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
             # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
             self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
+
+            self.hostDefn[host]['webSystemDir'] = Path(self.hostDefn[host]['webDir'], 'source', self.mol)
 
         # Write file locally (working dir).
         if self.jobSettings is not None:

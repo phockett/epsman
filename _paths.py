@@ -36,6 +36,11 @@ def setScripts(self):
                     'uploadNohup':'remoteUploadNohup.sh'
                     }
 
+    # Scripts for web deploy, in /web
+    self.scpDefnWeb = {'buildIndex':'buildSphinxHTML.py',
+                    'buildHTML':'buildHTML.sh'
+                    }
+
 
 def setPaths(self):
     """Set default paths."""
@@ -49,7 +54,7 @@ def setPaths(self):
     # TODO: add check and test routine here.
     self.hostDefn[self.host]['ePSpath'] = Path('/opt/ePolyScat.E3/bin/ePolyScat')
 
-    # Paths for epsproc and epsman...? May not be required...
+    # Paths for epsproc and epsman...? May not be required... should test for these on host?
     # Path(inspect.getfile(em))
 
     # Anaconda path, used for remote env setting.
@@ -63,7 +68,8 @@ def setPaths(self):
     # self.hostDefn[self.host]['localSettings'] = self.hostDefn['localhost']['localSettings']
 
     # Set web paths
-    self.hostDefn[self.host]['webDir'] = Path(self.hostDefn[self.host]['home'], 'epsdata')
+    self.hostDefn[self.host]['webScpPath'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/web')
+    self.hostDefn[self.host]['webDir'] = Path(self.hostDefn[self.host]['home'], 'github/ePSdata')
 
     # Print
     print('\n***Default paths set')

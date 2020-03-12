@@ -47,7 +47,7 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
  methods
  cite
 
-                """
+"""
 
     # Set toc per dir
     dirString = ''
@@ -61,7 +61,7 @@ Photoionization calculation results with `ePolyScat <http://www.chem.tamu.edu/rg
 
    {dirName}/*
 
-                       """
+"""
 
     footerString = """
 
@@ -73,7 +73,7 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-                    """
+"""
 
     return (indexSting + dirString + footerString)
 
@@ -90,5 +90,3 @@ if __name__ == "__main__":
     indexRST = genSphinxIndex(sourceDir)
     with open(sourceDir/'index.rst', 'w') as f:
         f.write(indexRST)
-
-    #
