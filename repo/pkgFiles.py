@@ -56,20 +56,21 @@ def setJobRoot(nbFileName, jobSchema):
     nbFileName = Path(nbFileName)
 
     if jobSchema == '2016':
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
         return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
-    elif (jobSchema == '2016sub') or (jobSchema == '2016sub-r'):  # 17/03/20 added l/r options, kept original for back-compatibility.
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+    elif jobSchema == '2016sub':
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)  # TODO: THERE IS STILL SOMETHING STOOOPID GOING ON HERE WITH GLOBBING.
         # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
         # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
         return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
+    elif jobSchema == '2016sub-r':  # 17/03/20 added l/r options, kept original for back-compatibility.
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+        return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
     elif jobSchema == '2016sub-l':
         jRoot = nbFileName.stem.split(sep='_', maxsplit=2)
-        # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
-        # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
-        return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
+        return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
     elif jobSchema == '2019':
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=1)
+        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
         return f"{jRoot[1]}_{jRoot[2]}"
     else:
         return None # "Not supported"
