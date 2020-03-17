@@ -58,8 +58,13 @@ def setJobRoot(nbFileName, jobSchema):
     if jobSchema == '2016':
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
         return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
-    elif jobSchema == '2016sub':
+    elif (jobSchema == '2016sub') or (jobSchema == '2016sub-r'):  # 17/03/20 added l/r options, kept original for back-compatibility.
         jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
+        # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
+        # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
+        return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
+    elif jobSchema == '2016sub-l':
+        jRoot = nbFileName.stem.split(sep='_', maxsplit=3)
         # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
         # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
         return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"

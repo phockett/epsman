@@ -296,7 +296,7 @@ def tidyNotebooks(self, rename = True, overrideFlag = False, cp = True, dryRun =
                 pass
             else:
                 newName = input("New filename (name only)? ")
-                newFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], newName}.ipynb"
+                newFile = f"{Path(self.hostDefn[self.host]['nbProcDir'], newName)}.ipynb"
                 print(f"Set filename: {newFile}")
 
 
