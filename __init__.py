@@ -61,11 +61,13 @@ class epsJob():
         # Set hostDefns - NOW paths set at connection init stage, just set localhost here.
         # To set a given machine to be used locally, this will just need local IP setting.
         # TODO: set master dir list somewhere for reference.
+        # TODO: sometimes have bugs due to presetting localhost here, should consolidate with other init codes.
         self.hostDefn = {
             'localhost':{'host':socket.gethostname(),
                 'IP':'127.0.0.1',
                 'home':Path.home(),
-                'wrkdir':Path.cwd()}
+                'wrkdir':Path.cwd(),
+                'webDir':Path(Path.home(), 'github/ePSdata')}
             }
 
         # Settings for connection - init to None.

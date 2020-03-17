@@ -73,6 +73,7 @@ def initRepo(self, key, manualVerify = True, dryRun = True, verbose = True, upda
     # keyURL = 'test'
     # zenodoURL = f"https://zenodo.org/record/{doi.split('.')[-1]}"
     fileIn = Path(self.nbDetails[key]['file'])
+    # TODO: add options/override here?  Currently set only from fileIn for remote run, but ideally want just mol here, or nested?
     webURL = f"https://phockett.github.io/ePSdata/{fileIn.parts[-2]}/{fileIn.stem}.html"
     self.nbDetails[key]['webURL'] = webURL
 
