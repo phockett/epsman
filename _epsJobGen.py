@@ -166,13 +166,20 @@ def createJobDirTree(self):
     # Alternatively can skip checking here and just use 'mkdir -p' below.
 
     # Build dir tree
-    if test.ok == False:
-        self.c.run('mkdir ' + self.hostDefn[self.host]['systemDir'].as_posix())
-        self.c.run('mkdir ' + self.hostDefn[self.host]['genDir'].as_posix())
-        self.c.run('mkdir ' + self.hostDefn[self.host]['elecDir'].as_posix())
-        print('Dir tree built, ', self.hostDefn[self.host]['systemDir'].as_posix())
-    else:
-        print('Dir tree already exists, ', self.hostDefn[self.host]['systemDir'].as_posix())
+    # if test.ok == False:
+    #     self.c.run('mkdir ' + self.hostDefn[self.host]['systemDir'].as_posix())
+    #     self.c.run('mkdir ' + self.hostDefn[self.host]['genDir'].as_posix())
+    #     self.c.run('mkdir ' + self.hostDefn[self.host]['elecDir'].as_posix())
+    #     print('Dir tree built, ', self.hostDefn[self.host]['systemDir'].as_posix())
+    # else:
+    #     print('Dir tree already exists, ', self.hostDefn[self.host]['systemDir'].as_posix())
+
+    # Build dir tree - version with 'mkdir -p'
+    self.c.run('mkdir -p ' + self.hostDefn[self.host]['systemDir'].as_posix())
+    self.c.run('mkdir -p ' + self.hostDefn[self.host]['genDir'].as_posix())
+    self.c.run('mkdir -p ' + self.hostDefn[self.host]['elecDir'].as_posix())
+    print('Dir tree built, ', self.hostDefn[self.host]['systemDir'].as_posix())
+
 
     # Upload genFile
     if self.genFile is not None:
