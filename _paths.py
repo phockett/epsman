@@ -22,8 +22,8 @@ def setScripts(self):
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
                     'nb-tpl-JR-v3':'ePSproc_epsman_template_tidy_100120_JR-single.ipynb',
                     'nb-tpl-JR-v4':'ePSproc_epsman_template_tidy_120120_JR-single.ipynb',
-                    'nb-tpl-JR-v5':'ePSproc_epsman_template_tidy_100220_JR-single.ipynb',
-                    'nb-tpl-JR-v4-EC':'ePSproc_epsman_template_tidy_060220_JR-E-chunck.ipynb',
+                    'nb-tpl-JR-v5':'ePSproc_epsman_template_tidy_300320_JR-single.ipynb',
+                    'nb-tpl-JR-v4-EC':'ePSproc_epsman_template_tidy_300320_JR-E-chunck.ipynb',
                     'nb-sh-JR':'jr_epsProc_nb.sh'
                     }
 
