@@ -478,8 +478,23 @@ def buildArch(self, localLoop = True, dryRun = True, hide = True):
                 if dryRun:
                     # self.nbDetails[key]['result'] = result
                     output = result.stdout.splitlines()
-                    self.nbDetails[key]['pkgInfo'] = output[:5]
-                    self.nbDetails[key]['pkgFileList'] = output[5:]
+
+                    # With hard-coded items - this is dodgy, since it may pick up non-file items if return items from pkgFiles.py changes.
+                    # Ask me how I know... this was annoying to debug!
+                    # self.nbDetails[key]['pkgInfo'] = output[:5]
+                    # self.nbDetails[key]['pkgFileList'] = output[5:]
+
+                    # With filename checking
+                    self.nbDetails[key]['pkgInfo'] = []
+                    self.nbDetails[key]['pkgFileList'] = []
+                    for item in output:
+                        # Test for valid file name by just checking it looks like the start of the parent notebook path.
+                        # This should be sufficiently general to keep all files (regardless of host system), but throw out anything else.
+                        if not item.startswith(Path(self.nbDetails[key]['file']).parent.as_posix()[0:3]):
+                            self.nbDetails[key]['pkgInfo'].append(item)
+                        else:
+                            self.nbDetails[key]['pkgFileList'].append(item)
+
                     self.nbDetails[key]['archName'] = archName.as_posix()
                     # print(f"Found {len(self.nbDetails[key]['pkgFileList'][5:])} items.")
                     self.fileListCheck(key)  # Print info to screen & basic error checking.
@@ -803,9 +818,12 @@ def fileListCheck(self, key = None, verbose = True, errorCheck = True):
         else:
             fileList.append(fileListTest[n])
 
-    self.nbDetails[key]['pkgRootDir'] = os.path.commonpath(fileListTest)
-    self.nbDetails[key]['pkgDirList'] = dirList
-    self.nbDetails[key]['pkgSuffixCount'] = c
+    if fileList:
+        self.nbDetails[key]['pkgRootDir'] = os.path.commonpath(fileListTest)
+        self.nbDetails[key]['pkgDirList'] = dirList
+        self.nbDetails[key]['pkgSuffixCount'] = c
+    else:
+        print(f"***Warning, job {key}, title: {self.nbDetails[key]['title']}\nNo files found.")
 
     # Print details
     if verbose:
