@@ -824,6 +824,9 @@ def fileListCheck(self, key = None, verbose = True, errorCheck = True):
         self.nbDetails[key]['pkgSuffixCount'] = c
     else:
         print(f"***Warning, job {key}, title: {self.nbDetails[key]['title']}\nNo files found.")
+        self.nbDetails[key]['pkgRootDir'] = []
+        self.nbDetails[key]['pkgDirList'] = []
+        self.nbDetails[key]['pkgSuffixCount'] = []
 
     # Print details
     if verbose:
