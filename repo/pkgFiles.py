@@ -46,35 +46,52 @@ def setJobRoot(nbFileName, jobSchema):
     nbFileName : str or Path
         Notebook file defining job.
 
-    jobSchema : str
-        - '2016' Jobs defined as mol/jName_XX-XXeV/
-        - '2016sub' Jobs defined by eV, with subdirs, as mol/*_XX-XXeV/jName
-        - '2019' Jobs defined as mol/jName/
-        For 2019 schema, energies are interleaved, while for 2016 schema they are treated independently with different jobs.
+    # jobSchema : str
+    #     - '2016' Jobs defined as mol/jName_XX-XXeV/
+    #     - '2016sub' Jobs defined by eV, with subdirs, as mol/*_XX-XXeV/jName
+    #     - '2019' Jobs defined as mol/jName/
+    #     For 2019 schema, energies are interleaved, while for 2016 schema they are treated independently with different jobs.
+
+    25/07/20: testing new logic here, jobSchema currently bypassed.
+
+    For new style jobs, should add checking for job .conf file, rather than notebook name parsing.
+
     """
 
     nbFileName = Path(nbFileName)
 
-    if jobSchema == '2016':
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
-        return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
-    elif jobSchema == '2016sub':
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)  # TODO: THERE IS STILL SOMETHING STOOOPID GOING ON HERE WITH GLOBBING.
-        # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
-        # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
-        # return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
-        return f"{jRoot[0]}/*{jRoot[2]}_{jRoot[3]}"
-    elif jobSchema == '2016sub-r':  # 17/03/20 added l/r options, kept original for back-compatibility.
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
-        return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
-    elif jobSchema == '2016sub-l':
-        jRoot = nbFileName.stem.split(sep='_', maxsplit=2)
-        return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
-    elif jobSchema == '2019':
-        jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
-        return f"{jRoot[1]}_{jRoot[2]}"
+    # OLD code, now possibly broken...?
+    # if jobSchema == '2016':
+    #     jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)
+    #     return f"{jRoot[1]}_{jRoot[2]}_{jRoot[3]}"
+    # elif jobSchema == '2016sub':
+    #     jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=3)  # TODO: THERE IS STILL SOMETHING STOOOPID GOING ON HERE WITH GLOBBING.
+    #     # return f"{jRoot[1]}/.*{jRoot[2]}_{jRoot[3]}"
+    #     # return f"{jRoot[1]}/{jRoot[2]}_{jRoot[3]}"
+    #     # return f"{jRoot[1]}.*{jRoot[2]}_{jRoot[3]}"
+    #     return f"{jRoot[0]}/*{jRoot[2]}_{jRoot[3]}"
+    # elif jobSchema == '2016sub-r':  # 17/03/20 added l/r options, kept original for back-compatibility.
+    #     jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+    #     return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
+    # elif jobSchema == '2016sub-l':
+    #     jRoot = nbFileName.stem.split(sep='_', maxsplit=2)
+    #     return f"{jRoot[0]}.*{jRoot[1]}_{jRoot[2]}"
+    # elif jobSchema == '2019':
+    #     jRoot = nbFileName.stem.rsplit(sep='_', maxsplit=2)
+    #     return f"{jRoot[1]}_{jRoot[2]}"
+    # else:
+    #     return None # "Not supported"
+
+    # Updated 25/07/20. May have issues with new (2019) style jobs, but should be OK for all old flavours.
+    # Split at eV - this will give necessary parts for old-style jobs, and leave full name for new-style (TBT)
+    # E.g. for nbFileName = 'aniline_wf_0.1-1.1eV_orb26_B1tot.ipynb', jRoot = 'aniline_wf_0.1-1.1.*/.*orb26_B1tot'
+    jobParts = nbFileName.stem.split(sep='eV')
+    if len(jobParts)>1:
+        jRoot = f"{jobParts[0]}.*/.*{jobParts[-1].strip('_')}"
     else:
-        return None # "Not supported"
+        jRoot = f"{jobParts[0]}"  # For no eV case just return full job string - this probably will fail for 2019 jobs, should look for conf file instead, TBT.
+
+    return jRoot
 
 
 #*** FOLLOWING COMMANDS TO RUN LOCALLY on host
