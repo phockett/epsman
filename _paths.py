@@ -46,7 +46,10 @@ def setPaths(self):
     """Set default paths."""
     # TODO: finish this... should add looping over necessary paths, functionalised and with more searching. Sigh.
     # FOR NOW - set know paths based on above.
-    self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')
+    # For epsman on remote, should set for github or python subdirs?
+    
+    # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')  # Local files
+    self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/shell')  # Scripts from epsman repo
     self.hostDefn[self.host]['jobPath'] = Path(self.hostDefn[self.host]['wrkdir'], 'jobs')
     self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobPath'], 'completed')
 

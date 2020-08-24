@@ -35,8 +35,9 @@ Estep=$3
 
 # Machine-specific settings.
 # Note script location hard-coded here to allow for use of source (otherwise needs to be in working dir)
-scrdir=/home/paul/ePS_stuff/scripts2019
-source $scrdir/machine.conf
+# scrdir=/home/paul/ePS_stuff/scripts2019
+# source $scrdir/machine.conf
+#  23/08/20: now set via jobConfFile, with settings as per epsman.
 
 # (c) Molecule (job) settings
 # Load molecule & job defns. from file.

@@ -114,6 +114,20 @@ class epsJob():
 
         # Write file locally (working dir).
         if self.jobSettings is not None:
+
+            # 23/08/20 Add paths for remote here, quick hack to fix machine.conf local settings as previously used.
+            self.jobSettings = f"""
+
+# Set working environment
+machine={self.host}
+wrkdir={self.hostDefn[host]['wrkdir'].as_posix()}
+
+# Settings from ePS_batch_job.sh
+ePSpath={self.hostDefn[host]['ePSpath'].as_posix()}
+jobPath={self.hostDefn[host]['jobPath'].as_posix()}
+            """ + self.jobSettings
+
+
             with open(self.genFile,'w') as f:
                 f.write(self.jobSettings)
                 print('Written local job conf file (working dir): ' + str(Path(self.hostDefn['localhost']['wrkdir'], self.genFile)))
