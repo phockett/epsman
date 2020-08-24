@@ -7,9 +7,9 @@
 # export LD_LIBRARY_PATH=/opt/pgi/linux86-64/10.0/lib
 # export PATH=/opt/openmpi-1.4/bin/:$PATH
 
-ePSpath=/opt/ePolyScat.E3/bin/ePolyScat
+# ePSpath=/opt/ePolyScat.E3/bin/ePolyScat
 # jobPath=/mnt/Scratch/ePS/jobs
-jobPath=/home/paul/ePS_stuff/jobs
+# jobPath=/home/paul/ePS_stuff/jobs 
 
 cd $jobPath
 

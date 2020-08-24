@@ -5,7 +5,7 @@
 
 echo Starting batch run with nohup
 
-jobConfFile=$1
-source $jobConfFile  # 23/08/20 Settings for local dirs now set here.
+# jobConfFile=$1
+# source $jobConfFile  # 23/08/20 Settings for local dirs now passed to main script
 
-nohup /home/paul/ePS_stuff/jobs/ePS_batch_job.sh &
+nohup /home/paul/ePS_stuff/jobs/ePS_batch_job.sh $1 &
