@@ -1,0 +1,34 @@
+
+To build locally...
+
+*FULL REBUILD*
+Linux
+  From notebook:
+    Use epsman.buildSite()
+    This assumes Linux host
+
+  From cli:
+    From epsman/web run:
+      python buildSphinxHTML <path to webroot>
+    To rebuild index. Then run
+      buildHTML.sh <path to webroot>
+
+
+Windows:
+  <path to webroot. = D:\code\github\ePSdata
+  
+  From epsman/web run:
+    python buildSphinxHTML <path to webroot>
+  To rebuild index. Then run Sphinx:
+    cd <path to webroot>
+    make html
+
+  Then copy or move build/html to docs.
+
+  TODO: Check nbsphinx_prolog (in /source/conf.py), for ePSdata this may not work correctly on Win machines, probably a / vs. \ issue!
+
+*PARTIAL REBUILD*
+
+Run as above, but in a temporary dir... then copy just required files to git repo. In this case side-bar menus between new and old files may become out of sync.
+
+Note: corresponding files from build/html/_images and /_sources may also be required. (Not sure about the latter, but N2O page possibly needed this - unclear!)
