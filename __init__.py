@@ -127,7 +127,8 @@ ePSpath={self.hostDefn[host]['ePSpath'].as_posix()}
 jobPath={self.hostDefn[host]['jobPath'].as_posix()}
             """ + self.jobSettings
 
-
-            with open(self.genFile,'w') as f:
+            # Note force newline = "\n" to fix Unix text file formatting for mixed win/linux cases
+            # May also be able to fix at file upload to host with Fabric...?
+            with open(self.genFile,'w', newline="\n") as f:
                 f.write(self.jobSettings)
                 print('Written local job conf file (working dir): ' + str(Path(self.hostDefn['localhost']['wrkdir'], self.genFile)))
