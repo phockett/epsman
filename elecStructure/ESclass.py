@@ -1,25 +1,63 @@
-# Stick above methods into class.
-# May want to also inherit from cclib? Not sure.
+"""
+Basic methods for dealing with Gamess & Molden file IO for ePolyScat.
+
+03/02/21 v2 Revisiting and finishing off...
+            - Fixed formatting options.
+            - Added wrappers for cclib moldenwriter.MOLDEN as new class.
+            - Use EShandler class for general IO.
+
+26/08/20 v1 Quick hack from existing functions - needs some more sophistication for file handling. Should have utils for this...
+
+Dev work currently in [Bemo] http://localhost:8888/notebooks/ePS/N2O/N2O_electronic_structure_proc_tests_250820.ipynb
+
+"""
 
 import fileinput
 import sys
 from pathlib import Path
 
 import cclib
+from cclib.io import moldenwriter  # Molden class + functions
 
 
 
 class EShandler():
     """
-    Basic methods for dealing with Gamess & Molden file IO for ePolyScat.
+    Basic class for handling Gamess & Molden file IO.
 
-    26/08/20 v1 Quick hack from existing functions - needs some more sophistication for file handling. Should have utils for this...
+    Uses `CCLIB <https://cclib.github.io/>`_ to read Gamess log files & convert to Molden format.
 
-    Dev work currently in [Bemo] http://localhost:8888/notebooks/ePS/N2O/N2O_electronic_structure_proc_tests_250820.ipynb
+    For ePS compatibilty, this is slightly modified to match the "Molden2006" specifications defined therein (see source in `MoldenCnv2006.f90`).
+
+    Parameters
+    -----------
+
+
+
+    Example
+    -------
+    >>> fileBase = Path(modPath, 'epsman', 'elecStructure','fileTest')  # Set for test file, where modPath = path to epsman root
+    >>> fileName = r'N2O_aug-cc-pVDZ_geomOpt.log'
+    >>> esData = EShandler(fileName, fileBase)  # Create class instance
+    >>> esData.readGamessLog()  # Read Gamess file
+    >>> esData.writeMoldenFile2006()  # Write Molden2006 file
+    >>> esData.writeMoldenFile()  # Write Molden file as per CCLIB defaults.
+
+    >>> esData = EShandler(fileName = 'test.molden') # Pass a Molden file to set & use the reformatter
+    >>>
+    >>> esData.reformatMoldenFile()
+
+    Notes
+    -----
+
+
+    Thanks to `the CCLIB authors <https://cclib.github.io/>`_ for making this possible!
 
     """
 
-    def __init__(self, fileName = None, fileBase = None):
+
+    def __init__(self, fileName = None, fileBase = None, outFile = None):
+
 
         # Set fileBase and fileName - for now no error checking here
         if fileBase is None:
@@ -33,56 +71,207 @@ class EShandler():
             self.fileName = Path(fileName)
 
         self.fullPath = (self.fileBase/self.fileName)
-#         print(self.fullPath)
 
-        self.readGamessLog()
+        # If a Gamess file is passed, read it.
+        # If a Molden file is passed, just set moldenFile for use later.
+        if self.fileName.suffix != '.molden':
+            self.readGamessLog()
+
+            if outFile is None:
+                self.moldenFile = self.fullPath.with_suffix('.' + 'molden')
+            else:
+                self.moldenFile = self.fullPath.with_name(outFile)
+
+        else:
+            self.moldenFile = self.fullPath
+
+        print(f'Set output file as {self.moldenFile}, set self.moldenFile to override.')
+
 
 
     def readGamessLog(self):
         self.data = cclib.io.ccread(self.fullPath.as_posix())
         print(f"Read file {self.fullPath}")
-        print("Read %i atoms and %i MOs" % (self.data.natom, self.data.nmo))
+
+        try:
+            print("Read %i atoms and %i MOs" % (self.data.natom, self.data.nmo))
+
+        # Generic error case, usually due to None returned from cclib.
+        except AttributeError:
+            print(f"*** Error: File {self.fullPath} not found or empty.")
+
 
 
     def writeMoldenFile(self):
+        """
+        Write data to Molden format file using CCLIB
+
+        """
+
         # Convert to Molden format
-        f = 'molden'  # Set output format
-        self.moldenFile = self.fullPath.with_suffix('.' + f)
-        cclib.io.ccwrite(self.data, terse=True, outputtype=f, outputdest=self.moldenFile.as_posix())  # From data
+        cclib.io.ccwrite(self.data, terse=True, outputtype='molden', outputdest=self.moldenFile.as_posix())  # From data
 
         print(f"Written Molden format file {self.moldenFile}")
         self.reformatMoldenFile()
 
 
-    def reformatMoldenFile(self):
+    def writeMoldenFile2006(self):
         """
-        Reformat atom details & coords in Molden file to match ePS IO.
+        Write data to Molden format file using reformatted CCLIB code, for ePS compatible 'Molden2006' formatting.
 
         """
+
+        # Convert to Molden format
+        f = 'molden'  # Set output format
+        self.moldenFile = self.fullPath.with_suffix('.' + f)
+        # cclib.io.ccwrite(self.data, terse=True, outputtype=f, outputdest=self.moldenFile.as_posix())  # From data
+
+        # Set object
+        self.moldenData = moldenCCLIBReformatted(self.data)
+
+        # Write to file using modified functions
+        # Note newline='\n' to force Unix style output (default will otherwise use os.linesep, see https://docs.python.org/3/library/functions.html#open).
+        with open(self.moldenFile, 'w', newline='\n') as f:
+            # f.write(self.moldenData.generate_repr())  # Write full file - no further reformatting
+
+            # With additional per-line checks
+            moldenRepr = self.moldenData.generate_repr().split('\n')
+
+            for line in moldenRepr:
+                if line.startswith(' Sym='):
+                    pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
+                else:
+                    # f.write(line, end='')
+                    f.write(f'{line}')
+
+        print(f"Written Molden2006 format file {self.moldenFile}")
+        # self.reformatMoldenFile()
+
+
+
+    def reformatMoldenFile(self, inplace = True, verbose = False):
+        """
+        Reformat atom details & coords in an exisiting Molden file to match ePS IO "Molden2006" formatting.
+
+        Uses data in existing file, as set in self.moldenFile.
+
+        """
+
+        lines = []
 
         # Get lines for reformat using standard function
         startPhrase="[Atoms]"
         endPhrase="[GTO]"   # None  #
 
-        (lines, dumpSegs) = fileParse(self.moldenFile, startPhrase, endPhrase, verbose=False)  # Why is this not returning any lines...????
+        (lineListAtoms, dumpSegs) = fileParse(self.moldenFile, startPhrase, endPhrase, verbose=verbose)  # Why is this not returning any lines...????
+        lineListAtoms = list(range(lineListAtoms[0][0]+1, lineListAtoms[1][0]))
 
+        startPhrase="[GTO]"
+        endPhrase="[MO]"   # None  #
+
+        (lineListGTO, dumpSegs) = fileParse(self.moldenFile, startPhrase, endPhrase, verbose=verbose)  # Why is this not returning any lines...????
+
+        lineListGTO = list(range(lineListGTO[0][0], lineListGTO[1][0]))
 
         # Context manager version of inplace file replace
         # From https://stackoverflow.com/a/58217364
         # Thanks Akif!
 
-        with fileinput.input(outFile, inplace=True) as f:
+        with fileinput.input(self.moldenFile, inplace=inplace) as f:
             for line in f:
-        #         new_line = line.replace(search_text, new_text)
-        #         print(new_line, end='')
-                if fileinput.filelineno() in lineList:
-                #         print('{:>3} {:>5} {:>5} {:>20} {:>20} {:>20}'.format(*testLine.split()), end='') # Works, although single line outout
-                        line = '{:>2} {:>4} {:>4} {:>16} {:>19} {:>19} \n'.format(*line.split())
 
-        #         sys.stdout.write(line)  # No output in file?
-                print(line, end='')  # end='' to avoid adding extra newline chars and double spacing! Do need to manually add above however.
+                if fileinput.filelineno() in lineListAtoms:
+                    line = ' {:<2} {:>4} {:>4} {:>16} {:>19} {:>19} \n'.format(*line.split())
+
+
+                # Undo scientific notation if set (see, e.g. lines from, and to reverse, cclib.io.molenWriter.py, lines 267-271)
+                # May not be necessary for ePS IO?
+                if (fileinput.filelineno() in lineListGTO) and ('e' in line):
+#                     vals = line.split()
+#                     vals = [self.scinotation(i) for i in vals]
+#                     line = ' '.join(vals)
+#                     line = f" {line.replace('e','D')}"  # TODO: fix -ve number alignment?
+                    line = '{:>18}{:>18} \n'.format(*line.replace('e','D').split())
+
+
+                if line.startswith(' Sym='):
+                    pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
+                else:
+                    print(line, end='')  # end='' to avoid adding extra newline chars and double spacing! Do need to manually add above however.
 
         print(f"*** Molden file {self.moldenFile} reformatted for ePS.")
+
+
+# Try redefining existing methods - class version with inheritance
+class moldenCCLIBReformatted(moldenwriter.MOLDEN):
+    """
+    Pathc for cclib's modenwriter to conform to ePS 'Molden2006' format spec.
+
+    This class inherits from :py:class:`cclib.io.moldenwriter.MOLDEN` (`github source <https://github.com/cclib/cclib/blob/bbc231295e64c7f25d5d235492c103688a4e068b/cclib/io/moldenwriter.py#L34>`_), and:
+
+    - Redefines :py:func:`_coords_from_ccdata` and :py:func:`_gto_from_ccdata`.
+    - :py:func:`_coords_from_ccdata`  uses super() to run the original function, than applies a slightly different coordinates format spec. to the output.
+    - :py:func:`_gto_from_ccdata` is basically a modified version of the original cclib code, again with just a modified format spec.
+
+    Thanks to `the CCLIB authors <https://cclib.github.io/>`_ for making this possible!
+
+    """
+
+    def _coords_from_ccdata(self, index):
+        """
+        Create [Atoms] section for 'Molden2006' output.
+
+        Runs super :py:method:`cclib.io.moldenwriter.MOLDEN._coords_from_ccdata` then modifies output format before return.
+
+        """
+
+        lines = super()._coords_from_ccdata(index)  # Just use super here? Can't remember how to test this when monkey patching however - doesn't resolve properly?
+    #     super()
+
+        linesReformat = []
+        for line in lines:
+            # line = ' {:<2} {:>4} {:>4} {:>16} {:>19} {:>19} \n'.format(*line.split())
+            # linesReformat.append('{:>3} {:>5} {:>5} {:>20} {:>20} {:>20}'.format(*line.split()))
+            linesReformat.append('{:<2} {:>4} {:>4} {:>16} {:>19} {:>19}'.format(*line.split()))
+
+        return linesReformat
+
+
+    # Code from cclib, with minor mods, see https://github.com/cclib/cclib/blob/bbc231295e64c7f25d5d235492c103688a4e068b/cclib/io/moldenwriter.py#L68
+    def _gto_from_ccdata(self):
+        """
+        Create [GTO] section for 'Molden2006' output.
+
+        Modified code from :py:method:`cclib.io.moldenwriter.MOLDEN._gto_from_ccdata` with format changes.
+
+        `github source <https://github.com/cclib/cclib/blob/bbc231295e64c7f25d5d235492c103688a4e068b/cclib/io/moldenwriter.py#L34>`_
+
+        """
+
+        gbasis = self.ccdata.gbasis
+        label_template = ' {:s}{:5d} 1.00'     # Changed spacing here - single space for basis label, three spaces for components.
+        # basis_template = '{:15.9e} {:15.9e}'  # Original format
+        basis_template = ' {:> 15.10e} {:> 15.10e}'
+        # basis_template = '   {:>15}  {:>15}'
+        lines = []
+
+        for no, basis in enumerate(gbasis):
+            lines.append('{:3d} 0'.format(no + 1))
+            for prims in basis:
+                lines.append(label_template.format(prims[0].lower(),
+                                                   len(prims[1])))
+                for prim in prims[1]:
+                    lines.append(basis_template.format(prim[0], prim[1]))
+
+                    lines[-1] = lines[-1].replace('e','D')  # Added for D format output - may not be required
+
+
+            lines.append('')
+        lines.append('')
+        return lines
+
+
+
 
 
 # FILEPARSE from epsproc
