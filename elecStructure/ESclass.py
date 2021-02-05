@@ -168,7 +168,7 @@ class EShandler():
         cclib.io.ccwrite(self.data, terse=True, outputtype='molden', outputdest=self.moldenFile.as_posix())  # From data
 
         print(f"Written Molden format file {self.moldenFile}")
-        self.reformatMoldenFile()
+        # self.reformatMoldenFile()
 
 
     def writeMoldenFile2006(self):
