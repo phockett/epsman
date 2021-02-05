@@ -50,14 +50,43 @@ class EShandler():
     Notes
     -----
 
-
     Thanks to `the CCLIB authors <https://cclib.github.io/>`_ for making this possible!
+
+    To do
+    -----
+    - Implement directory scan (or wrapper class/decorator for this).
+    - Better file handling, should implement Pathlib tests for file(s).
 
     """
 
 
     def __init__(self, fileName = None, fileBase = None, outFile = None):
 
+        self.setFiles(fileName=fileName, fileBase=fileBase, outFile=outFile)
+
+        # If a Gamess file is passed, read it.
+        if (self.fileName is not None) and (self.fileName.suffix != '.molden'):
+            self.readGamessLog()
+
+
+    def setFiles(self, fileName = None, fileBase = None, outFile = None):
+        """
+        Set fileName, fileBase and outFile
+
+        Parameters
+        ----------
+        fileName : str or Path obj, optional, default = None
+            Gamess or Molden file.
+
+        fileBase : str or Path obj, optional, default = None
+            Path to file location, defaults to current working dir.
+
+        outFile : str or Path obj, optional, default = None
+            Name for output Molden file, defaults to fileName.molden if not set.
+
+        If no args are passed, fileName = None will be set, and filePath = working dir.
+
+        """
 
         # Set fileBase and fileName - for now no error checking here
         if fileBase is None:
@@ -66,16 +95,26 @@ class EShandler():
             self.fileBase = Path(fileBase)
 
         if fileName is None:
-            print('TODO - implement dir scan here')
+            if fileBase is None:
+                # Case for empty class
+                self.fileName = None
+            else:
+                print('TODO - implement dir scan here')
+
         else:
             self.fileName = Path(fileName)
 
-        self.fullPath = (self.fileBase/self.fileName)
+        if self.fileName is not None:
+            self.fullPath = (self.fileBase/self.fileName)
+        else:
+            self.fullPath = self.fileBase  # Just propagate fileBase in this case.
 
-        # If a Gamess file is passed, read it.
+
         # If a Molden file is passed, just set moldenFile for use later.
-        if self.fileName.suffix != '.molden':
-            self.readGamessLog()
+        # TODO: integrate this with setMoldenFile() below.
+        if self.fileName is not None:
+            # if self.fileName.suffix != '.molden':
+                # self.readGamessLog()
 
             if outFile is None:
                 self.moldenFile = self.fullPath.with_suffix('.' + 'molden')
@@ -85,8 +124,25 @@ class EShandler():
         else:
             self.moldenFile = self.fullPath
 
-        print(f'Set output file as {self.moldenFile}, set self.moldenFile to override.')
+        print(f'Set input file as {self.fullPath}, use self.setFiles to change.')
+        print(f'Set output file as {self.moldenFile}, use self.setMoldenFile to override.')
 
+
+    def setMoldenFile(self, fileName, fileBase = None):
+        """Set self.moldenFile with new fileName and existing path, or new path."""
+
+        # Assume current path is correct, and set fileName
+        if fileBase is None:
+            if self.fullPath.is_dir():
+                self.moldenFile = self.fullPath/Path(fileName)
+            else:
+                self.moldenFile = self.fullPath.with_name(fileName)
+        else:
+            self.moldenFile = Path(fileBase, fileName)
+
+        # self.fileName = fileName
+
+        print(f'Set output file as {self.moldenFile}, run self.setMoldenFile to override.')
 
 
     def readGamessLog(self):
@@ -123,7 +179,7 @@ class EShandler():
 
         # Convert to Molden format
         f = 'molden'  # Set output format
-        self.moldenFile = self.fullPath.with_suffix('.' + f)
+        # self.moldenFile = self.fullPath.with_suffix('.' + f)
         # cclib.io.ccwrite(self.data, terse=True, outputtype=f, outputdest=self.moldenFile.as_posix())  # From data
 
         # Set object
@@ -142,18 +198,25 @@ class EShandler():
                     pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
                 else:
                     # f.write(line, end='')
-                    f.write(f'{line}')
+                    f.write(f'{line}\n')
 
         print(f"Written Molden2006 format file {self.moldenFile}")
         # self.reformatMoldenFile()
 
 
 
-    def reformatMoldenFile(self, inplace = True, verbose = False):
+    def reformatMoldenFile(self, inplace = True, backup = '', verbose = False):
         """
         Reformat atom details & coords in an exisiting Molden file to match ePS IO "Molden2006" formatting.
 
         Uses data in existing file, as set in self.moldenFile.
+
+        Notes
+        -----
+
+        Default settings use inplace writing to replace existing file, pass backup='.bk' to set backup file extension for original file contents.
+
+        See https://docs.python.org/3/library/fileinput.html#fileinput.FileInput for details.
 
         """
 
@@ -177,7 +240,7 @@ class EShandler():
         # From https://stackoverflow.com/a/58217364
         # Thanks Akif!
 
-        with fileinput.input(self.moldenFile, inplace=inplace) as f:
+        with fileinput.input(self.moldenFile, inplace=inplace, backup = backup) as f:
             for line in f:
 
                 if fileinput.filelineno() in lineListAtoms:
@@ -245,6 +308,8 @@ class moldenCCLIBReformatted(moldenwriter.MOLDEN):
         Modified code from :py:method:`cclib.io.moldenwriter.MOLDEN._gto_from_ccdata` with format changes.
 
         `github source <https://github.com/cclib/cclib/blob/bbc231295e64c7f25d5d235492c103688a4e068b/cclib/io/moldenwriter.py#L34>`_
+
+        Note: this currently sets output format to standard scientific notation, but replaces 'e' with 'D'. May also need to fix exponent, e.g. https://stackoverflow.com/a/8262434
 
         """
 
