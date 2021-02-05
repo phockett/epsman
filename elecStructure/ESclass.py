@@ -5,6 +5,7 @@ Basic methods for dealing with Gamess & Molden file IO for ePolyScat.
             - Fixed formatting options.
             - Added wrappers for cclib moldenwriter.MOLDEN as new class.
             - Use EShandler class for general IO.
+            - Tested with N2O demo file + ePS test job OK for Molden2006 format.
 
 26/08/20 v1 Quick hack from existing functions - needs some more sophistication for file handling. Should have utils for this...
 
@@ -29,13 +30,24 @@ class EShandler():
 
     For ePS compatibilty, this is slightly modified to match the "Molden2006" specifications defined therein (see source in `MoldenCnv2006.f90`).
 
+
     Parameters
-    -----------
+    ----------
+
+    fileName : str or Path obj, optional, default = None
+        Gamess or Molden file.
+
+    fileBase : str or Path obj, optional, default = None
+        Path to file location, defaults to current working dir.
+
+    outFile : str or Path obj, optional, default = None
+        Name for output Molden file, defaults to fileName.molden if not set.
+
+    If no args are passed, fileName = None will be set, and filePath = working dir.
 
 
-
-    Example
-    -------
+    Examples
+    --------
     >>> fileBase = Path(modPath, 'epsman', 'elecStructure','fileTest')  # Set for test file, where modPath = path to epsman root
     >>> fileName = r'N2O_aug-cc-pVDZ_geomOpt.log'
     >>> esData = EShandler(fileName, fileBase)  # Create class instance
@@ -44,8 +56,8 @@ class EShandler():
     >>> esData.writeMoldenFile()  # Write Molden file as per CCLIB defaults.
 
     >>> esData = EShandler(fileName = 'test.molden') # Pass a Molden file to set & use the reformatter
-    >>>
     >>> esData.reformatMoldenFile()
+
 
     Notes
     -----
@@ -56,6 +68,7 @@ class EShandler():
     -----
     - Implement directory scan (or wrapper class/decorator for this).
     - Better file handling, should implement Pathlib tests for file(s).
+    - Fix reformatMoldenFile() method, this currently outputs OS specific line endings.
 
     """
 
@@ -129,7 +142,18 @@ class EShandler():
 
 
     def setMoldenFile(self, fileName, fileBase = None):
-        """Set self.moldenFile with new fileName and existing path, or new path."""
+        """
+        Set self.moldenFile with new fileName and existing path, or new path.
+
+        Parameters
+        ----------
+        fileName : str or Path obj, optional, default = None
+            Molden filename.
+
+        fileBase : str or Path obj, optional, default = None
+            Path to file location, defaults to currently set path.
+
+        """
 
         # Assume current path is correct, and set fileName
         if fileBase is None:
@@ -146,6 +170,11 @@ class EShandler():
 
 
     def readGamessLog(self):
+        """
+        Read Gamess log file using CCLIB.io.ccread(self.fullPath)
+
+        """
+
         self.data = cclib.io.ccread(self.fullPath.as_posix())
         print(f"Read file {self.fullPath}")
 
@@ -160,7 +189,7 @@ class EShandler():
 
     def writeMoldenFile(self):
         """
-        Write data to Molden format file using CCLIB
+        Write data to Molden format file using CCLIB.io.ccwrite(self.data)
 
         """
 
@@ -174,6 +203,8 @@ class EShandler():
     def writeMoldenFile2006(self):
         """
         Write data to Molden format file using reformatted CCLIB code, for ePS compatible 'Molden2006' formatting.
+
+        See :py:class:`moldenCCLIBReformatted` for details.
 
         """
 
@@ -260,7 +291,8 @@ class EShandler():
                 if line.startswith(' Sym='):
                     pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
                 else:
-                    print(line, end='')  # end='' to avoid adding extra newline chars and double spacing! Do need to manually add above however.
+                    # print(line, end='')  # end='' to avoid adding extra newline chars and double spacing! Do need to manually add above however.
+                    print(line, end='\n')  # TESTING - need to force Unix line endings here.
 
         print(f"*** Molden file {self.moldenFile} reformatted for ePS.")
 
@@ -268,7 +300,7 @@ class EShandler():
 # Try redefining existing methods - class version with inheritance
 class moldenCCLIBReformatted(moldenwriter.MOLDEN):
     """
-    Pathc for cclib's modenwriter to conform to ePS 'Molden2006' format spec.
+    Patch for cclib's modenwriter to conform to ePS 'Molden2006' format spec.
 
     This class inherits from :py:class:`cclib.io.moldenwriter.MOLDEN` (`github source <https://github.com/cclib/cclib/blob/bbc231295e64c7f25d5d235492c103688a4e068b/cclib/io/moldenwriter.py#L34>`_), and:
 
