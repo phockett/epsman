@@ -1,0 +1,134 @@
+"""
+Class for ePolyScat job generation, including file IO and multi-E generation.
+
+Main function is local and remote path management (via pathlib), job configuration set-up (manual), and local & remote file IO (via Fabric/Invoke).
+
+16/02/21    Tidying up...
+
+"""
+
+# Imports
+# import numpy as np
+# from fabric import Connection
+from pathlib import Path
+# import getpass
+import socket
+
+# Import local functions
+from ._epsJobGen import multiEChunck
+
+
+# Set master class
+class epsJob():
+    """
+    Class for ePolyScat job generation, including file IO and multi-E generation.
+
+    Main function is local and remote path management (via pathlib), job configuration set-up (manual), and local & remote file IO (via Fabric/Invoke).
+
+    """
+
+    # Import local functions
+    from ._epsJobGen import initConnection, createJobDirTree, writeInp
+    from ._epsRun import runJobs, tidyJobs
+    from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
+    from ._util import getFileList, checkFiles, pushFile
+    from ._paths import setScripts, setPaths
+    from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads, publishUploads,      \
+                        buildArch, updateArch, getArchLogs, checkArchFiles,             \
+                        setESFiles, cpESFiles, fileListCheck, pkgOverride,                                     \
+                        initRepo, delRepoItem, uploadRepoFiles, searchRepo, publishRepoItem, checkRepoFiles,    \
+                        writeNBdetailsJSON, readNBdetailsJSON, writeJobJSON
+    from ._web import updateWebNotebookFiles, buildSite
+
+    def __init__(self, host = None, user = None, IP = None, password = None):
+        """
+        Init job.
+
+        Parameters
+        ----------
+        host, user, IP : str, default = None
+            Pass host settings for job. Currently used to set connection & look-up machine details.
+            TODO: convert to connection only, and bootstrap paths.
+
+        """
+        # Set hostDefns - NOW paths set at connection init stage, just set localhost here.
+        # To set a given machine to be used locally, this will just need local IP setting.
+        # TODO: set master dir list somewhere for reference.
+        # TODO: sometimes have bugs due to presetting localhost here, should consolidate with other init codes.
+        self.hostDefn = {
+            'localhost':{'host':socket.gethostname(),
+                'IP':'127.0.0.1',
+                'home':Path.home(),
+                'wrkdir':Path.cwd(),
+                'webDir':Path(Path.home(), 'github/ePSdata')}
+            }
+
+        # Settings for connection - init to None.
+        self.host = host
+        self.user = user
+        self.password = password
+        self.IP = IP
+
+        # Settings for job
+        self.mol = None
+        self.orb = None
+        self.batch = None
+        self.genFile = None
+        self.jobSettings = None
+
+        # Set default paths
+        self.setScripts()
+
+
+    def setGenFile(self, genFile = None):
+        """
+        Set GenFile & propagate to all hosts.
+
+        NOTE: currently have issue with wrkdir vs. genDir, and assumptions on where genFile is located on local machine.
+
+        """
+
+        # Default setting
+        if self.genFile is None and genFile is None:
+            # self.genFile = Path(f'{self.mol}_{self.orb}.conf')
+            self.genFile = Path(f'{self.batch}.{self.orb}.conf')
+        elif self.genFile is None and genFile is not None:
+            self.genFile = Path(genFile)
+        # else:
+        #     print('*** Generator filename not defined.')
+
+        print(f'Generator file set: {self.genFile}')
+
+        # Set in hostDefn
+        for host in self.hostDefn:
+            self.hostDefn[host]['systemDir'] = Path(self.hostDefn[host]['wrkdir'], self.mol)
+            self.hostDefn[host]['elecDir'] = Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
+            self.hostDefn[host]['genDir'] = Path(self.hostDefn[host]['systemDir'], 'generators')
+            self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
+            # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+            self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
+            # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
+            self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
+
+            self.hostDefn[host]['webSystemDir'] = Path(self.hostDefn[host]['webDir'], 'source', self.mol)
+
+        # Write file locally (working dir).
+        if self.jobSettings is not None:
+
+            # 23/08/20 Add paths for remote here, quick hack to fix machine.conf local settings as previously used.
+            self.jobSettings = f"""
+
+# Set working environment
+machine={self.host}
+wrkdir={self.hostDefn[host]['wrkdir'].as_posix()}
+
+# Settings from ePS_batch_job.sh
+ePSpath={self.hostDefn[host]['ePSpath'].as_posix()}
+jobPath={self.hostDefn[host]['jobPath'].as_posix()}
+            """ + self.jobSettings
+
+            # Note force newline = "\n" to fix Unix text file formatting for mixed win/linux cases
+            # May also be able to fix at file upload to host with Fabric...?
+            with open(self.genFile,'w', newline="\n") as f:
+                f.write(self.jobSettings)
+                print('Written local job conf file (working dir): ' + str(Path(self.hostDefn['localhost']['wrkdir'], self.genFile)))
