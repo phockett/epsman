@@ -1,0 +1,16 @@
+setup.py
+elecStructure/ESclass.py
+elecStructure/__init__.py
+epsman.egg-info/PKG-INFO
+epsman.egg-info/SOURCES.txt
+epsman.egg-info/dependency_links.txt
+epsman.egg-info/top_level.txt
+repo/__init__.py
+repo/figshare_test.py
+repo/jobJSON.py
+repo/nbHeaderPost.py
+repo/pkgFiles.py
+repo/remoteUpload.py
+repo/zenodo_test.py
+web/__init__.py
+web/buildSphinxHTML.py

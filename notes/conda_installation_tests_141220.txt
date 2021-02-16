@@ -1,0 +1,35 @@
+Testing some local stuff on Stimpy + UB20VM
+14/12/20
+
+See D:\projects\ePolyScat\NO_2020
+
+Start new conda env to test installatoin & dependencies...
+
+conda create --name epsman python=3.7
+conda activate epsman
+conda install fabric numpy
+conda install -c conda-forge jupyterlab
+
+pip install cclib
+
+
+Try LOCAL package install with pip...
+- Generate setup.py, manual/use Hatch/minimal?
+  - Minimal example: https://github.com/maet3608/minimal-setup-py/blob/master/setup.py
+  - Hatch (https://github.com/ofek/hatch): currently in `pkgTest` env, then `hatch new epsman`
+
+pip install -e D:\code\github\epsman
+
+THIS currently works for subpackages, but need to restructure for main package import.
+
+
+Alternatively use normal local pkg method from path:
+
+# Imports
+import sys
+from pathlib import Path
+
+# Load dev scripts
+modPath = r'D:\code\github'
+sys.path.append(modPath)
+import epsman as em
