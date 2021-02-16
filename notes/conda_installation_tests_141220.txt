@@ -21,6 +21,7 @@ Try LOCAL package install with pip...
 pip install -e D:\code\github\epsman
 
 THIS currently works for subpackages, but need to restructure for main package import.
+16/02/21: now working after package restructure (initially on branch `restructure160221`).
 
 
 Alternatively use normal local pkg method from path:
