@@ -88,6 +88,13 @@ class epsJob():
 
 
     def setGenFile(self, genFile = None):
+        """
+        Set GenFile & propagate to all hosts.
+
+        NOTE: currently have issue with wrkdir vs. genDir, and assumptions on where genFile is located on local machine.
+
+        """
+
         # Default setting
         if self.genFile is None and genFile is None:
             # self.genFile = Path(f'{self.mol}_{self.orb}.conf')

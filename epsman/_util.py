@@ -155,7 +155,7 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
     elif test.ok and (overwritePrompt is None):
         print(f"File {fileRemote} already exists, skipping push.")
         wFlag = 'n'
-    elif test.ok and not overwritePrompt:
+    elif test.ok and (not overwritePrompt):
         print(f"File {fileRemote} already exists, overwritting.")
         wFlag = 'y'
     else:

@@ -182,27 +182,30 @@ def createJobDirTree(self):
 
 
     # Upload genFile
+    # 09/02/21 - tidied up to use _util.pushFile()
     if self.genFile is not None:
-        print('Pushing job generator file: ' + str(self.genFile))
 
-        # Test if exists
-        test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)
-        if test.ok:
-            wFlag = input(f"File {self.genFile} already exists, overwrite? (y/n) ")
-        else:
-            wFlag = 'y'
-
-        # Upload and test result.
-        if wFlag == 'y':
-            genResult = self.c.put(self.genFile, remote = self.hostDefn[self.host]['genDir'].as_posix())
-            test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
-            if test.ok:
-                # print(f'Generator file {genFile}, put to {genDir}')
-                print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
-            else:
-                print('Failed to put generator file to host.')
-
-            return genResult
+        genResult = self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'])
+        # print('Pushing job generator file: ' + str(self.genFile))
+        #
+        # # Test if exists
+        # test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)
+        # if test.ok:
+        #     wFlag = input(f"File {self.genFile} already exists, overwrite? (y/n) ")
+        # else:
+        #     wFlag = 'y'
+        #
+        # # Upload and test result.
+        # if wFlag == 'y':
+        #     genResult = self.c.put(self.genFile, remote = self.hostDefn[self.host]['genDir'].as_posix())
+        #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
+        #     if test.ok:
+        #         # print(f'Generator file {genFile}, put to {genDir}')
+        #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
+        #     else:
+        #         print('Failed to put generator file to host.')
+        #
+        return genResult
 
     return True
 
