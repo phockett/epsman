@@ -6,6 +6,11 @@ Basic methods for dealing with Gamess & Molden file IO for ePolyScat.
             - Added wrappers for cclib moldenwriter.MOLDEN as new class.
             - Use EShandler class for general IO.
 
+            Files from writeMoldenFile2006() are working with ePS (tested for N2O test file).
+            Files from reformatMoldenFile() are NOT working due to line-endings issues.
+            See `notes/epsman_EShandler_class_demo_050221.ipynb` for demo & testing.
+
+
 26/08/20 v1 Quick hack from existing functions - needs some more sophistication for file handling. Should have utils for this...
 
 Dev work currently in [Bemo] http://localhost:8888/notebooks/ePS/N2O/N2O_electronic_structure_proc_tests_250820.ipynb
