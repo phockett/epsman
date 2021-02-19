@@ -25,6 +25,7 @@ from pathlib import Path
 import cclib
 from cclib.io import moldenwriter  # Molden class + functions
 
+import epsman as em  # For base class
 
 
 class EShandler():
@@ -74,6 +75,8 @@ class EShandler():
     - Implement directory scan (or wrapper class/decorator for this).
     - Better file handling, should implement Pathlib tests for file(s).
     - Fix reformatMoldenFile() method, this currently outputs OS specific line endings.
+
+    19/02/21: For full eps job class inheritance, use ESjob class instead.
 
     """
 
@@ -458,3 +461,52 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         print('Found {0} segments.'.format(n+1))
 
     return ([lineStart, lineStop], segments) # [:-1])
+
+
+
+
+class ESjob(EShandler, em.epsJob):
+    """
+    Class to wrap epsJob + EShandler functionality.
+
+    19/02/21: now init with epsman.epsJob class as parent, so can implement existing file IO methods.
+    """
+
+    def __init__(self, fileName = None, fileBase = None, outFile = None, **kwargs):
+
+        # Job creation init
+        em.epsJob.__init__(self, **kwargs)
+
+
+    def setESfiles(self, fileName = None, fileBase = None):
+
+        # Set values in epsJob class format (if not already set)
+        self.setAttribute('elecStructure', fileName)
+
+        # If fileBase not passed, check for currently set paths
+        # TODO!
+
+        # Set in master host list
+        if self.elecStructure is not None:
+            # Set in hostDefn
+            for host in self.hostDefn:
+                self.hostDefn[host]['elecFile'] = Path(self.hostDefn[host]['elecDir'], self.elecStructure)
+
+            # Check file exists (local + host only)
+            if self.verbose:
+                print(f'Electronic structure file {self.elecStructure} host checks:')
+
+            for host in [self.host, 'localhost']:
+                fCheckHost = self.checkFiles(self.hostDefn[self.host]['elecFile'])
+
+                if self.verbose:
+                    print(f"\n\t{host}:  \t{self.hostDefn[host]['elecFile']} \t{fCheckHost}")
+
+            # if not fCheckHost:
+
+
+        # EShandler init
+        # EShandler.__init__(self, fileName = fileName, fileBase = fileBase, outFile = outFile)
+
+        # Run base init routine for job settings
+        # super().__init__(**kwargs)
