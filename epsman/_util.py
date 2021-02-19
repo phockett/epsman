@@ -172,3 +172,43 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
             return Result
 
     return True
+
+
+def setAttributesFromDict(self, itemsDict, overwriteFlag = False):
+
+    [self.setAttribute(k, v, overwriteFlag = overwriteFlag) for k,v in itemsDict.items() if (k is not 'self') and (k is not 'overwriteFlag')]
+    
+
+
+def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
+    """
+    Basic check & set attribute routine.
+
+    Set self.attrib = newVal if:
+        - attrib doesn't exist,
+        - attrib exists
+            - but is None,
+            - if overwriteFlag = True is passed.
+
+    TODO: consider attrs library here, https://www.attrs.org/en/stable/examples.html#validators
+    """
+
+    setFlag = False
+
+    # Check if attrib exists, overwrite ONLY if None, or if overwriteFlag is set
+    if hasattr(self, attrib):
+        param = getattr(self, attrib)
+
+        if (param is None) or overwriteFlag:
+            setattr(self,attrib,newVal)
+
+            if newVal is not None:
+                setFlag = True  # Only set this if newVal != None to avoid lots of None echos for unset values.
+
+    # Set attrib if missing
+    else:
+        setattr(self,attrib,newVal)
+        setFlag = True
+
+    if self.verbose and setFlag:
+        print(f'Set {attrib} = {newVal}')

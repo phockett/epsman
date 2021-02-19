@@ -22,7 +22,39 @@ import getpass
 from pathlib import Path
 import datetime
 
-def initConnection(self, host = None, user = None, IP = None, password = None, home = None):
+# import pprint  # For dict printing
+
+def setHost(self, host = None, user = None, IP = None, password = None, overwriteHost = True):
+    """
+    Very basic host setting.
+
+    TODO: add conditional reset case, and differentiate from overwriting existing details case. (Should preserve non-None settings?)
+    """
+
+    # Settings for host - init to None or passed values.
+    if overwriteHost:
+        self.host = host
+        self.user = user
+        self.password = password
+        self.IP = IP
+
+    # If flag is False then set only if currently missing
+    else:
+        if self.host is None:
+            self.host = host
+
+        if self.user is None:
+            self.user = user
+
+        if self.IP is None:
+            self.IP = IP
+
+        if self.password is None:
+            self.password = password
+
+
+
+def initConnection(self, host = None, user = None, IP = None, password = None, home = None, overwriteHost = False):
     """
     Init connection to selected machine & test.
 
@@ -38,17 +70,27 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
 
     home
 
+    TODO
+    -----
+
+    - Terrible logic to fix here, will fail in lots of cases in unclear ways due to conditional overwriting and mixing of self.XX vs. self.hostDefn[XX] host dictionaries.
+    - Passing full set of args is always OK however, but may need to set overwriteHost = True if hostname already set.
+    - Maybe better approach is to skip all this nonsense, and just insist on one host per class instance defined for now? Can then build on that instead?
+
     """
 
     # Set values if passed (but don't overwrite set values)
-    if self.host is None and host is not None:
-        self.host = host
-    if self.user is None and user is not None:
-        self.user = user
-    if self.IP is None and IP is not None:
-        self.IP = IP
-    if self.password is None and password is not None:
-        self.password = password
+    # if self.host is None and host is not None:
+    #     self.host = host
+    # if self.user is None and user is not None:
+    #     self.user = user
+    # if self.IP is None and IP is not None:
+    #     self.IP = IP
+    # if self.password is None and password is not None:
+    #     self.password = password
+
+    # Feb 2021 - moved to setHost() method, but still needs some work.
+    self.setHost(host = host, user = user, IP = IP, password = password, overwriteHost = overwriteHost)
 
     # Check if host definitions are already set, set if missing
     if self.host in self.hostDefn.keys():
@@ -65,74 +107,206 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
 
     if self.user is None and self.host == 'localhost':
         self.user = getpass.getuser()
-    elif self.user is None:
+    elif (self.user is None) or (self.user is ''):
         self.user = input("User name for machine? ")
 
-    if self.password is None:  # and not (self.host == 'localhost'):  # Assume local machine doesn't need logon, will also allow for autorun.
+    if (self.password is None) or (self.password is ''):  # and not (self.host == 'localhost'):  # Assume local machine doesn't need logon, will also allow for autorun.
                                                                       # TODO: workaround here - maybe with ssh key files?  Always use ssh, so still need pass for localhost here.
         self.password = getpass.getpass("Password for machine? ")
 
     print('Testing connection...')
 
-    # Connect to remote
-    # With password passed explicitly (should also pick up keys from default location ~/.ssh/)
-    self.c = Connection(
-        host = self.hostDefn[self.host]['IP'],
-        user = self.user,
-        connect_kwargs = {
-            "password": self.password,
-            "allow_agent": False,       # Added to force new SSH session.
-                                        # http://docs.fabfile.org/en/2.5/concepts/authentication.html#ssh-agents
-        },
-    )
+    try:
+        # Connect to remote
+        # With password passed explicitly (should also pick up keys from default location ~/.ssh/)
+        self.c = Connection(
+            host = self.hostDefn[self.host]['IP'],
+            user = self.user,
+            connect_kwargs = {
+                "password": self.password,
+                "allow_agent": False,       # Added to force new SSH session.
+                                            # http://docs.fabfile.org/en/2.5/concepts/authentication.html#ssh-agents
+            },
+        )
 
-    test = self.c.run('hostname')
-    # c.is_connected    # Another basic check.
 
-    # Set host name if not already supplied
-    if self.host is None:
-        self.host = test.stdout.strip()
-        # self.hostDefn[self.host] = self.hostDefn[None] # Set new hostDefn from None case
-        self.hostDefn[self.host] = self.hostDefn.pop(None) # Use .pop to also remove None case from dict
-        self.hostDefn[self.host]['host'] = self.host
+        test = self.c.run('hostname')
+        # c.is_connected    # Another basic check.
 
-    if test.return_code == 0:
+        connError = test.return_code
+
+    # Pass on errors
+    # AttributeError if host/user not correct, otherwise connection test above will return info
+    # except AttributeError as err:
+    except Exception as err:
+        connError = 1
+        test = err
+
+    if connError == 0:
         print('Connected OK')
         print(test)
+
+        # Set host name if not already supplied
+        if self.host is None:
+            self.host = test.stdout.strip()
+            # self.hostDefn[self.host] = self.hostDefn[None] # Set new hostDefn from None case
+            self.hostDefn[self.host] = self.hostDefn.pop(None) # Use .pop to also remove None case from dict
+            self.hostDefn[self.host]['host'] = self.host
+
+        # Build dir list if not already set
+        if 'home' not in self.hostDefn[self.host].keys():
+            print('\n\nSetting host dir tree.')
+
+            if home is None:
+                self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
+            else:
+                self.hostDefn[self.host]['home'] = Path(home)
+
+            # testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
+            testwrkdir = self.c.run(f'cd {home}; ls -d eP*', hide = True, warn = True).stdout.split()
+
+            if len(testwrkdir) > 1:
+                print('Found multiple ePS directories, please select working dir:')
+                # print(testwrkdir)
+                for n, item in enumerate(testwrkdir):
+                    print(f'{n}: {item}')
+
+                N = int(input('List item #: '))
+                self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[N])
+            elif testwrkdir:
+                self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[0])
+            else:
+                print('No ePS* subdirs found, setting work dir as home dir.')
+                self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'])
+
+            print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
+
+            # Set additional default paths for host.
+            self.setPaths()
+
     else:
-        print('Connection failed')
-        print(test)
+        print(f'\n *** Connection failed, check host info OK for host: {self.host}, IP: {self.IP}. \n Use self.setHost() to update, or pass overwriteHost = True with settings to self.initConnection().')
 
-    # Build dir list if not already set
-    if 'home' not in self.hostDefn[self.host].keys():
-        print('\n\nSetting host dir tree.')
+        if self.verbose:
+            print('Connection attempt error output:')
+            print(f'\t {test}')
 
-        if home is None:
-            self.hostDefn[self.host]['home'] = Path(self.c.run('echo ~', hide = True).stdout.strip())
-        else:
-            self.hostDefn[self.host]['home'] = Path(home)
 
-        # testwrkdir = self.c.run('ls -d eP*', hide = True).stdout.split()
-        testwrkdir = self.c.run(f'cd {home}; ls -d eP*', hide = True, warn = True).stdout.split()
+# Setup job parameters (previously done manually).
+# This sets all parameters required for dirs and file IO.
+def setJob(self, mol = None, orb = None, batch = None, elecStructure = None, genFile = None, jobSettings = None, overwriteFlag = False):
+    """
+    Init job settings. This is crude, but ultimately all these parameters are required.
 
-        if len(testwrkdir) > 1:
-            print('Found multiple ePS directories, please select working dir:')
-            # print(testwrkdir)
-            for n, item in enumerate(testwrkdir):
-                print(f'{n}: {item}')
+    Parameters
+    ----------
+    mol : str, default = None
+        Molecule name to use.
 
-            N = int(input('List item #: '))
-            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[N])
-        elif testwrkdir:
-            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'], testwrkdir[0])
-        else:
-            print('No ePS* subdirs found, setting work dir as home dir.')
-            self.hostDefn[self.host]['wrkdir'] = Path(self.hostDefn[self.host]['home'])
+    orb : str, default = None
+        Orbital name/label.
 
-        print('Set remote wrkdir: ' + self.hostDefn[self.host]['wrkdir'].as_posix())
+    batch : str, default = None
+        Batch to use as job label.
+        By default, jobs will be set with directory structure wrkdir/mol/batch/orb
 
-        # Set additional default paths for host.
-        self.setPaths()
+    elecStructure : str, default = None
+        Filename for electronic structure input file (Gamess .log or Molden .mol)
+        This assumed to be in Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
+        (TODO: better file handling here)
+
+    genFile : str, default = None
+        Filename for generator (settings) file.
+        Will be set to default by setGenFile() if not passed.
+
+    jobSettings : str, default = None
+        Job string, not yet fully implmented.
+
+    overwriteFlag : bool, default = False
+        Set to True to force overwrite of existing values with passed params.
+
+    """
+
+    # # Settings for job
+    # self.mol = mol
+    # self.orb = orb
+    # self.batch = batch
+    #
+    # self.genFile = genFile
+    # self.jobSettings = jobSettings
+    #
+    # self.elecStructure = elecStructure
+
+    # Set with loop over locals() and setter method.
+    # May want to set a more general method for this...
+    # [self.setAttribute(k, v, overwriteFlag = overwriteFlag) for k,v in locals().items() if (k is not 'self') and (k is not 'overwriteFlag')]
+    self.setAttributesFromDict(locals(), overwriteFlag = overwriteFlag)
+
+    self.setGenFile(genFile)
+
+
+def setGenFile(self, genFile = None):
+    """
+    Set GenFile & propagate to all hosts.
+
+    NOTE: currently have issue with wrkdir vs. genDir, and assumptions on where genFile is located on local machine.
+
+    """
+
+    if self.mol is not None:
+        # Default setting
+        if self.genFile is None and genFile is None:
+            # self.genFile = Path(f'{self.mol}_{self.orb}.conf')
+            self.genFile = Path(f'{self.batch}.{self.orb}.conf')
+        elif self.genFile is None and genFile is not None:
+            self.genFile = Path(genFile)
+        # else:
+        #     print('*** Generator filename not defined.')
+
+        print(f'Generator file set: {self.genFile}')
+
+    # # Set in hostDefn
+    # for host in self.hostDefn:
+    #     self.hostDefn[host]['systemDir'] = Path(self.hostDefn[host]['wrkdir'], self.mol)
+    #     self.hostDefn[host]['elecDir'] = Path(self.hostDefn[host]['systemDir'], 'electronic_structure')
+    #     self.hostDefn[host]['genDir'] = Path(self.hostDefn[host]['systemDir'], 'generators')
+    #     self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
+    #     # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
+    #     self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
+    #     # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
+    #     self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
+    #
+    #     self.hostDefn[host]['webSystemDir'] = Path(self.hostDefn[host]['webDir'], 'source', self.mol)
+
+    self.setJobPaths()
+
+
+
+
+def writeGenFile(self):
+
+    # Write file locally (working dir).
+    if self.jobSettings is not None:
+
+        # 23/08/20 Add paths for remote here, quick hack to fix machine.conf local settings as previously used.
+        self.jobSettings = f"""
+
+# Set working environment
+machine={self.host}
+wrkdir={self.hostDefn[host]['wrkdir'].as_posix()}
+
+# Settings from ePS_batch_job.sh
+ePSpath={self.hostDefn[host]['ePSpath'].as_posix()}
+jobPath={self.hostDefn[host]['jobPath'].as_posix()}
+        """ + self.jobSettings
+
+        # Note force newline = "\n" to fix Unix text file formatting for mixed win/linux cases
+        # May also be able to fix at file upload to host with Fabric...?
+        with open(self.genFile,'w', newline="\n") as f:
+            f.write(self.jobSettings)
+            print('Written local job conf file (working dir): ' + str(Path(self.hostDefn['localhost']['wrkdir'], self.genFile)))
+
+
 
 
 # Basic routine to create dir tree for new system (molecule)
