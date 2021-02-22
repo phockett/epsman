@@ -39,7 +39,7 @@ class epsJob():
     from ._epsJobGen import setHost, initConnection, setJob, setGenFile, createJobDirTree, writeGenFile, writeInp
     from ._epsRun import runJobs, tidyJobs
     # from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
-    from ._util import getFileList, checkFiles, pushFile, setAttribute, setAttributesFromDict
+    from ._util import getFileList, checkLocalFiles, checkFiles, pullFileDict, pullFile, pushFileDict,  pushFile,  setAttribute, setAttributesFromDict, syncFilesDict
     # from ._repo import nbWriteHeader, nbDetailsSummary, buildUploads, updateUploads, submitUploads, publishUploads,      \
     #                     buildArch, updateArch, getArchLogs, checkArchFiles,             \
     #                     setESFiles, cpESFiles, fileListCheck, pkgOverride,                                     \
@@ -78,7 +78,7 @@ class epsJob():
         # self.user = user
         # self.password = password
         # self.IP = IP
-        self.setHost(host = host, user = user, IP = IP, password = password, overwriteHost = True)
+        self.setHost(host = host, user = user, IP = IP, password = password, overwriteFlag = True)
 
         # Settings for job - init to None.
         # self.mol = None

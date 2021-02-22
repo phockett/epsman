@@ -478,7 +478,7 @@ class ESjob(EShandler, em.epsJob):
         em.epsJob.__init__(self, **kwargs)
 
 
-    def setESfiles(self, fileName = None, fileBase = None):
+    def setESfiles(self, fileName = None, fileBase = None, pushPrompt = True):
 
         # Set values in epsJob class format (if not already set)
         self.setAttribute('elecStructure', fileName)
@@ -492,17 +492,30 @@ class ESjob(EShandler, em.epsJob):
             for host in self.hostDefn:
                 self.hostDefn[host]['elecFile'] = Path(self.hostDefn[host]['elecDir'], self.elecStructure)
 
-            # Check file exists (local + host only)
-            if self.verbose:
-                print(f'Electronic structure file {self.elecStructure} host checks:')
-
-            for host in [self.host, 'localhost']:
-                fCheckHost = self.checkFiles(self.hostDefn[self.host]['elecFile'])
-
-                if self.verbose:
-                    print(f"\n\t{host}:  \t{self.hostDefn[host]['elecFile']} \t{fCheckHost}")
-
-            # if not fCheckHost:
+            # # Check file exists (local + host only)
+            # if self.verbose:
+            #     print(f'Electronic structure file {self.elecStructure} host checks:')
+            #
+            # fCheckHost = {}
+            # for host in [self.host, 'localhost']:
+            #     if host == 'localhost':
+            #         fCheckHost[host] = self.checkLocalFiles(self.hostDefn[host]['elecFile'])  # use local Path file test.
+            #     else:
+            #         fCheckHost[host] = self.checkFiles(self.hostDefn[host]['elecFile'])   # Use remote Fabric file test.
+            #
+            #     if self.verbose:
+            #         print(f"\n\t{host}:  \t{self.hostDefn[host]['elecFile']} \t{fCheckHost[host]}")
+            #
+            # pushFlag = 'n'
+            # if (not fCheckHost[self.host]) and (fCheckHost['localhost']):
+            #     if pushPrompt:
+            #         pushFlag = print(f'Push missing file to {self.host}?  (y/n) ')
+            #     else:
+            #         pushFlag = 'y'
+            #
+            # if pushFlag == 'y':
+            #     self.pushFileDict('elecFile')
+            self.syncFilesDict('elecFile', pushPrompt = pushPrompt)
 
 
         # EShandler init

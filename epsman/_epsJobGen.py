@@ -24,34 +24,34 @@ import datetime
 
 # import pprint  # For dict printing
 
-def setHost(self, host = None, user = None, IP = None, password = None, overwriteHost = True):
+def setHost(self, host = None, user = None, IP = None, password = None, overwriteFlag = True):
     """
     Very basic host setting.
 
     TODO: add conditional reset case, and differentiate from overwriting existing details case. (Should preserve non-None settings?)
     """
 
-    # Settings for host - init to None or passed values.
-    if overwriteHost:
-        self.host = host
-        self.user = user
-        self.password = password
-        self.IP = IP
-
-    # If flag is False then set only if currently missing
-    else:
-        if self.host is None:
-            self.host = host
-
-        if self.user is None:
-            self.user = user
-
-        if self.IP is None:
-            self.IP = IP
-
-        if self.password is None:
-            self.password = password
-
+    # # Settings for host - init to None or passed values.
+    # if overwriteHost:
+    #     self.host = host
+    #     self.user = user
+    #     self.password = password
+    #     self.IP = IP
+    #
+    # # If flag is False then set only if currently missing
+    # else:
+    #     if self.host is None:
+    #         self.host = host
+    #
+    #     if self.user is None:
+    #         self.user = user
+    #
+    #     if self.IP is None:
+    #         self.IP = IP
+    #
+    #     if self.password is None:
+    #         self.password = password
+    self.setAttributesFromDict(locals(), overwriteFlag = overwriteFlag)
 
 
 def initConnection(self, host = None, user = None, IP = None, password = None, home = None, overwriteHost = False):
@@ -90,7 +90,7 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
     #     self.password = password
 
     # Feb 2021 - moved to setHost() method, but still needs some work.
-    self.setHost(host = host, user = user, IP = IP, password = password, overwriteHost = overwriteHost)
+    self.setHost(host = host, user = user, IP = IP, password = password, overwriteFlag = overwriteHost)
 
     # Check if host definitions are already set, set if missing
     if self.host in self.hostDefn.keys():
@@ -310,7 +310,7 @@ jobPath={self.hostDefn[host]['jobPath'].as_posix()}
 
 
 # Basic routine to create dir tree for new system (molecule)
-def createJobDirTree(self):
+def createJobDirTree(self, localHost = False):
     """"
     Basic routine to create dir tree for new system (molecule)
 
@@ -331,6 +331,9 @@ def createJobDirTree(self):
         genFile : str, optional, default = None
             Generator file, will be uploaded to wrkdir/mol/generators if passed.
 
+    localHost : bool, default = False
+        Set to true in order to build dir tree on local host instead of remote host.
+
     """
 
 
@@ -348,38 +351,48 @@ def createJobDirTree(self):
     # else:
     #     print('Dir tree already exists, ', self.hostDefn[self.host]['systemDir'].as_posix())
 
-    # Build dir tree - version with 'mkdir -p'
-    self.c.run('mkdir -p ' + self.hostDefn[self.host]['systemDir'].as_posix())
-    self.c.run('mkdir -p ' + self.hostDefn[self.host]['genDir'].as_posix())
-    self.c.run('mkdir -p ' + self.hostDefn[self.host]['elecDir'].as_posix())
-    print('Dir tree built, ', self.hostDefn[self.host]['systemDir'].as_posix())
+    # 22/02/21 - added localHost option.
+    if localHost:
+        # Build dir tree - localhost with Paths
+        self.hostDefn['localhost']['systemDir'].mkdir(parents = True)
+        self.hostDefn['localhost']['genDir'].mkdir(parents = True)
+        self.hostDefn['localhost']['elecDir'].mkdir(parents = True)
+        print('Dir tree built on localhost, ', self.hostDefn['localhost']['systemDir'].as_posix())
 
 
-    # Upload genFile
-    # 09/02/21 - tidied up to use _util.pushFile()
-    if self.genFile is not None:
+    else:
+        # Build dir tree - version with 'mkdir -p'
+        self.c.run('mkdir -p ' + self.hostDefn[self.host]['systemDir'].as_posix())
+        self.c.run('mkdir -p ' + self.hostDefn[self.host]['genDir'].as_posix())
+        self.c.run('mkdir -p ' + self.hostDefn[self.host]['elecDir'].as_posix())
+        print('Dir tree built, ', self.hostDefn[self.host]['systemDir'].as_posix())
 
-        genResult = self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'])
-        # print('Pushing job generator file: ' + str(self.genFile))
-        #
-        # # Test if exists
-        # test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)
-        # if test.ok:
-        #     wFlag = input(f"File {self.genFile} already exists, overwrite? (y/n) ")
-        # else:
-        #     wFlag = 'y'
-        #
-        # # Upload and test result.
-        # if wFlag == 'y':
-        #     genResult = self.c.put(self.genFile, remote = self.hostDefn[self.host]['genDir'].as_posix())
-        #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
-        #     if test.ok:
-        #         # print(f'Generator file {genFile}, put to {genDir}')
-        #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
-        #     else:
-        #         print('Failed to put generator file to host.')
-        #
-        return genResult
+
+        # Upload genFile
+        # 09/02/21 - tidied up to use _util.pushFile()
+        if self.genFile is not None:
+
+            genResult = self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'])
+            # print('Pushing job generator file: ' + str(self.genFile))
+            #
+            # # Test if exists
+            # test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)
+            # if test.ok:
+            #     wFlag = input(f"File {self.genFile} already exists, overwrite? (y/n) ")
+            # else:
+            #     wFlag = 'y'
+            #
+            # # Upload and test result.
+            # if wFlag == 'y':
+            #     genResult = self.c.put(self.genFile, remote = self.hostDefn[self.host]['genDir'].as_posix())
+            #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['genFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
+            #     if test.ok:
+            #         # print(f'Generator file {genFile}, put to {genDir}')
+            #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(genResult))
+            #     else:
+            #         print('Failed to put generator file to host.')
+            #
+            return genResult
 
     return True
 
@@ -486,21 +499,25 @@ def writeInp(self, scrType = 'basic', wLog = True):
 
 
     # Put log file to host.
-    print(f'Pushing log file to host: {self.logFile}')
+    # print(f'Pushing log file to host: {self.logFile}')
+    #
+    # # Test if exists
+    # test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)
+    # if test.ok:
+    #     wFlag = input(f"File {self.logFile} already exists, overwrite? (y/n) ")
+    # else:
+    #     wFlag = 'y'
+    #
+    # # Upload and test result.
+    # if wFlag == 'y':
+    #     logResult = self.c.put(self.logFile, remote = self.hostDefn[self.host]['logFile'].as_posix())
+    #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
+    #     if test.ok:
+    #         # print(f'Generator file {genFile}, put to {genDir}')
+    #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(logResult))
+    #     else:
+    #         print('Failed to put generator file to host.')
 
-    # Test if exists
-    test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)
-    if test.ok:
-        wFlag = input(f"File {self.logFile} already exists, overwrite? (y/n) ")
-    else:
-        wFlag = 'y'
-
-    # Upload and test result.
-    if wFlag == 'y':
-        logResult = self.c.put(self.logFile, remote = self.hostDefn[self.host]['logFile'].as_posix())
-        test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
-        if test.ok:
-            # print(f'Generator file {genFile}, put to {genDir}')
-            print("Uploaded \n{0.local}\n to \n{0.remote}".format(logResult))
-        else:
-            print('Failed to put generator file to host.')
+    # 22/02/21 tidying up - is self.logFile full path?
+    # self.pushFile(self.logFile, self.hostDefn[self.host]['logFile'])
+    self.pushFile(self.hostDefn['localhost']['logFile'], self.hostDefn[self.host]['logFile'])
