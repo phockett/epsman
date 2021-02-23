@@ -372,6 +372,7 @@ def syncFilesDict(self, fileKey, pushPrompt = True, **kwargs):
     - Set for file lists?
     - adapt for multiple hosts? Probably easier to find existing/library code for this case however.
     - Check file paths exist. Currently just flags an error.
+    - Methods for updating files, currently only handles missing files.
 
     """
 

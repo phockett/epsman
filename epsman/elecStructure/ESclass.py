@@ -25,7 +25,7 @@ from pathlib import Path
 import cclib
 from cclib.io import moldenwriter  # Molden class + functions
 
-import epsman as em  # For base class
+# import epsman as em  # For base class
 
 
 class EShandler():
@@ -88,6 +88,10 @@ class EShandler():
         # If a Gamess file is passed, read it.
         if (self.fileName is not None) and (self.fileName.suffix != '.molden'):
             self.readGamessLog()
+        else:
+            # Currently not reading data for Molden case, just set to None
+            self.data = None
+
 
 
     def setFiles(self, fileName = None, fileBase = None, outFile = None):
@@ -184,7 +188,7 @@ class EShandler():
         """
 
         self.data = cclib.io.ccread(self.fullPath.as_posix())
-        print(f"Read file {self.fullPath}")
+        print(f"\n*** Read file {self.fullPath}")
 
         try:
             print("Read %i atoms and %i MOs" % (self.data.natom, self.data.nmo))
@@ -461,65 +465,3 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
         print('Found {0} segments.'.format(n+1))
 
     return ([lineStart, lineStop], segments) # [:-1])
-
-
-
-
-class ESjob(EShandler, em.epsJob):
-    """
-    Class to wrap epsJob + EShandler functionality.
-
-    19/02/21: now init with epsman.epsJob class as parent, so can implement existing file IO methods.
-    """
-
-    def __init__(self, fileName = None, fileBase = None, outFile = None, **kwargs):
-
-        # Job creation init
-        em.epsJob.__init__(self, **kwargs)
-
-
-    def setESfiles(self, fileName = None, fileBase = None, pushPrompt = True):
-
-        # Set values in epsJob class format (if not already set)
-        self.setAttribute('elecStructure', fileName)
-
-        # If fileBase not passed, check for currently set paths
-        # TODO!
-
-        # Set in master host list
-        if self.elecStructure is not None:
-            # Set in hostDefn
-            for host in self.hostDefn:
-                self.hostDefn[host]['elecFile'] = Path(self.hostDefn[host]['elecDir'], self.elecStructure)
-
-            # # Check file exists (local + host only)
-            # if self.verbose:
-            #     print(f'Electronic structure file {self.elecStructure} host checks:')
-            #
-            # fCheckHost = {}
-            # for host in [self.host, 'localhost']:
-            #     if host == 'localhost':
-            #         fCheckHost[host] = self.checkLocalFiles(self.hostDefn[host]['elecFile'])  # use local Path file test.
-            #     else:
-            #         fCheckHost[host] = self.checkFiles(self.hostDefn[host]['elecFile'])   # Use remote Fabric file test.
-            #
-            #     if self.verbose:
-            #         print(f"\n\t{host}:  \t{self.hostDefn[host]['elecFile']} \t{fCheckHost[host]}")
-            #
-            # pushFlag = 'n'
-            # if (not fCheckHost[self.host]) and (fCheckHost['localhost']):
-            #     if pushPrompt:
-            #         pushFlag = print(f'Push missing file to {self.host}?  (y/n) ')
-            #     else:
-            #         pushFlag = 'y'
-            #
-            # if pushFlag == 'y':
-            #     self.pushFileDict('elecFile')
-            self.syncFilesDict('elecFile', pushPrompt = pushPrompt)
-
-
-        # EShandler init
-        # EShandler.__init__(self, fileName = fileName, fileBase = fileBase, outFile = outFile)
-
-        # Run base init routine for job settings
-        # super().__init__(**kwargs)
