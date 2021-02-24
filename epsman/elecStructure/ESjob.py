@@ -48,16 +48,30 @@ class ESjob(em.epsJob):
             except KeyError:
                 fileBase = self.hostDefn[master]['wrkdir']  # Fallback to wrkdir if elecDir is not set.
 
-        self.setHostDefns(elecDir = fileBase, elecFile = fileBase/self.elecStructure, host = master)
-        # self.setHostDefns(, host = master)  #, elecFile = self.elecStructure)
+
+        if fileName is not None:
+            self.setHostDefns(elecDir = fileBase, elecFile = fileBase/self.elecStructure, host = master)
+            # self.setHostDefns(, host = master)  #, elecFile = self.elecStructure)
+
+            # Set master file object.
+            # self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
 
         # Set master file object.
-        self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
+        self.esData = ESclass.EShandler(fileName = fileName, fileBase = fileBase, outFile = outFile)
+
+        # else:
+        #     print("Skipping")
 
 
-    def setESfiles(self, fileName = None, fileBase = None, pushPrompt = True, overwriteFlag = False):
+    def setESfiles(self, fileName = None, pushPrompt = True, overwriteFlag = False):  # fileBase = None,
         """
         Set electronic structure files for all self.hostDefn[host] and sync files.
+
+        NOTE: this sets self.elecStructure if passed, then propagates and syncs files.
+        This assumes self.hostDefn[host]['elecDir'] is already set on hosts.
+        Use setMasterESfile() to update & check local file first, and setJob(), initConenction() or setWrkDir() or setJobPaths() etc. first.
+        TODO: fix this!
+
         """
 
         # Set values in epsJob class format (if not already set)

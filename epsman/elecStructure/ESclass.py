@@ -124,7 +124,8 @@ class EShandler():
                 # Case for empty class
                 self.fileName = None
             else:
-                print('TODO - implement dir scan here')
+                print('*** No electronic structure file set. TODO - implement dir scan here')
+                self.fileName = None
 
         else:
             self.fileName = Path(fileName)
