@@ -106,6 +106,51 @@ def setWrkDir(self, wrkdir = None, host = None):
 
         self.setJobPaths()
 
+# TODO: set for optional **kwargs or dictionary? Can't recall how to do this at the moment!
+def setHostDefns(self, overwriteFlag = True, host = None, **kwargs):
+    """
+    Update paths in self.hostDefns.
+
+    Note that changes to dependent paths WILL NOT be propagated.
+
+    Parameters
+    ----------
+    overwriteFlag : bool, default = True
+        Set True to overwrite existing entries.
+
+    host : str, list, default = None
+        Host(s) to update. If None, update all hosts.
+
+    kwargs : keyword args, or dict
+        Define entries to update.
+        E.g. setHostDefns(elecDir='\testDir') will set self.hostDefns[all hosts]['elecDir'].
+
+    """
+
+    # Default to all hosts
+    if host is None:
+        host = self.hostDefn.keys()
+
+    if not isinstance(host, list):  # Force to list for loop below, will catch issues with single string passed.
+        host = [host]
+
+    # Loop over keys, update/reset/set in host as required
+    for h in host:
+        for k,v in kwargs.items():
+            # If item is None, skip it - this is default in many cases, so may get passed accidentally.
+            if v is None:
+                pass
+
+            else:
+                # If item exists, and overwriteFlag = True, then set it
+                if k in self.hostDefn[h].keys() and overwriteFlag:
+                    self.hostDefn[h][k] = v
+
+                # If item is missing, set it.
+                if k not in self.hostDefn[h].keys():
+                    self.hostDefn[h][k] = v
+
+
 
 def setJobPaths(self):
     """

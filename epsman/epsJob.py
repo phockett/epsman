@@ -35,7 +35,7 @@ class epsJob():
     """
 
     # Import local functions
-    from ._paths import setScripts, setPaths, setJobPaths, setWrkDir
+    from ._paths import setScripts, setPaths, setJobPaths, setWrkDir, setHostDefns
     from ._epsJobGen import setHost, initConnection, setJob, setGenFile, createJobDirTree, writeGenFile, writeInp
     from ._epsRun import runJobs, tidyJobs
     # from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks

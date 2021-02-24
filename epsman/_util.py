@@ -378,62 +378,71 @@ def syncFilesDict(self, fileKey, pushPrompt = True, **kwargs):
 
     hostList = [self.host, 'localhost']  # Hardcoded for now, since only two hosts supported, and needs self.c to be set for host.
 
-    if self.verbose:
-        print(f'\n*** Syncing files {fileKey}')
 
     fCheckHost = {}
-    for host in hostList:
-        if fileKey in self.hostDefn[host].keys():
 
-            if host == 'localhost':
-                fCheckHost[host] = self.checkLocalFiles(self.hostDefn[host][fileKey])[0]  # use local Path file test.
+    # 26/02/21 Lazy wrap in try/except to catch errors in self.host, e.g. if not set or set to None
+    # Probably could do better.
+    try:
+        if self.verbose:
+            print(f'\n*** Syncing files {self.hostDefn[self.host][fileKey]}')
+
+        for host in hostList:
+            if fileKey in self.hostDefn[host].keys():
+
+                if host == 'localhost':
+                    fCheckHost[host] = self.checkLocalFiles(self.hostDefn[host][fileKey])[0]  # use local Path file test.
+                else:
+                    fCheckHost[host] = self.checkFiles(self.hostDefn[host][fileKey])[0]   # Use remote Fabric file test.
+
             else:
-                fCheckHost[host] = self.checkFiles(self.hostDefn[host][fileKey])[0]   # Use remote Fabric file test.
+                fCheckHost[host] = None  # Set to None for unset cases - may want to flag a warning here?
 
-        else:
-            fCheckHost[host] = None  # Set to None for unset cases - may want to flag a warning here?
+            if self.verbose:
+                print(f"\n\t{host}:  \t{self.hostDefn[host][fileKey]} \t{fCheckHost[host]}")
+
+
+        # If file missing on host, push it
+        result = None
+        pushFlag = 'n'
+        if (not fCheckHost[self.host]) and (fCheckHost['localhost']):
+            if pushPrompt:
+                pushFlag = input(f'\nPush missing file to host: {self.host}?  (y/n) ')
+            else:
+                pushFlag = 'y'
+
+        if pushFlag == 'y':
+            try:
+                result = self.pushFileDict(fileKey, **kwargs)
+            except FileNotFoundError:
+                print(f'\n***WARNING: File not found error when pushing to host: {self.host}. Is the full path set? Run self.creatJobDirTree() if not.')
+
+
+        # If file missing on localhost, pull it
+        pullFlag = 'n'
+        if (not fCheckHost['localhost']) and (fCheckHost[self.host]):
+            if pushPrompt:
+                pullFlag = input(f'\nPull missing file from host: {self.host}?  (y/n) ')
+            else:
+                pullFlag = 'y'
+
+        if pullFlag == 'y':
+            try:
+                result = self.pullFileDict(fileKey, **kwargs)
+            except FileNotFoundError:
+                print(f'\n***WARNING: File not found error when pulling to local machine. Is the full path set? Run self.creatJobDirTree(localHost=True) if not.')
 
         if self.verbose:
-            print(f"\n\t{host}:  \t{self.hostDefn[host][fileKey]} \t{fCheckHost[host]}")
-
-
-    # If file missing on host, push it
-    result = None
-    pushFlag = 'n'
-    if (not fCheckHost[self.host]) and (fCheckHost['localhost']):
-        if pushPrompt:
-            pushFlag = input(f'\nPush missing file to host: {self.host}?  (y/n) ')
-        else:
-            pushFlag = 'y'
-
-    if pushFlag == 'y':
-        try:
-            result = self.pushFileDict(fileKey, **kwargs)
-        except FileNotFoundError:
-            print(f'\n***WARNING: File not found error when pushing to host: {self.host}. Is the full path set? Run self.creatJobDirTree() if not.')
-
-
-    # If file missing on localhost, pull it
-    pullFlag = 'n'
-    if (not fCheckHost['localhost']) and (fCheckHost[self.host]):
-        if pushPrompt:
-            pullFlag = input(f'\nPull missing file from host: {self.host}?  (y/n) ')
-        else:
-            pullFlag = 'y'
-
-    if pullFlag == 'y':
-        try:
-            result = self.pullFileDict(fileKey, **kwargs)
-        except FileNotFoundError:
-            print(f'\n***WARNING: File not found error when pulling to local machine. Is the full path set? Run self.creatJobDirTree(localHost=True) if not.')
-
-    if self.verbose:
-        if result is not None:
-            if result is True:
-                print(f'\nSynced files {fileKey} OK.')
+            if result is not None:
+                if result is True:
+                    print(f'\nSynced files {fileKey} OK.')
+                else:
+                    print(f'\nFailed to sync {fileKey}.')
             else:
-                print(f'\nFailed to sync {fileKey}.')
-        else:
-            print(f'\nNothing to sync for {fileKey}.')
+                print(f'\nNothing to sync for {fileKey}.')
+
+    except KeyError:
+        print(f"\n*** Can't sync files, self.host or self.hostDefn[host][{fileKey}] not set.")
+        result = None
 
     return [fCheckHost, result]

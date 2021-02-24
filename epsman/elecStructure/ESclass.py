@@ -149,7 +149,7 @@ class EShandler():
         else:
             self.moldenFile = self.fullPath
 
-        print(f'Set input file as {self.fullPath}, use self.setFiles to change.')
+        print(f'\nSet input file as {self.fullPath}, use self.setFiles to change.')
         print(f'Set output file as {self.moldenFile}, use self.setMoldenFile to override.')
 
 

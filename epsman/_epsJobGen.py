@@ -93,11 +93,14 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
     self.setHost(host = host, user = user, IP = IP, password = password, overwriteFlag = overwriteHost)
 
     # Check if host definitions are already set, set if missing
+    # TODO: rewrite and fix for None case
     if self.host in self.hostDefn.keys():
-        if 'IP' not in self.hostDefn[self.host].keys() and self.IP is None:
+        if ('IP' not in self.hostDefn[self.host].keys()) and (self.IP is None):
             self.IP = input('Host IP required for connection: ')
         if 'IP' not in self.hostDefn[self.host].keys():
             self.hostDefn[self.host]['IP'] = self.IP
+        if self.hostDefn[self.host]['IP'] is None:
+            self.IP = input('Host IP required for connection: ')
     else:
         self.hostDefn[self.host] = {'host':self.host, 'IP':self.IP}
 

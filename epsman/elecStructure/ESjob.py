@@ -23,10 +23,36 @@ class ESjob(em.epsJob):
     19/02/21: now init with epsman.epsJob class as parent, so can implement existing file IO methods.
     """
 
-    def __init__(self, fileName = None, fileBase = None, outFile = None, **kwargs):
+    def __init__(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True, **kwargs):
 
         # Job creation init
         em.epsJob.__init__(self, **kwargs)
+
+        # Set master file only
+        self.setMasterESfile(fileName = fileName, fileBase = fileBase, outFile = outFile, master = master, overwriteFlag = overwriteFlag)
+
+
+    def setMasterESfile(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True):
+        """
+        Set electronic structure files for master, create object and check file.
+
+        """
+
+        # Set file for master host only, from passed args.
+        # This should work even for an uninitialised job (host settings not propagated).
+        self.setAttribute('elecStructure', fileName, overwriteFlag = overwriteFlag)
+
+        if fileBase is None:
+            try:
+                fileBase = self.hostDefn[master]['elecDir']
+            except KeyError:
+                fileBase = self.hostDefn[master]['wrkdir']  # Fallback to wrkdir if elecDir is not set.
+
+        self.setHostDefns(elecDir = fileBase, elecFile = fileBase/self.elecStructure, host = master)
+        # self.setHostDefns(, host = master)  #, elecFile = self.elecStructure)
+
+        # Set master file object.
+        self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
 
 
     def setESfiles(self, fileName = None, fileBase = None, pushPrompt = True, overwriteFlag = False):
@@ -44,8 +70,18 @@ class ESjob(em.epsJob):
         # Set in master host list
         if self.elecStructure is not None:
             # Set in hostDefn
+            # for host in self.hostDefn:
+            #
+            #     # if hasattr(self.hostDefn[host])
+            #     self.hostDefn[host]['elecFile'] = Path(self.hostDefn[host]['elecDir'], self.elecStructure)
+
+            # self.setHostDefns(elecDir = fileBase, elecFile = self.elecStructure) #FUCKING THIASSHIOEHD"FHK:ASDHGJK: DHAS:KG HASDGHKL:AK"JS
+            # THIS WON"T WORK FOR CASES WHERE FILEBASE IS PER HOST THIS IS SHIT.
+            # ALSO WON"T SET elecFile with correct dir
+
+            # Propagate elecStructure file, assuming 'elecDir' set for host already - ALSO SHIT
             for host in self.hostDefn:
-                self.hostDefn[host]['elecFile'] = Path(self.hostDefn[host]['elecDir'], self.elecStructure)
+                self.setHostDefns(elecFile = Path(self.hostDefn[host]['elecDir'], self.elecStructure), host = host)
 
             # # Check file exists (local + host only)
             # if self.verbose:
@@ -77,7 +113,17 @@ class ESjob(em.epsJob):
 
     def checkLocalESfiles(self, master = 'localhost', pushPrompt = True):
         """
-        Check local ES files, convert to Molden & sync.
+        Check master ES files, convert to Molden & sync with remote host.
+
+        Note that this will currently only work for a local machine as master, since there is no remote run set here.
+
+        Parameters
+        ----------
+
+        master : str, default = 'localhost'
+            Set which host to use as master.
+            Note that Gamess > Molden conversion will currently only work for a local machine, since there is no remote run set here.
+
 
 
         """
@@ -94,7 +140,7 @@ class ESjob(em.epsJob):
         # for master in ['localhost']:
 
         # Set object & read file
-        self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
+        # self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
 
         # If file is not a Molden file, read & convert
         if self.esData.data is not None:
