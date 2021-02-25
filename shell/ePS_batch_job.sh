@@ -12,7 +12,7 @@
 # jobPath=/home/paul/ePS_stuff/jobs
 # 23/08/20 - these are now set in calling script, or here.
 jobConfFile=$1
-source $jobConfFile  # 23/08/20 Settings for local dirs now set here.
+source $jobConfFile  # 23/08/20 Settings for local dirs now set here. (Can also use '.' for non-bash shell, instead of source.)
 
 cd $jobPath
 

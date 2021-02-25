@@ -15,7 +15,7 @@ echo Building web in $1
 cd $1
 
 make clean
-make html
+make html   # May throw error in some versions if RTD theme missing, run: pip install sphinx_rtd_theme
 
 # Rebuild docs
 rm docs -r
