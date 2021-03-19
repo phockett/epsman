@@ -296,11 +296,11 @@ def writeGenFile(self):
 
 # Set working environment
 machine={self.host}
-wrkdir={self.hostDefn[host]['wrkdir'].as_posix()}
+wrkdir={self.hostDefn[self.host]['wrkdir'].as_posix()}
 
 # Settings from ePS_batch_job.sh
-ePSpath={self.hostDefn[host]['ePSpath'].as_posix()}
-jobPath={self.hostDefn[host]['jobPath'].as_posix()}
+ePSpath={self.hostDefn[self.host]['ePSpath'].as_posix()}
+jobPath={self.hostDefn[self.host]['jobPath'].as_posix()}
         """ + self.jobSettings
 
         # Note force newline = "\n" to fix Unix text file formatting for mixed win/linux cases
@@ -488,39 +488,41 @@ def writeInp(self, scrType = 'basic', wLog = True):
     for host in self.hostDefn:
         self.hostDefn[host]['logFile'] = Path(self.hostDefn[host]['jobDir'], self.logFile)
 
-    # Write local log file
-    print(f'\nResults logged to local file: {self.logFile}')
-    with open(self.logFile, 'w') as f:
-        f.write(f'ePSman log file, job: {self.genFile}\n')
-        f.write(f'Running on {self.host}\n')
-        f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
-        f.write('\n\n')
-
-        for item in (self.writeLog):
-            f.write(item.stdout)
+    if wLog:
+        # Write local log file
+        print(f'\nResults logged to local file: {self.logFile}')
+        with open(self.logFile, 'w') as f:
+            f.write(f'ePSman log file, job: {self.genFile}\n')
+            f.write(f'Running on {self.host}\n')
+            f.write(datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
             f.write('\n\n')
 
+            for item in (self.writeLog):
+                f.write(item.stdout)
+                f.write('\n\n')
 
-    # Put log file to host.
-    # print(f'Pushing log file to host: {self.logFile}')
-    #
-    # # Test if exists
-    # test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)
-    # if test.ok:
-    #     wFlag = input(f"File {self.logFile} already exists, overwrite? (y/n) ")
-    # else:
-    #     wFlag = 'y'
-    #
-    # # Upload and test result.
-    # if wFlag == 'y':
-    #     logResult = self.c.put(self.logFile, remote = self.hostDefn[self.host]['logFile'].as_posix())
-    #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
-    #     if test.ok:
-    #         # print(f'Generator file {genFile}, put to {genDir}')
-    #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(logResult))
-    #     else:
-    #         print('Failed to put generator file to host.')
 
-    # 22/02/21 tidying up - is self.logFile full path?
-    # self.pushFile(self.logFile, self.hostDefn[self.host]['logFile'])
-    self.pushFile(self.hostDefn['localhost']['logFile'], self.hostDefn[self.host]['logFile'])
+        # Put log file to host.
+        # print(f'Pushing log file to host: {self.logFile}')
+        #
+        # # Test if exists
+        # test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)
+        # if test.ok:
+        #     wFlag = input(f"File {self.logFile} already exists, overwrite? (y/n) ")
+        # else:
+        #     wFlag = 'y'
+        #
+        # # Upload and test result.
+        # if wFlag == 'y':
+        #     logResult = self.c.put(self.logFile, remote = self.hostDefn[self.host]['logFile'].as_posix())
+        #     test = self.c.run('[ -f "' + self.hostDefn[self.host]['logFile'].as_posix() + '" ]', warn = True)  # As written will work only for genFile name (not if full local path supplied)
+        #     if test.ok:
+        #         # print(f'Generator file {genFile}, put to {genDir}')
+        #         print("Uploaded \n{0.local}\n to \n{0.remote}".format(logResult))
+        #     else:
+        #         print('Failed to put generator file to host.')
+
+        # 22/02/21 tidying up - is self.logFile full path?
+        # THIS IS CURRENTLY BROKEN FOR SOME CASES - genFile & logFile local path mismatch.
+        # self.pushFile(self.logFile, self.hostDefn[self.host]['logFile'])
+        self.pushFile(self.hostDefn['localhost']['logFile'], self.hostDefn[self.host]['logFile'])

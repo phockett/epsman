@@ -20,3 +20,7 @@ __version__ = '0.0.1'
 
 # Import master class
 from epsman.epsJob import epsJob
+
+
+# Import local functions
+from ._epsJobGen import multiEChunck

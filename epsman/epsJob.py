@@ -19,8 +19,6 @@ from pathlib import Path
 # import getpass
 import socket
 
-# Import local functions
-from ._epsJobGen import multiEChunck
 
 
 # Set master class
