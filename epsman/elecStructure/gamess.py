@@ -511,8 +511,12 @@ class gamessInput(Gamess):
 
         # self.setExtras(job,sym, overwriteFlag)
         # Note, for sym != C1 need an extra line break, as set here.
-        return "{0} $DATA\n{1}\n{2}\n\n{3} $END\n".format(self.print_header(),
-                                                        self.job, self.sym,
+        sym = self.sym
+        if sym != 'C1':
+            sym = sym + '\n'
+
+        return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
+                                                        self.job, sym,
                                                         self.atom_section(mol))
 
     def setExtras(self, job, sym, overwriteFlag = False):
