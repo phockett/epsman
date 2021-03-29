@@ -364,9 +364,10 @@ class ESgamess():
 
         # Set pointer to options
         self.params = self.g.options
+        print("*** Init pyGamess job.")
 
         # Show current Gamess input
-        print("*** Gamess input card:")
+        print("Default Gamess input card (use self.params to modify):")
         print(self.g.input(self.mol))
 
         # self.gCard = {}
@@ -412,9 +413,28 @@ class ESgamess():
         print("*** Gamess input card:")
         print(self.g.input(self.mol, job = note, sym = sym))
 
+    def runOpt(self, fileOut = None):
+        """Run Gamess optimization with pyGamess"""
+
+        self.g.run_type('optimize')
+        self.mol = self.g.run(self.mol)
+
+        print("*** Optimized self.mol")
+        print(self.mol.GetProp("total_energy"))
+        self.printTable()
+
+
+    def runE(self, fileOut = None):
+        """Energy only run with pyGamess"""
+
+        self.g.run_type('energy')
+        self.mol = self.g.run(self.mol)
+
+        print(self.mol.GetProp("total_energy"))
+
 
     # def runGamess(self, job = 'Default', sym = 'C1', **kwargs):
-    def runGamess(self, **kwargs):
+    def runGamess(self, fileOut = None, **kwargs):
         """ Wrapper for pyGamess.run(), using self.mol and additional input options. """
 
         # # Additional vars for Gamess job
@@ -422,11 +442,28 @@ class ESgamess():
         # self.setAttribute('sym', sym)
         # self.setGamess(**kwargs)
 
+        # TODO: write decorator for this! For now just call runGamess as main function.
+        # def setGamessFiles(self, fileOut = None):
+        #     """Copy temp Gamess output file to specified location"""
+        #
+
+        if fileOut is not None:
+            self.g.debug = True
+
         self.g.run(self.mol)
 
+        if fileOut is not None:
+            Path(self.g.gamout).rename(fileOut)  # Rename output
+            Path(self.g.gamin).unlink()          # Tidy input
+
+            print(f"*** Gamess output file moved to {fileOut}")
 
 
 
+
+
+# Set basic decorator for file handling
+# TODO
 
 
 # Try subclassing pyGamess routine for extra control over input...
@@ -436,19 +473,24 @@ class gamessInput(Gamess):
     def __init__(self, job = None, sym = None, **kwargs):
 
         super().__init__(**kwargs)
-        self.debug = True
+        # self.debug = True  # Set this to keep files
         self.verbose = None
 
-        # Additional vars for Gamess job - may want to push to self.options?
-        self.setAttribute('job', job)
-        self.setAttribute('sym', sym)
+        self.setExtras(job,sym)
 
     def input(self, mol, job = None, sym = None, overwriteFlag = True):
         """Wrap input writer for additional parameters"""
 
-        self.setAttribute('job', job, overwriteFlag)
-        self.setAttribute('sym', sym, overwriteFlag)
+        self.setExtras(job,sym)
 
         return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
                                                         self.job, self.sym,
                                                         self.atom_section(mol))
+
+    def setExtras(self, job, sym):
+        """Quick hack for setting extra attribs & also pushing to self.options"""
+
+        # Additional vars for Gamess job - may want to push to self.options?
+        self.setAttribute('job', job)
+        self.setAttribute('sym', sym)
+        self.options['extra'] = {'job':self.job, 'sym':self.sym}
