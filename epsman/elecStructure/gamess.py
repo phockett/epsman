@@ -419,31 +419,31 @@ class ESgamess():
         print("*** Gamess input card:")
         print(self.g.input(self.mol))  #, job = note, sym = sym))
 
-    def runOpt(self, fileOut = None):
-        """Run Gamess optimization with pyGamess"""
-
-        self.g.run_type('optimize')
-        self.mol = self.g.run(self.mol)
-
-        print("*** Optimized self.mol")
-        print(self.mol.GetProp("total_energy"))
-        self.printTable()
-
-
-    def runE(self, fileOut = None):
-        """Energy only run with pyGamess"""
-
-        self.g.run_type('energy')
-        self.mol = self.g.run(self.mol)
-
-        print(self.mol.GetProp("total_energy"))
+    # def runOpt(self, fileOut = None):
+    #     """Run Gamess optimization with pyGamess"""
+    #
+    #     self.g.run_type('optimize')
+    #     self.mol = self.g.run(self.mol)
+    #
+    #     print("*** Optimized self.mol")
+    #     print(self.mol.GetProp("total_energy"))
+    #     self.printTable()
+    #
+    #
+    # def runE(self, fileOut = None):
+    #     """Energy only run with pyGamess"""
+    #
+    #     self.g.run_type('energy')
+    #     self.mol = self.g.run(self.mol)
+    #
+    #     print(self.mol.GetProp("total_energy"))
 
 
     # def runGamess(self, job = 'Default', sym = 'C1', **kwargs):
-    def runGamess(self, fileOut = None, **kwargs):
+    def runGamess(self, fileOut = None, runType = 'energy', **kwargs):
         """ Wrapper for pyGamess.run(), using self.mol and additional input options. """
 
-        # # Additional vars for Gamess job
+        # # Additional vars for Gamess job - set using self.setGamess()
         # self.setAttribute('job', job)
         # self.setAttribute('sym', sym)
         # self.setGamess(**kwargs)
@@ -453,19 +453,41 @@ class ESgamess():
         #     """Copy temp Gamess output file to specified location"""
         #
 
+        # Set job type
+        self.g.run_type(runType)
+
         if fileOut is not None:
             self.g.debug = True
 
-        self.g.run(self.mol)
+        # Run
+        self.mol = self.g.run(self.mol)
 
+        # Tidy up
         if fileOut is not None:
             Path(self.g.gamout).rename(fileOut)  # Rename output
             Path(self.g.gamin).unlink()          # Tidy input
-
+            self.gout = fileOut
             print(f"*** Gamess output file moved to {fileOut}")
 
+        if runType == 'optimize':
+            print("*** Optimized self.mol")
+            print(self.mol.GetProp("total_energy"))
+            self.printTable()
+
+        if runType == 'energy':
+            print("*** Energy run completed")
+            print(self.mol.GetProp("total_energy"))
 
 
+    def printGamess(self):
+        """Print full Gamess output."""
+
+        try:
+            with open(self.gout, 'r') as f:
+                print(f.read())
+
+        except FileNotFoundError as err:
+            print(f"Error: Missing file {self.gout}")
 
 
 # Set basic decorator for file handling
@@ -488,8 +510,8 @@ class gamessInput(Gamess):
         """Wrap input writer for additional parameters"""
 
         # self.setExtras(job,sym, overwriteFlag)
-
-        return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
+        # Note, for sym != C1 need an extra line break, as set here.
+        return "{0} $DATA\n{1}\n{2}\n\n{3} $END\n".format(self.print_header(),
                                                         self.job, self.sym,
                                                         self.atom_section(mol))
 
