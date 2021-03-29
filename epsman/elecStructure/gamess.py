@@ -544,7 +544,7 @@ class gamessInput(Gamess):
 
         # Default to all atoms
         if atomList is None:
-            atomList = list(range(0, self.mol.GetNumAtoms()))
+            atomList = list(range(0, mol.GetNumAtoms()))
 
 
         # self.contrl['icharg'] = mol.GetFormalCharge()
