@@ -417,7 +417,7 @@ class ESgamess():
 
         # Show current Gamess input
         print("*** Gamess input card:")
-        print(self.g.input(self.mol, job = note, sym = sym))
+        print(self.g.input(self.mol))  #, job = note, sym = sym))
 
     def runOpt(self, fileOut = None):
         """Run Gamess optimization with pyGamess"""
