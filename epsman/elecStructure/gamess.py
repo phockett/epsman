@@ -12,6 +12,8 @@ Libraries:
 Aims here:
 
 - Wrap pygamess functionality with Fabric for client-host architecture.
+   - UPDATE: actually, this is now written to run on local host, and assumed to be wrapped by Fabric at a higher level. This allows for all files & routines in pyGamess to run locally.
+   - Might change this in future...? Possibly with remote calls to this routine?
 - Enable full ePS job pipeline, starting with a Gamess calculation.
 - Provide methods for generating ePS jobs with multiple inputs, e.g. bond length scans.
 
@@ -28,6 +30,15 @@ from epsman._util import isnotebook
 try:
     from rdkit import Chem
     from rdkit.Chem import AllChem  # Larger import, generally won't need all this functionality...?
+
+    # Quick module check for py3Dmol, required for rdkit 3D plotting routines.
+    # From https://stackoverflow.com/a/14050282
+    import importlib
+    spec = importlib.util.find_spec("py3Dmol")   #("spam")
+    found = spec is not None
+    if not found:
+        print("*** py3Dmol not available, 3D plots with RDkit will not be available.")
+
 except ImportError:
     print("*** RDkit not available, molecule generation functions will not be available.")
     # rdkFlag = False
@@ -507,17 +518,47 @@ class gamessInput(Gamess):
         self.setExtras(job,sym)
 
     def input(self, mol):   #, job = None, sym = None, overwriteFlag = False):
-        """Wrap input writer for additional parameters"""
+        """Extend pyGamess.gamess.input() writer for additional parameters"""
 
         # self.setExtras(job,sym, overwriteFlag)
         # Note, for sym != C1 need an extra line break, as set here.
         sym = self.sym
-        if sym != 'C1':
+        if sym not in ['C1', None]:
             sym = sym + '\n'
 
         return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
                                                         self.job, sym,
                                                         self.atom_section(mol))
+
+
+    def atom_section(self, mol, atomList = None):
+        """
+        Extend pyGames.gamess.atom_section() for symmetrized cases.
+
+        Pass list of atom indicies to sub-select, default to all atoms (as per original version).
+
+        TODO: better routine here, this is fully manual.
+        May want to try pymatgen/spglib combo: https://pymatgen.org/pymatgen.symmetry.analyzer.html
+
+        """
+
+        # Default to all atoms
+        if atomList is None:
+            atomList = list(range(0, self.mol.GetNumAtoms()))
+
+
+        # self.contrl['icharg'] = mol.GetFormalCharge()
+        conf = mol.GetConformer(0)
+        section = ""
+        for atom in mol.GetAtoms():
+            N = atom.GetIdx()
+            pos = conf.GetAtomPosition(N)
+
+            if N in atomList:
+                section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
+
+        return section
+
 
     def setExtras(self, job, sym, overwriteFlag = False):
         """Quick hack for setting extra attribs & also pushing to self.options"""
