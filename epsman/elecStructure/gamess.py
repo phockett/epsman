@@ -481,16 +481,16 @@ class gamessInput(Gamess):
     def input(self, mol, job = None, sym = None, overwriteFlag = True):
         """Wrap input writer for additional parameters"""
 
-        self.setExtras(job,sym)
+        self.setExtras(job,sym, overwriteFlag)
 
         return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
                                                         self.job, self.sym,
                                                         self.atom_section(mol))
 
-    def setExtras(self, job, sym):
+    def setExtras(self, job, sym, overwriteFlag = True):
         """Quick hack for setting extra attribs & also pushing to self.options"""
 
         # Additional vars for Gamess job - may want to push to self.options?
-        self.setAttribute('job', job)
-        self.setAttribute('sym', sym)
+        self.setAttribute('job', job, overwriteFlag)
+        self.setAttribute('sym', sym, overwriteFlag)
         self.options['extra'] = {'job':self.job, 'sym':self.sym}
