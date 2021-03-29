@@ -401,6 +401,9 @@ class ESgamess():
         if note is None:
             note = f"{job}, {self.g.options['basis']['gbasis']}"
 
+        if sym is None:
+            sym = self.sym   # Force sym here to, so that setExtras(overwriteFlag = True) always works. Ugh - NEED BETTER LOGIC HERE.
+
         # Set all inputs - THIS MIGHT work, but relies on knowing pyGamess input structure - may be better to wrap key params instead?
         # self.g.setAttributesFromDict(**kwargs, overwriteFlag = True)
 
@@ -408,6 +411,9 @@ class ESgamess():
         #
         # print(f"*** Gamess input card set to self.gCard['{job}']")
         # print(self.gCard[job])
+
+        # Set extras
+        self.g.setExtras(note, sym, overwriteFlag = True)
 
         # Show current Gamess input
         print("*** Gamess input card:")
@@ -478,16 +484,16 @@ class gamessInput(Gamess):
 
         self.setExtras(job,sym)
 
-    def input(self, mol, job = None, sym = None, overwriteFlag = True):
+    def input(self, mol):   #, job = None, sym = None, overwriteFlag = False):
         """Wrap input writer for additional parameters"""
 
-        self.setExtras(job,sym, overwriteFlag)
+        # self.setExtras(job,sym, overwriteFlag)
 
         return "{0} $DATA\n{1}\n{2}\n{3} $END\n".format(self.print_header(),
                                                         self.job, self.sym,
                                                         self.atom_section(mol))
 
-    def setExtras(self, job, sym, overwriteFlag = True):
+    def setExtras(self, job, sym, overwriteFlag = False):
         """Quick hack for setting extra attribs & also pushing to self.options"""
 
         # Additional vars for Gamess job - may want to push to self.options?
