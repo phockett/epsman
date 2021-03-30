@@ -77,14 +77,15 @@ class ESgamess():
     __notebook__ = isnotebook()
 
 
-    def __init__(self, searchName = None, smiles = None, molFile = None, addH = False, job = None, sym = None, verbose = 1):
+    def __init__(self, searchName = None, smiles = None, molFile = None, addH = False,
+                    job = None, sym = None, atomList = None, verbose = 1):
 
         self.verbose = verbose
 
         # Setup molecule
         self.setAttribute('name', searchName)
         self.setAttribute('smiles', smiles)
-        self.setAttribute('molFile', molFile)
+        self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
 
         # Try to setup molecule from input
         self.molFromPubChem()
@@ -96,6 +97,7 @@ class ESgamess():
         # Issue is as usual - when should these be set to defaults, and should they always be overwritten by new input by default?
         self.setAttribute('job', job)
         self.setAttribute('sym', sym)
+        self.setAttribute('atomList', atomList)
 
         # Display some output
 
@@ -146,7 +148,7 @@ class ESgamess():
 
         if self.molFile is not None:
 
-            self.mol = Chem.MolFromMolFile(self.molFile.as_posix())
+            self.mol = Chem.MolFromMolFile(Path(self.molFile).as_posix())
 
 
 
@@ -321,6 +323,10 @@ class ESgamess():
             AllChem.TransformConformer(self.mol.GetConformer(), tforms[k](v))
 
 
+        print("*** Set frame rotations, new coord table:")
+        self.printTable()
+
+
     def printTable(self):
         """
         Show pretty table using Pandas (use printCoords() for simple version).
@@ -378,7 +384,7 @@ class ESgamess():
         print("*** Init pyGamess job.")
 
         # Show current Gamess input
-        print("Default Gamess input card (use self.params to modify):")
+        print("Default Gamess input card set (use self.params to modify options dictionary, self.setGamess() to test):\n")
         print(self.g.input(self.mol))
 
         # self.gCard = {}
@@ -388,7 +394,7 @@ class ESgamess():
         # print(self.gCard['default'])
 
 
-    def setGamess(self, job = None, note = None, sym = None):
+    def setGamess(self, job = None, note = None, sym = None, atomList = None):
         """
         Set up a new Gamess input card.
 
@@ -415,6 +421,9 @@ class ESgamess():
         if sym is None:
             sym = self.sym   # Force sym here to, so that setExtras(overwriteFlag = True) always works. Ugh - NEED BETTER LOGIC HERE.
 
+        if atomList is None:
+            atomList = self.atomList  # And again.
+
         # Set all inputs - THIS MIGHT work, but relies on knowing pyGamess input structure - may be better to wrap key params instead?
         # self.g.setAttributesFromDict(**kwargs, overwriteFlag = True)
 
@@ -424,9 +433,10 @@ class ESgamess():
         # print(self.gCard[job])
 
         # Set extras
-        self.g.setExtras(note, sym, overwriteFlag = True)
+        self.g.setExtras(note, sym, atomList, overwriteFlag = True)
 
         # Show current Gamess input
+        # print("*** Set Gamess job, use self.params to modify options.\n")
         print("*** Gamess input card:")
         print(self.g.input(self.mol))  #, job = note, sym = sym))
 
@@ -509,13 +519,13 @@ class ESgamess():
 class gamessInput(Gamess):
     from epsman._util import setAttribute, setAttributesFromDict
 
-    def __init__(self, job = None, sym = None, **kwargs):
+    def __init__(self, job = None, sym = None, atomList = None, **kwargs):
 
         super().__init__(**kwargs)
         # self.debug = True  # Set this to keep files
         self.verbose = None
 
-        self.setExtras(job,sym)
+        self.setExtras(job, sym, atomList)
 
     def input(self, mol):   #, job = None, sym = None, overwriteFlag = False):
         """Extend pyGamess.gamess.input() writer for additional parameters"""
@@ -531,7 +541,7 @@ class gamessInput(Gamess):
                                                         self.atom_section(mol))
 
 
-    def atom_section(self, mol, atomList = None):
+    def atom_section(self, mol):   #, atomList = None):
         """
         Extend pyGames.gamess.atom_section() for symmetrized cases.
 
@@ -543,9 +553,9 @@ class gamessInput(Gamess):
         """
 
         # Default to all atoms
+        atomList = self.atomList
         if atomList is None:
             atomList = list(range(0, mol.GetNumAtoms()))
-
 
         # self.contrl['icharg'] = mol.GetFormalCharge()
         conf = mol.GetConformer(0)
@@ -560,10 +570,15 @@ class gamessInput(Gamess):
         return section
 
 
-    def setExtras(self, job, sym, overwriteFlag = False):
-        """Quick hack for setting extra attribs & also pushing to self.options"""
+    def setExtras(self, job, sym, atomList, overwriteFlag = False):
+        """
+        Quick hack for setting extra attribs & also pushing to self.options
+
+        Should use _util function from dict here?
+        """
 
         # Additional vars for Gamess job - may want to push to self.options?
         self.setAttribute('job', job, overwriteFlag)
         self.setAttribute('sym', sym, overwriteFlag)
-        self.options['extra'] = {'job':self.job, 'sym':self.sym}
+        self.setAttribute('atomList', atomList, overwriteFlag)
+        self.options['extra'] = {'job':self.job, 'sym':self.sym, 'atomList':self.atomList}
