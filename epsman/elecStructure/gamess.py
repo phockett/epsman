@@ -79,7 +79,8 @@ class ESgamess():
 
 
     def __init__(self, searchName = None, smiles = None, molFile = None, addH = False,
-                    job = None, sym = 'C1', atomList = None, verbose = 1, buildES = False):
+                    job = None, sym = 'C1', atomList = None, verbose = 1,
+                    buildES = False, fileOut = None):
 
         self.verbose = verbose
 
@@ -115,7 +116,7 @@ class ESgamess():
 
         # Automatic Gamess pipeline execution
         if buildES:
-            self.buildES()
+            self.buildES(fileOut)
 
 
     def molFromSmiles(self, addH = False):
@@ -528,7 +529,7 @@ class ESgamess():
             print(f"Error: Missing file {self.gout}")
 
 
-    def buildES(self):
+    def buildES(self, fileOut):
         """Basic job automation to build electronic structure with defaults."""
 
         print("*** Running default Gamess job.")
@@ -539,7 +540,7 @@ class ESgamess():
         # This minimally needs a gamess_path set, which defaults to '/opt/gamess'
         self.initGamess() # Using defaults
 
-        self.runGamess()
+        self.runGamess(fileOut)
 
         self.printTable()
 
