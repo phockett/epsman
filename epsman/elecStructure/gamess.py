@@ -8,7 +8,7 @@ Libraries:
 - `pygamess <https://github.com/kzfm/pygamess>`_ (also `on pypi <https://pypi.org/project/pygamess/>`_)
 - `RDKit <https://rdkit.org/docs/index.html>`_
 - `PubChemPy <https://pypi.org/project/PubChemPy/>`_
-- `py3Dmol <>`_
+- `py3Dmol <https://pypi.org/project/py3Dmol/>`_
 
 Aims here:
 
@@ -439,7 +439,7 @@ class ESgamess():
         self.printGamessInput()
 
 
-    def printGamessInput():
+    def printGamessInput(self):
         """Show current Gamess input card."""
         # print("*** Set Gamess job, use self.params to modify options.\n")
         print("*** Gamess input card:")
@@ -522,6 +522,9 @@ class ESgamess():
 
 # Try subclassing pyGamess routine for extra control over input...
 class gamessInput(Gamess):
+    """
+    Build on `pygamess <https://github.com/kzfm/pygamess>`_ Gamess class to modify input card writing functionlity
+    """
     from epsman._util import setAttribute, setAttributesFromDict
 
     def __init__(self, job = None, sym = None, atomList = None, **kwargs):
