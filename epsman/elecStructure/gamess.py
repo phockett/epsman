@@ -79,7 +79,7 @@ class ESgamess():
 
 
     def __init__(self, searchName = None, smiles = None, molFile = None, addH = False,
-                    job = None, sym = 'C1', atomList = None, verbose = 1):
+                    job = None, sym = 'C1', atomList = None, verbose = 1, buildES = False):
 
         self.verbose = verbose
 
@@ -112,6 +112,10 @@ class ESgamess():
             pass
 
         self.printCoords()
+
+        # Automatic Gamess pipeline execution
+        if buildES:
+            self.buildES()
 
 
     def molFromSmiles(self, addH = False):
@@ -344,10 +348,14 @@ class ESgamess():
 
             atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
 
-        self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
+        try:
+            self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
 
-        if self.__notebook__:
-            display(self.pdTable)
+            if self.__notebook__:
+                display(self.pdTable)
+
+        except AttributeError or NameError:
+            self.printCoords()  # Fallback if Pandas is not available.
 
 
     def printCoords(self):
@@ -491,12 +499,12 @@ class ESgamess():
         try:
             if runType == 'optimize':
                 print("*** Optimized self.mol")
-                print(self.mol.GetProp("total_energy"))
+                print(f"E = {self.mol.GetProp("total_energy")}")
                 self.printTable()
 
             if runType == 'energy':
                 print("*** Energy run completed")
-                print(self.mol.GetProp("total_energy"))  # This doens't exist for E run?
+                print(f"E = {self.mol.GetProp("total_energy")}")  # This doens't exist for E run?
 
         except KeyError:
             print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
@@ -518,6 +526,23 @@ class ESgamess():
 
         except FileNotFoundError as err:
             print(f"Error: Missing file {self.gout}")
+
+
+    def buildES(self):
+        """Basic job automation to build electronic structure with defaults."""
+
+        print("*** Running default Gamess job.")
+
+        self.rotateFrame()
+
+        # Init the pyGamess job.
+        # This minimally needs a gamess_path set, which defaults to '/opt/gamess'
+        self.initGamess() # Using defaults
+
+        self.runGamess()
+
+        self.printTable()
+
 
 
 # Set basic decorator for file handling
@@ -594,3 +619,18 @@ class gamessInput(Gamess):
         self.setAttribute('sym', sym, overwriteFlag)
         self.setAttribute('atomList', atomList, overwriteFlag)
         self.options['extra'] = {'job':self.job, 'sym':self.sym, 'atomList':self.atomList}
+
+
+    # TODO: overwrite print_header (below) for arb sections?
+    # def print_header(self):
+    #     """ gamess header"""
+    #     header = "{}{}{}".format(self.print_section('contrl'),
+    #                              self.print_section('basis'),
+    #                              self.print_section('system'))
+    #     if self.options['contrl']['runtyp'] == 'optimize':
+    #         header += self.print_section('statpt')
+    #
+    #     if self.options['contrl'].get('citype', None) == 'cis':
+    #         header += self.print_section('cis')
+    #
+    #     return header
