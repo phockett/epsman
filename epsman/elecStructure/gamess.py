@@ -8,6 +8,7 @@ Libraries:
 - `pygamess <https://github.com/kzfm/pygamess>`_ (also `on pypi <https://pypi.org/project/pygamess/>`_)
 - `RDKit <https://rdkit.org/docs/index.html>`_
 - `PubChemPy <https://pypi.org/project/PubChemPy/>`_
+- `py3Dmol <>`_
 
 Aims here:
 
@@ -366,13 +367,13 @@ class ESgamess():
 
         print(section)
 
-    def initGamess(self, gamess_path = '/usr/local/gamess', **kwargs):
+    def initGamess(self, gamess_path = '/opt/gamess', **kwargs):
         """
         Init Gamess object & build (default) input card.
 
         All kwargs are passed to pyGamess init.
 
-        This minimally requires `gamess_path`, which defaults to '/usr/local/gamess'
+        This minimally requires `gamess_path`, which defaults to '/opt/gamess'
 
         """
 
@@ -435,7 +436,11 @@ class ESgamess():
         # Set extras
         self.g.setExtras(note, sym, atomList, overwriteFlag = True)
 
-        # Show current Gamess input
+        self.printGamessInput()
+
+
+    def printGamessInput():
+        """Show current Gamess input card."""
         # print("*** Set Gamess job, use self.params to modify options.\n")
         print("*** Gamess input card:")
         print(self.g.input(self.mol))  #, job = note, sym = sym))
