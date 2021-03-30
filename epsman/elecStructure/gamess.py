@@ -79,7 +79,7 @@ class ESgamess():
 
 
     def __init__(self, searchName = None, smiles = None, molFile = None, addH = False,
-                    job = None, sym = None, atomList = None, verbose = 1):
+                    job = None, sym = 'C1', atomList = None, verbose = 1):
 
         self.verbose = verbose
 
@@ -488,21 +488,25 @@ class ESgamess():
         # Run
         self.mol = self.g.run(self.mol)
 
+        try:
+            if runType == 'optimize':
+                print("*** Optimized self.mol")
+                print(self.mol.GetProp("total_energy"))
+                self.printTable()
+
+            if runType == 'energy':
+                print("*** Energy run completed")
+                print(self.mol.GetProp("total_energy"))  # This doens't exist for E run?
+
+        except KeyError:
+            print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
+
         # Tidy up
         if fileOut is not None:
             Path(self.g.gamout).rename(fileOut)  # Rename output
             Path(self.g.gamin).unlink()          # Tidy input
             self.gout = fileOut
             print(f"*** Gamess output file moved to {fileOut}")
-
-        if runType == 'optimize':
-            print("*** Optimized self.mol")
-            print(self.mol.GetProp("total_energy"))
-            self.printTable()
-
-        if runType == 'energy':
-            print("*** Energy run completed")
-            print(self.mol.GetProp("total_energy"))
 
 
     def printGamess(self):
