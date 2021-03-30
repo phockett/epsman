@@ -499,12 +499,12 @@ class ESgamess():
         try:
             if runType == 'optimize':
                 print("*** Optimized self.mol")
-                print(f"E = {self.mol.GetProp("total_energy")}")
+                print(f"E = {self.mol.GetProp('total_energy')}")
                 self.printTable()
 
             if runType == 'energy':
                 print("*** Energy run completed")
-                print(f"E = {self.mol.GetProp("total_energy")}")  # This doens't exist for E run?
+                print(f"E = {self.mol.GetProp('total_energy')}")  # This doens't exist for E run?
 
         except KeyError:
             print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
