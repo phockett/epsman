@@ -115,7 +115,7 @@ class ESgamess():
         self.printCoords()
 
         # Automatic Gamess pipeline execution
-        if buildES:
+        if buildES and hasattr(self, 'mol'):
             self.buildES(fileOut)
 
 
@@ -529,7 +529,7 @@ class ESgamess():
             print(f"Error: Missing file {self.gout}")
 
 
-    def buildES(self, fileOut):
+    def buildES(self, fileOut = None):
         """Basic job automation to build electronic structure with defaults."""
 
         print("*** Running default Gamess job.")
