@@ -115,7 +115,7 @@ class ESgamess():
             self.printCoords()
 
             # Automatic Gamess pipeline execution
-            if buildES and
+            if buildES:
                 self.buildES(fileOut)
 
 
