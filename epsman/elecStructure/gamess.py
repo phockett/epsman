@@ -101,22 +101,22 @@ class ESgamess():
         self.setAttribute('sym', sym)
         self.setAttribute('atomList', atomList)
 
-        # Display some output
-
-        try:
-            if self.__notebook__:
-                display(self.mol)  # If notebook, use display to push plot.
-            else:
-                # return hv.Curve(d0)  # Otherwise return hv object.
+        # Display some output unless mol is empty
+        if hasattr(self, 'mol'):
+            try:
+                if self.__notebook__:
+                    display(self.mol)  # If notebook, use display to push plot.
+                else:
+                    # return hv.Curve(d0)  # Otherwise return hv object.
+                    pass
+            except:
                 pass
-        except:
-            pass
 
-        self.printCoords()
+            self.printCoords()
 
-        # Automatic Gamess pipeline execution
-        if buildES and hasattr(self, 'mol'):
-            self.buildES(fileOut)
+            # Automatic Gamess pipeline execution
+            if buildES and
+                self.buildES(fileOut)
 
 
     def molFromSmiles(self, addH = False):
