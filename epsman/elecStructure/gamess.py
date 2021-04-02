@@ -297,8 +297,9 @@ class ESgamess():
             for k, coords in coordList.items():
                 conf.SetAtomPosition(k, coords)
 
-        print("*** Set atom positions, new coord table:")
-        self.printTable()
+        if self.verbose:
+            print("*** Set atom positions, new coord table:")
+            self.printTable()
 
 
     def setBondLength(self, bonds = None):
@@ -316,8 +317,9 @@ class ESgamess():
             for k, bond in bonds.items():
                 AllChem.SetBondLength(self.mol.GetConformer(),bond['a1'],bond['a2'],bond['l'])
 
-        print("*** Set bonds, new coord table:")
-        self.printTable()
+        if self.verbose:
+            print("*** Set bonds, new coord table:")
+            self.printTable()
 
 
     def rotateFrame(self, rotations = {'y':np.pi/2}, canonicalise=True):
@@ -380,9 +382,9 @@ class ESgamess():
         for k,v in rotations.items():
             AllChem.TransformConformer(self.mol.GetConformer(), tforms[k](v))
 
-
-        print("*** Set frame rotations, new coord table:")
-        self.printTable()
+        if self.verbose:
+            print("*** Set frame rotations, new coord table:")
+            self.printTable()
 
 
     def printTable(self):
@@ -497,7 +499,8 @@ class ESgamess():
         # Set extras
         self.g.setExtras(note, sym, atomList, overwriteFlag = True)
 
-        self.printGamessInput()
+        if self.verbose:
+            self.printGamessInput()
 
 
     def printGamessInput(self):
@@ -550,14 +553,16 @@ class ESgamess():
         self.mol = self.g.run(self.mol, **kwargs)
 
         try:
-            if runType == 'optimize':
-                print("*** Optimized self.mol")
-                print(f"E = {self.mol.GetProp('total_energy')}")
-                self.printTable()
+            self.E = self.mol.GetProp('total_energy')
 
-            if runType == 'energy':
-                print("*** Energy run completed")
-                print(f"E = {self.mol.GetProp('total_energy')}")  # This doens't exist for E run?
+            print(f"*** Gamess {runType} completed")
+
+            if self.verbose > 0:
+                print(f"E = {self.E}")
+
+            if self.verbose > 1:
+                if runType == 'optimize':
+                    self.printTable()
 
         except KeyError:
             print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
