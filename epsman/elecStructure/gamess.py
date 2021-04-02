@@ -15,8 +15,10 @@ Aims here:
 - Wrap pygamess functionality with Fabric for client-host architecture.
    - UPDATE: actually, this is now written to run on local host, and assumed to be wrapped by Fabric at a higher level. This allows for all files & routines in pyGamess to run locally.
    - Might change this in future...? Possibly with remote calls to this routine?
+   - Additional file parsing, e.g. "***** EQUILIBRIUM GEOMETRY LOCATED *****", "EXECUTION OF GAMESS TERMINATED NORMALLY" etc. (Check existing pyGamess methods first.)
 - Enable full ePS job pipeline, starting with a Gamess calculation.
 - Provide methods for generating ePS jobs with multiple inputs, e.g. bond length scans.
+
 
 """
 
@@ -46,6 +48,11 @@ except ImportError:
 
 try:
     import pubchempy as pcp
+
+    # For PUGREST errors.
+    from pubchempy import NotFoundError
+    from urllib.error import HTTPError
+
 except ImportError:
     print("*** PubChemPy not available, molecule download functions will not be available.")
 
@@ -90,9 +97,10 @@ class ESgamess():
         self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
 
         # Try to setup molecule from input
+        self.molFromFile()
         self.molFromPubChem()
         self.molFromSmiles(addH = addH)
-        self.molFromFile()
+
 
         # Additional vars for Gamess job
         # Set default to None to allow easy overwrite later... or set to 'Default' and 'C1' for always running config?
@@ -193,20 +201,30 @@ class ESgamess():
         self.setAttribute('name', searchTerm)
 
         # Search & download result(s) if searchTerm/name is set
+        readFlag = False
         if self.name is not None:
             if self.molFile is None:
                 self.molFile = Path(Path.cwd(), self.name).with_suffix('.' + fileType)
 
             try:
                 pcp.download(fileType, self.molFile, self.name, searchType, record_type=recordType)
+                readFlag = True
+
+            # Very basic error checking, may want to more carefully parse PUGrest errors?
+            except (HTTPError, NotFoundError) as err:
+            # except HTTPError as err:
+                print("*** Bad response from PubChem URL request, try running self.molFromPubChem(recordType='2d')")
+                print(err)
 
             except IOError as err:
-                print(f'*** File {self.molFile} already exists, pass overwrite=True to overwrite')
+                print(f'*** File {self.molFile} already exists; existing file will be used. Pass overwrite=True to overwrite.')
+                readFlag = True
 
         # TODO: print or return something here...
         # print()
 
-        self.molFromFile()  # Try reading file
+        if readFlag:
+            self.molFromFile()  # Try reading file
 
 
 
@@ -247,6 +265,40 @@ class ESgamess():
 
         if self.__notebook__:
             AllChem.Draw.IPythonConsole.drawMol3D(self.mol,drawAs=style)
+
+    def setCoords(self, coordList = None):
+        """
+        Basic wrapper for RDkit conformer.SetAtomPosition() to update coord table.
+
+        Pass dictionary with items giving atom index and [x,y,z] position to set.
+        E.g. coordList = {1:[0,0,0]}
+
+        TODO:
+        - Add passing as a table or array for brevity, e.g. input list or np.array in format [[atom ID, X, Y, Z], ...]
+        - Coord table parsing & conversion from file or Gamess outputs (see pyGamess)
+
+        """
+
+        # Quick attempt: this requires a bit of thought, since types get rejected for numpy, and passing 1D or 2D lists is a bit of a pain.
+        # Use dict for now, since the structure is at least clear.
+        # if isinstance(coordList, list):
+        #     coordList = np.array(coordList,ndmin=2)  # For to 2D array.
+        #
+        # conf = self.mol.GetConformer()
+        #
+        # if coordList is not None:
+        #     for row in coordList:
+        #         conf.SetAtomPosition(row[0], row[1:])
+
+        # Dict version
+        conf = self.mol.GetConformer()
+
+        if coordList is not None:
+            for k, coords in coordList.items():
+                conf.SetAtomPosition(k, coords)
+
+        print("*** Set atom positions, new coord table:")
+        self.printTable()
 
 
     def setBondLength(self, bonds = None):
@@ -495,7 +547,7 @@ class ESgamess():
             self.g.debug = True
 
         # Run
-        self.mol = self.g.run(self.mol)
+        self.mol = self.g.run(self.mol, **kwargs)
 
         try:
             if runType == 'optimize':
@@ -554,7 +606,16 @@ class ESgamess():
 class gamessInput(Gamess):
     """
     Build on `pygamess <https://github.com/kzfm/pygamess>`_ Gamess class to modify input card writing functionlity
+
+    TODO: better error checking (if not already in pygamess...?)
+
+    E.g. parse ddkick outputs at end of Gamess output file:
+        ddikick.x: application process 0 quit unexpectedly.
+        ddikick.x: Sending kill signal to DDI processes.
+        ddikick.x: Execution terminated due to error(s).
+
     """
+
     from epsman._util import setAttribute, setAttributesFromDict
 
     def __init__(self, job = None, sym = None, atomList = None, **kwargs):
