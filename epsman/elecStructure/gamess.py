@@ -473,6 +473,8 @@ class ESgamess():
         sym : str, default = 'C1'
             Set symmetry for job.
 
+        NOTE: this is currently configured to ALWAYS overwrite existing settings, apart from `None` cases.
+
         """
 
         if job is None:
