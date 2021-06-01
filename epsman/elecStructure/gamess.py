@@ -302,6 +302,36 @@ class ESgamess():
             self.printTable()
 
 
+    def setAxis(self, axis = {'x':0.0}):
+        """
+        Basic wrapper for RDkit conformer.SetAtomPosition() to update coord table for a given AXIS.
+
+
+        TODO:
+        - integrate with setCoords() as general function.
+        - More flexible input format? Currently OK for an axis or two.
+
+        """
+
+        conf = self.mol.GetConformer(0)
+
+        if axis is not None:
+            for atom in self.mol.GetAtoms():
+                pos = conf.GetAtomPosition(atom.GetIdx())
+
+                for k, v in axis.items():
+                    setattr(pos, k, v)  # Dictionary style, set attribute by named axis to specified value.
+
+                conf.SetAtomPosition(atom.GetIdx(), pos)  # Update molecule with new value.
+
+            if self.verbose:
+                print("*** Set atom positions, new coord table:")
+                self.printTable()
+
+        else:
+            pass
+
+
     def setBondLength(self, bonds = None):
         """
         Basic wrapper for AllChem.SetBondLength
@@ -472,8 +502,6 @@ class ESgamess():
 
         sym : str, default = 'C1'
             Set symmetry for job.
-
-        NOTE: this is currently configured to ALWAYS overwrite existing settings, apart from `None` cases.
 
         """
 
