@@ -400,7 +400,7 @@ def createJobDirTree(self, localHost = False):
     return True
 
 # Functionalise with adaptive job number.
-def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None):
+def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 2):
     """
     Basic multi-E job set-up, with adaptive chunking into sub-jobs.
 
@@ -416,6 +416,11 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None):
         If set to None, this will be set automatically.
         If set to an int, this will determine job chunck size, but may be overriden in some cases to nearest common divisor.
 
+    precision : int, optional, default = 2
+        Precision for energies, generate via np.round.
+        TODO: automate this from dE.
+
+
     Returns
     -------
     Elsit : np.array, 2D
@@ -424,7 +429,7 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None):
     """
 
     # Generate initial Elist
-    Elist = np.round(np.arange(Estart,Estop+dE,dE), decimals = 2)
+    Elist = np.round(np.arange(Estart,Estop+dE,dE), decimals = precision)
 
     if EJob is None:
         # With adaptive job chunking - select max GCD from a range of values.
