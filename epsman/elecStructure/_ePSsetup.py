@@ -14,6 +14,7 @@ TODO:
 - Consolidate and streamline/revisit methods and overall procedure.
 
 """
+import numpy as np
 
 import itertools
 import collections
@@ -51,6 +52,7 @@ def setChannel(self, channelInd, orbOcc = None):
     self.channel = self.orbGrps.loc[channelInd]  #  self.orbGrps.at[channelInd]  # Log ionizing channel for later
 
     if self.verbose:
+        print(f"*** Set ionization from orbital/channel {channelInd}.")
         print("Updated orb table...")
         self.orbInfoSummary(showSummary=False, showFull=False)
 
