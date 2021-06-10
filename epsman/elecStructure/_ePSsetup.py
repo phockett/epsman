@@ -162,13 +162,13 @@ def genSymList(self, Ssym = None, Csym = None):
     # Set defaults from input symmetries - although this may not be == full point group
 #     for item in [Ssym, Csym]:  # LOOP OVER THESE CLEARLY
     if Ssym is None:
-        Ssym = self.orbPD['syms'].unique()
+        Ssym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
 
     if not isinstance(Ssym,list):
         Ssym = [Ssym]
 
     if Csym is None:
-        Csym = self.orbPD['syms'].unique()
+        Csym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
 
     if not isinstance(Csym,list):
         Csym = [Csym]
