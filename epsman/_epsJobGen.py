@@ -197,7 +197,8 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
 
 # Setup job parameters (previously done manually).
 # This sets all parameters required for dirs and file IO.
-def setJob(self, mol = None, orb = None, batch = None, elecStructure = None, genFile = None, jobSettings = None, overwriteFlag = False):
+def setJob(self, mol = None, orb = None, batch = None, jobNote = None,
+            elecStructure = None, genFile = None, jobSettings = None, overwriteFlag = False):
     """
     Init job settings. This is crude, but ultimately all these parameters are required.
 
@@ -212,6 +213,9 @@ def setJob(self, mol = None, orb = None, batch = None, elecStructure = None, gen
     batch : str, default = None
         Batch to use as job label.
         By default, jobs will be set with directory structure wrkdir/mol/batch/orb
+
+    jobNote : str, default = None
+        Additional note to be included in job input file.
 
     elecStructure : str, default = None
         Filename for electronic structure input file (Gamess .log or Molden .mol)
@@ -247,7 +251,8 @@ def setJob(self, mol = None, orb = None, batch = None, elecStructure = None, gen
 
     self.setGenFile(genFile)
 
-
+# MORE SHIT CODE
+# WRITE SOME DECENT WRAPPERS PLEASE
 def setGenFile(self, genFile = None):
     """
     Set GenFile & propagate to all hosts.
