@@ -20,6 +20,8 @@ import pandas as pd
 import itertools
 import collections
 
+from epsman import multiEChunck
+
 #************* Functions for setting ePS jobs based on orb info: these will likely want to go into main ESjob class, but initial versions (10/06/21) used in EShandler class.
 def setChannel(self, channelInd, orbOcc = None):
     """
@@ -65,6 +67,7 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
     Set as dictionary of params that match input card keywords (cf. pygamess routines).
 
     NOTE: if PG is set, additionally run self.convertSymList() to convert to ePolyScat symmetry labels.
+    ***** CURRENTLY NOT FULLY IMPLEMENTED, for symTest case pass full list of ePS symmetries manually instead (otherwise Gamess defaults from self.orbPD['syms'] are used).
 
 
     Should generate output to match current file format, roughly:
@@ -146,6 +149,7 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
 #         self.convertSymList(PG)
     if hasattr(self, 'PG'):   # This is currently problematic, since it will overwrite back to defaults SHIT CODE
         self.convertSymList(Ssym=Ssym, Csym=Csym)  # NOW FIXED WITH SHIT HACK - pass through symms to allow for sym gen at job writing case. FUCKING UGLY SHITTTY SHIT
+                                                  # ALSO: doesn't work for general conversion case since it will re-write defaults as passed to Ssym and Csym (although OK currently for init/target syms)
 
     # TODO: move to separate fn, see symTest code below.
     self.ePSrecords['Ssym']=f"({' '.join([item[0] for item in self.symList])})"   # Current format for looping script input writer... but ugly!
@@ -313,7 +317,7 @@ def symTest(self, jobES):
         # Set Elist as n.
         # TODO: do this better, set single E job writer IDIOT!!!!!
         # PROBABLY THIS IS ALREADY DONE IN BASE CODE, just not class version.
-        self.Elist = em.multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
+        self.Elist = multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
         # job.Elist = np.array([1.0, 2.0], ndmin=2).T   # For single E case have to set manually...? With current code will ALWAYS be 2 Eke minimum, since self.writeInp() uses this for file name! Should have another version for single E test cases?
 
         self.writeInp(scrType = 'basic', wLog = False)  #  'basic', 'wf-sph')
