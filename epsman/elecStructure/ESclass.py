@@ -1,6 +1,8 @@
 """
 Basic methods for dealing with Gamess & Molden file IO for ePolyScat.
 
+10/06/21  Added some basic error checks during testing. SHOULD SET AS A DECORATOR.
+
 03/02/21 v2 Revisiting and finishing off...
             - Fixed formatting options.
             - Added wrappers for cclib moldenwriter.MOLDEN as new class.
@@ -206,6 +208,9 @@ class EShandler():
         try:
             print("Read %i atoms and %i MOs" % (self.data.natom, self.data.nmo))
 
+            # Set orb info
+            self.setOrbInfoPD()
+
         # Generic error case, usually due to None returned from cclib.
         except AttributeError:
             print(f"*** Error: File {self.fullPath} not found or empty.")
@@ -217,12 +222,16 @@ class EShandler():
         Write data to Molden format file using CCLIB.io.ccwrite(self.data)
 
         """
+        try:
+            # Convert to Molden format
+            cclib.io.ccwrite(self.data, terse=True, outputtype='molden', outputdest=self.moldenFile.as_posix())  # From data
 
-        # Convert to Molden format
-        cclib.io.ccwrite(self.data, terse=True, outputtype='molden', outputdest=self.moldenFile.as_posix())  # From data
+            print(f"Written Molden format file {self.moldenFile}")
+            # self.reformatMoldenFile()
 
-        print(f"Written Molden format file {self.moldenFile}")
-        # self.reformatMoldenFile()
+        # Generic error case, usually due to None returned from cclib.
+        except AttributeError:
+            print(f"*** Error: Missing data, run self.readGamessLog().")
 
 
     def writeMoldenFile2006(self):
@@ -233,31 +242,36 @@ class EShandler():
 
         """
 
-        # Convert to Molden format
-        f = 'molden'  # Set output format
-        # self.moldenFile = self.fullPath.with_suffix('.' + f)
-        # cclib.io.ccwrite(self.data, terse=True, outputtype=f, outputdest=self.moldenFile.as_posix())  # From data
+        try:
+            # Convert to Molden format
+            f = 'molden'  # Set output format
+            # self.moldenFile = self.fullPath.with_suffix('.' + f)
+            # cclib.io.ccwrite(self.data, terse=True, outputtype=f, outputdest=self.moldenFile.as_posix())  # From data
 
-        # Set object
-        self.moldenData = moldenCCLIBReformatted(self.data)
+            # Set object
+            self.moldenData = moldenCCLIBReformatted(self.data)
 
-        # Write to file using modified functions
-        # Note newline='\n' to force Unix style output (default will otherwise use os.linesep, see https://docs.python.org/3/library/functions.html#open).
-        with open(self.moldenFile, 'w', newline='\n') as f:
-            # f.write(self.moldenData.generate_repr())  # Write full file - no further reformatting
+            # Write to file using modified functions
+            # Note newline='\n' to force Unix style output (default will otherwise use os.linesep, see https://docs.python.org/3/library/functions.html#open).
+            with open(self.moldenFile, 'w', newline='\n') as f:
+                # f.write(self.moldenData.generate_repr())  # Write full file - no further reformatting
 
-            # With additional per-line checks
-            moldenRepr = self.moldenData.generate_repr().split('\n')
+                # With additional per-line checks
+                moldenRepr = self.moldenData.generate_repr().split('\n')
 
-            for line in moldenRepr:
-                if line.startswith(' Sym='):
-                    pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
-                else:
-                    # f.write(line, end='')
-                    f.write(f'{line}\n')
+                for line in moldenRepr:
+                    if line.startswith(' Sym='):
+                        pass   # Skip ' Sym=XX' orbital defn. lines, not in standard Molden 2006 output.
+                    else:
+                        # f.write(line, end='')
+                        f.write(f'{line}\n')
 
-        print(f"Written Molden2006 format file {self.moldenFile}")
-        # self.reformatMoldenFile()
+            print(f"Written Molden2006 format file {self.moldenFile}")
+            # self.reformatMoldenFile()
+
+        # Generic error case, usually due to None returned from cclib.
+        except AttributeError:
+            print(f"*** Error: Missing data, run self.readGamessLog().")
 
 
 
