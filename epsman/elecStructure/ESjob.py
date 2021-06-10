@@ -20,8 +20,22 @@ class ESjob(em.epsJob):
     """
     Class to wrap epsJob + EShandler functionality.
 
+    Note this currently assume a SINGLE electronic structure file as the base for a job.
+
+    For multiple jobs with different ES files (e.g. bond-scans), this should be wrapped or subclassed - TBD.
+
+
+    10/06/21: adding ES file handling & info functions following recent OCS run testing, first version of:
+
+        - setOrbInfoPD, orbInfoSummary (source _orbInfo.py) to pull orbital/molecule info from ES file (part of EShandler class).
+        - setChannel, setePSinputs, genSymList, convertSymList, writeInputConf (source _ePSsetup.py) for setting up ePS parameters based on ES file + additional inputs (part of EShandler class). Needs further work, may also move to ESjob class in future...?
+        - setJobInputConfig, symTest, setSymsFromFiles (source _ePSsetup), additional ePS job setup routines... need some work!
+
     19/02/21: now init with epsman.epsJob class as parent, so can implement existing file IO methods.
+
     """
+
+    from ._ePSsetup import setJobInputConfig, symTest, setSymsFromFiles
 
     def __init__(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True, **kwargs):
 
@@ -30,6 +44,9 @@ class ESjob(em.epsJob):
 
         # Set master file only
         self.setMasterESfile(fileName = fileName, fileBase = fileBase, outFile = outFile, master = master, overwriteFlag = overwriteFlag)
+
+        # self.esData.
+
 
 
     def setMasterESfile(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True):
@@ -57,7 +74,7 @@ class ESjob(em.epsJob):
             # self.esData = ESclass.EShandler(self.hostDefn[master]['elecFile'], self.hostDefn[master]['elecDir'])
 
         # Set master file object.
-        self.esData = ESclass.EShandler(fileName = fileName, fileBase = fileBase, outFile = outFile)
+        self.esData = ESclass.EShandler(fileName = fileName, fileBase = fileBase, outFile = outFile, verbose = self.verbose)
 
         # else:
         #     print("Skipping")

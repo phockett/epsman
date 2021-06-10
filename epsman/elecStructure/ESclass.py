@@ -76,14 +76,26 @@ class EShandler():
     - Better file handling, should implement Pathlib tests for file(s).
     - Fix reformatMoldenFile() method, this currently outputs OS specific line endings.
 
+
+    10/06/21: adding ES file handling & info functions following recent OCS run testing, first version of:
+
+        - setOrbInfoPD, orbInfoSummary (source _orbInfo.py) to pull orbital/molecule info from ES file.
+        - setChannel, setePSinputs, genSymList, convertSymList, writeInputConf (source _ePSsetup.py) for setting up ePS parameters based on ES file + additional inputs. Needs further work, may also move to ESjob class in future...?
+        - wrapped into ESjob class for main ePS job creation routines.
+
+
     19/02/21: For full eps job class inheritance, use ESjob class instead.
 
     """
 
+    # Orbital info methods.
+    from ._orbInfo import setOrbInfoPD, orbInfoSummary
+    from ._ePSsetup import setChannel, setePSinputs, genSymList, convertSymList, writeInputConf
 
-    def __init__(self, fileName = None, fileBase = None, outFile = None):
+    def __init__(self, fileName = None, fileBase = None, outFile = None, verbose = 1):
 
         self.setFiles(fileName=fileName, fileBase=fileBase, outFile=outFile)
+        self.verbose = verbose
 
         # If a Gamess file is passed, read it.
         if (self.fileName is not None) and (self.fileName.suffix != '.molden'):
