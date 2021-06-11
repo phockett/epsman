@@ -325,22 +325,23 @@ def symTest(self, jobES):
 
 # This works, but note it's ONE WAY - rerunning will mess things up.
 # NEED SOME MORE ROBUST METHODS HERE, everything is OK for single runs only.
-# NO THIS DOESN'T WORK - INCORRECT SYMS AS LIST ORDERING DIFFERENT YOU FUCKING MORON
+
 def setSymsFromFiles(self, jobES):    #, symTest = False):   #, Ssym=None, Csym=None):  # May want to set explicitly here too? Or set as separate fn.
     """Set/update self.symList from fileList or passed inputs."""
 
 #     # Get from set of jobs
 # #     if symTest:
     fTest = [fLine.endswith("Finalize") for fLine in self.fTails]  # Current code
-    fGood = list(compress(job.fileList, np.array(fTest)))  # Good files only
+    fGood = list(compress(self.fileList, np.array(fTest)))  # Good files only
 
-#     self.fullSyms = jobES.symList.copy()
+    self.fullSyms = jobES.symList.copy()  # Log full symList
 #     jobES.symList = list(compress(self.fullSyms, np.array(fTest)))  # Good syms
 
 
-    # PULL N BACK FROM SYMTEST
+    # PULL N BACK FROM SYMTEST to allow for change in list ordering
     fGoodN = [int(item.split('_E')[1].split('.')[0])-1 for item in fGood]  # Pull N in a very ugly manner
-    jobES.symList = [jobES.symList[N] for N in fGoodN]
+    # jobES.symList = [jobES.symList[N] for N in fGoodN]
+    jobES.symList = [self.fullSyms[N] for N in fGoodN]  # Updated routine for symTest - NEED TO SET from self.fullSyms, push back to self.jobES.symList in current configuration.
 
     # Update sym list with only good items
     jobES.ePSrecords['Ssym']=f"({' '.join([item[0] for item in jobES.symList])})"   # Current format for looping script input writer... but ugly!
