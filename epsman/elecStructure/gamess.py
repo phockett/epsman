@@ -85,7 +85,7 @@ class ESgamess():
     __notebook__ = isnotebook()
 
 
-    def __init__(self, searchName = None, smiles = None, molFile = None, addH = False,
+    def __init__(self, searchName = None, smiles = None, molFile = None, addH = False, molOverride = None,
                     job = None, sym = 'C1', atomList = None, verbose = 1,
                     buildES = False, fileOut = None):
 
@@ -95,6 +95,10 @@ class ESgamess():
         self.setAttribute('name', searchName)
         self.setAttribute('smiles', smiles)
         self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
+
+        # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
+        # This will be used at Gamess input file write INSTEAD of self.mol if set.
+        self.setAttribute('molOverride', molOverride) 
 
         # Try to setup molecule from input
         self.molFromFile()
@@ -684,6 +688,8 @@ class gamessInput(Gamess):
         TODO: better routine here, this is fully manual.
         May want to try pymatgen/spglib combo: https://pymatgen.org/pymatgen.symmetry.analyzer.html
 
+        14/06/21: added quick hack for manual structure override. Handy for problematic cases.
+
         """
 
         # Default to all atoms
@@ -691,15 +697,24 @@ class gamessInput(Gamess):
         if atomList is None:
             atomList = list(range(0, mol.GetNumAtoms()))
 
-        # self.contrl['icharg'] = mol.GetFormalCharge()
-        conf = mol.GetConformer(0)
-        section = ""
-        for atom in mol.GetAtoms():
-            N = atom.GetIdx()
-            pos = conf.GetAtomPosition(N)
+        # Allow manual override for RDkit mol object - handy for custom coord cases
+        # This assumes self.molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}
+        if self.molOverride is not None:
+            for N, atom in self.molOverride.items():
+                if N in atomList:
+                    section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom['name'], atom['Z'], *atom['coords'])
 
-            if N in atomList:
-                section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
+
+        else:
+            # self.contrl['icharg'] = mol.GetFormalCharge()
+            conf = mol.GetConformer(0)
+            section = ""
+            for atom in mol.GetAtoms():
+                N = atom.GetIdx()
+                pos = conf.GetAtomPosition(N)
+
+                if N in atomList:
+                    section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
 
         return section
 
