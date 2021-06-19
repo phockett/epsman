@@ -98,7 +98,7 @@ class ESgamess():
 
         # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
         # This will be used at Gamess input file write INSTEAD of self.mol if set.
-        self.setAttribute('molOverride', molOverride) 
+        self.setAttribute('molOverride', molOverride)
 
         # Try to setup molecule from input
         self.molFromFile()
@@ -479,6 +479,10 @@ class ESgamess():
 
         # Set pointer to options
         self.params = self.g.options
+
+        # Set for molOverride too...
+        self.g.molOverride = self.molOverride
+
         print("*** Init pyGamess job.")
 
         # Show current Gamess input
@@ -697,6 +701,8 @@ class gamessInput(Gamess):
         if atomList is None:
             atomList = list(range(0, mol.GetNumAtoms()))
 
+        section = ""  # Set stub for writing
+
         # Allow manual override for RDkit mol object - handy for custom coord cases
         # This assumes self.molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}
         if self.molOverride is not None:
@@ -708,7 +714,6 @@ class gamessInput(Gamess):
         else:
             # self.contrl['icharg'] = mol.GetFormalCharge()
             conf = mol.GetConformer(0)
-            section = ""
             for atom in mol.GetAtoms():
                 N = atom.GetIdx()
                 pos = conf.GetAtomPosition(N)
