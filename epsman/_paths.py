@@ -17,6 +17,7 @@ def setScripts(self):
     # Set dictionary of Shell scripts for .inp file generation.
     # Now also includes notebook templates... needs a tidy up!
     self.scrDefn = {'basic':'ePS_input_write_template_basic.sh',
+                    'basic-heavy':'ePS_input_write_template_basic-heavy.sh',
                     'wf-sph':'ePS_input_write_template_wf_sph.sh',
                     'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
