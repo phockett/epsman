@@ -167,8 +167,7 @@ cat > $jobDir/$file.inp <<eoi
 # Template: $template
 
 LMax  30     # maximum l to be used for wave functions
-LMaxA 12
-EMax  50.    # EMax, maximum asymptotic energy in eV
+EMax  $Emax    # EMax, maximum asymptotic energy in eV
 IPot $IP
 FegeEng $IP   # Energy correction used in the fege potential
 
