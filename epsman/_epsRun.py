@@ -29,8 +29,8 @@ def runJobs(self):
     result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], 'ePS_batch_nohup.sh').as_posix() + cmd,
                         warn = True, timeout = 10, pty=False)
 
-    if verbose:
-        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nOutput file dest: {self.hostDefn[self.host]['jobCompleted']}")
+    if self.verbose:
+        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobCompleted']}")
 
 
 # Tidy up job files
