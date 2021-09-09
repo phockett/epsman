@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Wrapper for ePS batch jobs for remote run with Fabric
-# 23/10/19
+# 09/09/21  v2, with updated output file.
+# 23/10/19  v1
 
 echo Starting batch run with nohup
 

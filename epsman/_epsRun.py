@@ -20,7 +20,17 @@ def runJobs(self):
 
     # With nohup wrapper script to allow job to run independently of terminal.
     # Turn warnings off, and set low timeout, to ensure hangup... probably...
-    result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 10)
+    # result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 10)
+
+    # 09/09/21 - updated to fix hangup issues & for new scripts (using .conf file supplied paths)
+    # Note Fabric/ssh redirect output (see See https://stackoverflow.com/a/27600071)
+    # Nohup file output now set in script as $jobConfFile.nohup.log
+    cmd = f" {self.hostDefn[self.host]['genFile'].as_posix()} &> /dev/null &"
+    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], 'ePS_batch_nohup.sh').as_posix() + cmd,
+                        warn = True, timeout = 10, pty=False)
+
+    if verbose:
+        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nOutput file dest: {self.hostDefn[self.host]['jobCompleted']}")
 
 
 # Tidy up job files
