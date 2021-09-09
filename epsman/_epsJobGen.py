@@ -302,10 +302,12 @@ def writeGenFile(self):
 # Set working environment
 machine={self.host}
 wrkdir={self.hostDefn[self.host]['wrkdir'].as_posix()}
+scpdir={self.hostDefn[self.host]['scpdir'].as_posix()}
 
 # Settings from ePS_batch_job.sh
 ePSpath={self.hostDefn[self.host]['ePSpath'].as_posix()}
 jobPath={self.hostDefn[self.host]['jobPath'].as_posix()}
+jobComplete={self.hostDefn[self.host]['jobComplete'].as_posix()}
         """ + self.jobSettings
 
         # Note force newline = "\n" to fix Unix text file formatting for mixed win/linux cases

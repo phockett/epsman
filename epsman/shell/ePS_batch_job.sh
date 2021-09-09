@@ -11,6 +11,7 @@
 # jobPath=/mnt/Scratch/ePS/jobs
 # jobPath=/home/paul/ePS_stuff/jobs
 # 23/08/20 - these are now set in calling script, or here.
+# 09/09/21 - now also set jobComplete destination dir.
 jobConfFile=$1
 source $jobConfFile  # 23/08/20 Settings for local dirs now set here.
 
@@ -30,6 +31,7 @@ do
 
   # cp $f.out ~/Dropbox/ePSjobs
   # cp $f.out /media/ext4-store/Dropbox/Dropbox/ePSjobs
-  mv $f* ./completed
+  # mv $f* ./completed
+  mv $f* $jobComplete
 
 done
