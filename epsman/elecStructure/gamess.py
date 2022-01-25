@@ -98,6 +98,7 @@ class ESgamess():
 
         # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
         # This will be used at Gamess input file write INSTEAD of self.mol if set.
+        # Note Z must be an int here currently - Gamess writer appends '.0' in current codebase.
         self.setAttribute('molOverride', molOverride)
 
         # Try to setup molecule from input

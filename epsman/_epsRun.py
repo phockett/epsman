@@ -25,6 +25,7 @@ def runJobs(self):
     # 09/09/21 - updated to fix hangup issues & for new scripts (using .conf file supplied paths)
     # Note Fabric/ssh redirect output (see See https://stackoverflow.com/a/27600071)
     # Nohup file output now set in script as $jobConfFile.nohup.log
+    # Further notes: https://github.com/phockett/epsman/issues/17#issuecomment-916352658
     cmd = f" {self.hostDefn[self.host]['genFile'].as_posix()} &> /dev/null &"
     result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], 'ePS_batch_nohup.sh').as_posix() + cmd,
                         warn = True, timeout = 10, pty=False)

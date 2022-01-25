@@ -1,5 +1,17 @@
 Testing some local stuff on Stimpy + UB20VM
-14/12/20
+
+13/03/21 Jake
+
+As below, plus optional extras for Gamess stuff:
+
+conda install -c conda-forge rdkit
+
+pip install pygamess
+
+pip install -e ~/github/epsman
+
+
+14/12/20 Stimpy
 
 See D:\projects\ePolyScat\NO_2020
 
