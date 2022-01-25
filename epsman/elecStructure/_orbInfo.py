@@ -12,53 +12,61 @@ import pandas as pd
 import numpy as np
 
 #************* Functions for getting orb info: these will likely want to go into EShandler class.
-def setOrbInfoPD(self):
+def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
     """
     Set info to self.orbPD, from electronic structure file (via CCLIB).
 
     See also ep.jobSummary() and ep.getOrbInfo() for similar case from ePS output files.
 
+    Parameters
+    ----------
+
+    groups : str or list of strs, optional, default = ['E','syms']
+        Groups to use when determining degeneracies.
+        If using 'E' only, some cases may produce incorrect results if there are multiple symmetry states with same E.
+
+    zeroInd : bool, optional, default = False
+        If true use start index at 0 for orbitals/states.
+        Otherwise start index at 1.
+
+    Notes
+    -----
+
+    25/01/22 Added groups and zeroInd parameters, and updates & debugged code.
+
     """
 
+    # 25/01/22 test code & updates http://jake/jupyter/user/paul/doc/tree/ePS/butadiene_2022/epsman_2022/butadiene_rescattering_epsman_1st-attempt_240122.ipynb
 
     # (1) Stack basic info to dataframe
     orbPD = pd.DataFrame({'syms':self.data.mosyms[0], 'E':self.data.moenergies[0]})  #.index.rename('Orb')  # This is OK with [0] items, but not sure this is general? Might be spin groups here?
+
+    if not zeroInd:
+        orbPD.index += 1 # NOTE +1 to start at 1 (not 0)
+
     orbPD = orbPD.assign(Occ=lambda x: x['E']<0).assign(OccN=lambda x: x['Occ']*2)  # Crude!
-    # testStack['OccN'] = testStack.where(testStack['Occ']==True,2,0)
-    # testStack = testStack.index.rename('Orb')
-    # testStack.index.rename('OrbN', inplace=True)
-    orbPD['OrbN'] = orbPD.index  # Set index as col to ensure it's kept later!
+    orbPD['OrbN'] = orbPD.index # Set index as col to ensure it's kept later!
 
     # (2) Set degen & groups
+    fullOcc = orbPD.groupby(groups).sum()['OccN']  # Gives degen occ numbers
+    degens = orbPD.groupby(groups).size() # Gives degen directly (as a series), but not sure how to restack to the original...?
 
-    fullOcc = orbPD.groupby('E').sum()['OccN']  # Gives degen occ numbers
-    degens = orbPD.groupby('E').size() # Gives degen directly (as a series), but not sure how to restack to the original...?
     # degens
-    orbGrp = np.arange(0,degens.size)
+    if zeroInd:
+        orbGrp = np.arange(0,degens.size)
+    else:
+        orbGrp = np.arange(1,degens.size+1)
     # orbGrp = testStackMI.groupby('E').ngroup()  # This should be good, but only keeps index, not N - more thought required here
 
     degenDF = pd.DataFrame({'degen':degens, 'iOrbGrp':orbGrp, 'OrbGrpOcc':fullOcc}) # Restack to frame including group indexes - works OK with simple range orbGrp, but missing E indexer?
-    degenDF.index.rename('E', inplace=True)
-
-    # .groupby("B").filter(lambda x: len(x) > 2, dropna=False)
-
-    # testStackMI['iOrbGrp'] = testStackMI.groupby('E').sum()['OccN']
-    # testStackMI['iOrbGrp'] =
-
-    # testStackMI['degens'] = degens  # Just sets as NaNs, not picking up index?
-    # testStackMI.merge(degens.rename('degens'), on='E')  # This is OK with degens as a Series, and duplicates data correctly. Seems to drop multi-index though? Just do that later instead!
-    orbPD = orbPD.merge(degenDF, on='E')  # OK, with full DataFrame, flat index
-    # testStackMI.merge(degenDF, on='E', how='left')[0:20]
-
+    orbPD = orbPD.merge(degenDF, on=groups)  # OK, with full DataFrame, flat index
 
     # (3) Set to multi-index
     orbPD.set_index(['E','iOrbGrp','OrbN'], inplace=True)
 
-
     # (4) Summary data - propagate from CCLIB structure for now
     for key in ['metadata', 'nelectrons', 'nmo', 'atomcoords','homos']:
         orbPD.attrs[key] = getattr(self.data, key)
-
 
     # Check OccN & HOMO OK
     if orbPD['OccN'].sum() != orbPD.attrs['nelectrons']:
@@ -67,11 +75,9 @@ def setOrbInfoPD(self):
     # Set to self
     self.orbPD = orbPD
 
-#     degenDF['syms'] = orbPD.groupby('E')['syms']  # This currently fails - need to use some filter/droplevel logic here?
-    indsUn = ~orbPD.index.get_level_values('E').duplicated(keep='first')  # Set indexer to unique sets
-    degenDF['syms'] = orbPD[indsUn]['syms'].droplevel(['OrbN','iOrbGrp'])  # Bit circular, but works OK
-    degenDF['Occ'] = orbPD[indsUn]['Occ'].droplevel(['OrbN','iOrbGrp'])  # Bit circular, but works OK
-    self.orbGrps = degenDF.set_index(['iOrbGrp'], append=True).reset_index(level='E')  # Set separate degen table for more direct use for ePS inputs, reindex to orbGrp index only.
+    # 22/01/22 update - just reformat orbPD instead of col setting? Am I missing something now...?
+    orbGrps =  orbPD.reset_index().set_index('iOrbGrp')  # .drop_duplicates(keep='first')  # Note drop_duplicates not for index values - this may keep multiple entries per iOrbGrp
+    self.orbGrps = orbGrps[~orbGrps.index.duplicated()]   # Drop duplicates by INDEX
 
     if self.verbose:
         print("*** Set orbPD data to self.orbPD, set group data to self.orbGrps\n")
