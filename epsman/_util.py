@@ -10,6 +10,8 @@ Utility functions for use with ePSman.
 import re
 from pathlib import Path
 
+#****** FILE PARSING
+
 # Parse digits from a line using re
 # https://stackoverflow.com/questions/4289331/how-to-extract-numbers-from-a-string-in-python
 def parseLineDigits(testLine):
@@ -26,6 +28,92 @@ def parseLineTokens(testLine):
 
     """
     return re.findall("[A-Za-z0-9]+", testLine)
+
+# FILEPARSE from epsproc
+# Should just import... but included directly here for now!
+
+# File parsing function - scan file for keywords & read segments
+#   Following above idiomatic solution, with full IO
+#   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python
+def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = False):
+    """
+    Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.
+
+    Parameters
+    ----------
+    fileName : str
+        File to read (file in working dir, or full path)
+    startPhrase : str, optional
+        Phrase denoting start of section to read. Default = None
+    endPhase : str, optional
+        Phrase denoting end of section to read. Default = None
+    comment : str, optional
+        Phrase denoting comment lines, which are skipped. Default = None
+
+    Returns
+    -------
+    list
+        [lineStart, lineStop], ints for line #s found from start and end phrases.
+    list
+        segments, list of lines read from file.
+
+    All lists can contain multiple entries, if more than one segment matches the search criteria.
+
+    """
+
+    lineStart = []    # Create empty list to hold line #s
+    lineStop = []     # Create empty list to hold line #s
+    segments = [[]]   # Possible to create empty multi-dim array here without knowing # of segments? Otherwise might be easier to use np textscan functions
+    readFlag = False
+    n = 0
+
+    # Force list to ensure endPhase is used correctly for single phase case (otherwise will test chars)
+    if type(endPhrase) is str:
+        endPhrase = [endPhrase]
+
+    # Open file & scan each line.
+    with open(fileName,'r') as f:
+        for (i, line) in enumerate(f):  # Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers
+            i = i + 1  # Offset for file line numbers (1 indexed)
+            # If line matches startPhrase, print line & append to list.
+            # Note use of lstrip to skip any leading whitespace.
+            # if startPhrase in line:
+            if line.lstrip().startswith(startPhrase):
+                if verbose:
+                    print('Found "', startPhrase, '" at line: ', i)
+
+                lineStart.append(i)
+
+                readFlag = True
+
+            # Read lines into segment[] until endPhrase found
+            if readFlag:
+                # Check for end of segment (start of next Command sequence)
+                if endPhrase and ([line.lstrip().startswith(endP) for endP in endPhrase].count(True) > 0):  # This allows for multiple endPhases
+                                                                                                    # NOTE: this will iterate over all chars in a phrase if a single str is passed.
+                    # Log stop line and list
+                    lineStop.append(i)
+                    readFlag = False
+
+                    # Log segment and create next
+                    segments.append([])
+                    n += 1
+
+                    continue            # Continue will skip rest of loop
+
+                 # Check for comments, skip line but keep reading
+                elif comment and line.lstrip().startswith(comment):
+                    continue            # Continue will skip rest of loop
+
+                segments[n].append([n, i, line])    # Store line if part  of defined segment
+
+    if verbose:
+        print('Found {0} segments.'.format(n+1))
+
+    return ([lineStart, lineStop], segments) # [:-1])
+
+
+#****** FILE CHECKS
 
 def getFileList(self, scanDir, fileType = 'out', subDirs = True, verbose = True):
     """Get a file list from host - scan directory=dir for files of fileType.
@@ -171,6 +259,9 @@ def checkFiles(self, fileList, scanDir = '', verbose = False):
                 print(f"{fileTest}: {result.ok}")
 
     return checkList
+
+
+#****** FILE PUSH & PULL
 
 # pushFileDict - wrap pushFile for self.hostDefn[host] case.
 def pushFileDict(self, fileKey, **kwargs):
@@ -326,46 +417,6 @@ def pullFile(self, fileLocal, fileRemote, overwritePrompt = True):
     return True
 
 
-def setAttributesFromDict(self, itemsDict, overwriteFlag = False):
-
-    [self.setAttribute(k, v, overwriteFlag = overwriteFlag) for k,v in itemsDict.items() if (k is not 'self') and (k is not 'overwriteFlag')]
-
-
-
-def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
-    """
-    Basic check & set attribute routine.
-
-    Set self.attrib = newVal if:
-        - attrib doesn't exist,
-        - attrib exists
-            - but is None,
-            - if overwriteFlag = True is passed.
-
-    TODO: consider attrs library here, https://www.attrs.org/en/stable/examples.html#validators
-    """
-
-    setFlag = False
-
-    # Check if attrib exists, overwrite ONLY if None, or if overwriteFlag is set
-    if hasattr(self, attrib):
-        param = getattr(self, attrib)
-
-        if (param is None) or overwriteFlag:
-            setattr(self,attrib,newVal)
-
-            if newVal is not None:
-                setFlag = True  # Only set this if newVal != None to avoid lots of None echos for unset values.
-
-    # Set attrib if missing
-    else:
-        setattr(self,attrib,newVal)
-        setFlag = True
-
-    if self.verbose and setFlag:
-        print(f'Set {attrib} = {newVal}')
-
-
 def syncFilesDict(self, fileKey, pushPrompt = True, **kwargs):
     """
     Synchronise file between local and host, including push/pull missing files.
@@ -452,6 +503,50 @@ def syncFilesDict(self, fileKey, pushPrompt = True, **kwargs):
 
     return [fCheckHost, result]
 
+
+#****** ATTRIBUTE METHODS
+
+def setAttributesFromDict(self, itemsDict, overwriteFlag = False):
+
+    [self.setAttribute(k, v, overwriteFlag = overwriteFlag) for k,v in itemsDict.items() if (k is not 'self') and (k is not 'overwriteFlag')]
+
+
+
+def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
+    """
+    Basic check & set attribute routine.
+
+    Set self.attrib = newVal if:
+        - attrib doesn't exist,
+        - attrib exists
+            - but is None,
+            - if overwriteFlag = True is passed.
+
+    TODO: consider attrs library here, https://www.attrs.org/en/stable/examples.html#validators
+    """
+
+    setFlag = False
+
+    # Check if attrib exists, overwrite ONLY if None, or if overwriteFlag is set
+    if hasattr(self, attrib):
+        param = getattr(self, attrib)
+
+        if (param is None) or overwriteFlag:
+            setattr(self,attrib,newVal)
+
+            if newVal is not None:
+                setFlag = True  # Only set this if newVal != None to avoid lots of None echos for unset values.
+
+    # Set attrib if missing
+    else:
+        setattr(self,attrib,newVal)
+        setFlag = True
+
+    if self.verbose and setFlag:
+        print(f'Set {attrib} = {newVal}')
+
+
+#****** ENV 
 
 def isnotebook():
     """
