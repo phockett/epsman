@@ -20,7 +20,12 @@ def parseLineDigits(testLine):
     """
     return re.findall("[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?", testLine)
 
+def parseLineTokens(testLine):
+    """
+    Use regular expressions to extract alpha-numeric tokens from a sting.
 
+    """
+    return re.findall("[A-Za-z0-9]+", testLine)
 
 def getFileList(self, scanDir, fileType = 'out', subDirs = True, verbose = True):
     """Get a file list from host - scan directory=dir for files of fileType.
