@@ -258,8 +258,17 @@ def writeInputConf(self):
 
 from itertools import compress
 
-def setJobInputConfig(self, jobES):
+def setJobInputConfig(self, jobES = None):
     """Write job.jobSetting configuration string from jobES and other params."""
+
+    # If not passed, try self.esData
+    if jobES is None:
+        try:
+            jobES = self.esData
+        except AttributeError:
+            print("***Missing self.esData, self.jobSettings cannot be written.")
+            return 0
+
     self.jobSettings = f"""
 
 # Job definitions, used for dir structure and output naming.

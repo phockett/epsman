@@ -108,7 +108,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
                 segments[n].append([n, i, line])    # Store line if part  of defined segment
 
     if verbose:
-        print('Found {0} segments.'.format(n+1))
+        print('Found {0} segments.'.format(n))
 
     return ([lineStart, lineStop], segments) # [:-1])
 
@@ -546,7 +546,7 @@ def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
         print(f'Set {attrib} = {newVal}')
 
 
-#****** ENV 
+#****** ENV
 
 def isnotebook():
     """
