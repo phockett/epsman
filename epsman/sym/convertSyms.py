@@ -3,6 +3,10 @@ Functions for converting symmetry lists for various contexts.
 
 08/02/22    v1  Implements ePS & Gamess symmetries.
 
+TODO: add manual overrides for user-defined sym mapping.
+        This will need to set a mapping dictionary as per dimMapPD.attrs['mappingDict'] output by convertSymsGamessePS().
+        And propagte to main orb table as set by setOrbInfoPD(), `orbPD['ePS'] = orbPD['Gamess'].apply(lambda x: orbPD.attrs['PGmap'].attrs['mappingDict'][x]) `
+
 """
 import pandas as pd
 import numpy as np

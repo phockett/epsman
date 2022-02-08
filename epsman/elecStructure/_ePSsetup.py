@@ -21,8 +21,21 @@ import itertools
 import collections
 
 from epsman import multiEChunck
+from epsman.sym.defineSyms import getePSsymmetries
 
 #************* Functions for setting ePS jobs based on orb info: these will likely want to go into main ESjob class, but initial versions (10/06/21) used in EShandler class.
+
+def setPG(self, PG = None):
+    """Set point group to self.PG & set ePS group info to self.PGinfo."""
+
+    self.PG = PG
+
+    try:
+        self.PGinfo = getePSsymmetries()[self.PG]
+    except KeyError:
+        print(f"***Warning, point group {self.PG} not found in ePolyScat reference set, see https://epolyscat.droppages.com/SymmetryLabels for supported cases.")
+
+
 def setChannel(self, channelInd, orbOcc = None):
     """
     Set ionizing channel (final state) in self.orbGrps, or reset orbOcc number.
@@ -57,7 +70,7 @@ def setChannel(self, channelInd, orbOcc = None):
     if self.verbose:
         print(f"*** Set ionization from orbital/channel {channelInd}.")
         print("Updated orb table...")
-        self.orbInfoSummary(showSummary=False, showFull=False)
+        self.orbInfoSummary(showSummary=False, showFull=False, showGrouped=True)
 
 
 def setePSinputs(self, PG=None, Ssym = None, Csym = None):
@@ -140,39 +153,55 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
     self.ePSrecords['TargSym'] = targetUPEs['syms'].to_string(index = False, header=False)  # OK for single ionizing channel, should also check intersection case above.
 
 
-    # Symmetry pairs for ScatSym (==ion x electron symm) and ScatContSym (==electron symm), input file will loop through these
+    # # Symmetry pairs for ScatSym (==ion x electron symm) and ScatContSym (==electron symm), input file will loop through these
     if not hasattr(self,'symList'):
-        print("self.symList not set, running for defaults")
+        print("self.symList not set, running for defaults (all symmetry species).")
         self.genSymList(Ssym=Ssym, Csym=Csym)
 
+    # 08/02/22 DEPRECATED AS OF https://github.com/phockett/epsman/commit/8f9f38c9f2ec99cdfb99e8fb33e184f92872e0e4
+    # Symmetries & conversions now set in orbPD, via epsman.sym.convertSyms functionality.
 #     if PG is not None:
 #         self.convertSymList(PG)
-    if hasattr(self, 'PG'):   # This is currently problematic, since it will overwrite back to defaults SHIT CODE
-        self.convertSymList(Ssym=Ssym, Csym=Csym)  # NOW FIXED WITH SHIT HACK - pass through symms to allow for sym gen at job writing case. FUCKING UGLY SHITTTY SHIT
-                                                  # ALSO: doesn't work for general conversion case since it will re-write defaults as passed to Ssym and Csym (although OK currently for init/target syms)
+    # if hasattr(self, 'PG'):   # This is currently problematic, since it will overwrite back to defaults SHIT CODE
+    #     self.convertSymList(Ssym=Ssym, Csym=Csym)  # NOW FIXED WITH SHIT HACK - pass through symms to allow for sym gen at job writing case. FUCKING UGLY SHITTTY SHIT
+    #                                               # ALSO: doesn't work for general conversion case since it will re-write defaults as passed to Ssym and Csym (although OK currently for init/target syms)
+
+    # self.genSymList(Ssym=Ssym, Csym=Csym)
 
     # TODO: move to separate fn, see symTest code below.
     self.ePSrecords['Ssym']=f"({' '.join([item[0] for item in self.symList])})"   # Current format for looping script input writer... but ugly!
     self.ePSrecords['Csym']=f"({' '.join([item[1] for item in self.symList])})"
 
 
-def genSymList(self, Ssym = None, Csym = None):
+def genSymList(self, Ssym = None, Csym = None, symKey = 'ePS'):
     """
     Generate symmetry paris - crude version.
 
     Pass lists for Ssym and Csym, or set to None for full set generation (brute force).
+
     """
 
+    # 08/02/22 update - set defaults according to PG
+    if (Ssym is None) or (Csym is None):
+        if self.PG is None:
+            print(f"***Warning, no point group found, please run self.setPG() to set manually.")
+
+        else:
+            defaultList = self.PGinfo['ePSlabels']
+
     # Set defaults from input symmetries - although this may not be == full point group
+    # 08/02/22: now uses full sym list as default set above
 #     for item in [Ssym, Csym]:  # LOOP OVER THESE CLEARLY
     if Ssym is None:
-        Ssym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
+        # Ssym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
+        Ssym = defaultList
 
     if not isinstance(Ssym,list):
         Ssym = [Ssym]
 
     if Csym is None:
-        Csym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
+    #     Csym = self.orbPD['syms'].unique().tolist()  # Force to list (returns np array otherwise)
+        Csym = defaultList
 
     if not isinstance(Csym,list):
         Csym = [Csym]
@@ -182,56 +211,58 @@ def genSymList(self, Ssym = None, Csym = None):
     self.symList = list(itertools.product(Ssym, Csym))
 
 
-def convertSymList(self, Ssym = None, Csym = None):
-    """
-    Quick conversion from Gamess to ePS symmetry labels by point group.
-
-    NOTE:
-
-    - Manually adding at the moment, may want to automate with web look-up?
-    - CCLIB doesn't seem to pull point group from Gamess file, so may want to do this too.
-
-    HORRIBLE CODE: bodged this to allow passed args from setePSInputs() method, now rather circular.
-
-    """
-    if hasattr(self, 'PG'):
-        PG = self.PG
-
-    else:
-        PG = None
-
-    # Linear molecule, CNV8 in Gamess, CAv in ePS
-#     CAv, (C-infinity-v) 'S', 'A2', 'B1', 'B2', 'P', 'D', 'F', 'G'
-    if (PG == 'CNV8') or (PG == 'CAv'):
-        convDict = {'A1':'S', 'E1':'P'}  # Lookup table... could be problematic, since there may not be one-to-one correspondence! Should be OK for orbitals?
-
-        ePSsyms = ['S', 'A2', 'B1', 'B2', 'P', 'D', 'F', 'G']  # Full sym list from https://epolyscat.droppages.com/SymmetryLabels
-
-        if Ssym is None:
-            Ssym = ePSsyms
-
-        if Csym is None:
-            Csym = ePSsyms
-
-        self.genSymList(Ssym=Ssym, Csym=Csym)  # Regenerate full sym list with ePS labels
-
-        # Set init and final syms from dict
-
-        # Basic version - will fail if these ARE ALREADY SET TO ePS SYMS.
-#         self.ePSrecords['InitSym'] = convDict[self.ePSrecords['InitSym']]
-#         self.ePSrecords['TargSym'] = convDict[self.ePSrecords['TargSym']]
-
-        for item in ['InitSym', 'TargSym']:
-
-            try:
-                self.ePSrecords[item] = convDict[self.ePSrecords[item]]
-
-            except KeyError as k:
-                print(f"Didn't find symmetry {k} in self.ePSrecords[{item}], left as {self.ePSrecords[item]}")
-
-
-    else:
-        print(f"*** Couldn't find ePS labels for PG={PG}, please check point group & symmetry labels.")
+# 08/02/22 DEPRECATED AS OF https://github.com/phockett/epsman/commit/8f9f38c9f2ec99cdfb99e8fb33e184f92872e0e4
+# Symmetries & conversions now set in orbPD, via epsman.sym.convertSyms functionality.
+# def convertSymList(self, Ssym = None, Csym = None):
+#     """
+#     Quick conversion from Gamess to ePS symmetry labels by point group.
+#
+#     NOTE:
+#
+#     - Manually adding at the moment, may want to automate with web look-up?
+#     - CCLIB doesn't seem to pull point group from Gamess file, so may want to do this too.
+#
+#     HORRIBLE CODE: bodged this to allow passed args from setePSInputs() method, now rather circular.
+#
+#     """
+#     if hasattr(self, 'PG'):
+#         PG = self.PG
+#
+#     else:
+#         PG = None
+#
+#     # Linear molecule, CNV8 in Gamess, CAv in ePS
+# #     CAv, (C-infinity-v) 'S', 'A2', 'B1', 'B2', 'P', 'D', 'F', 'G'
+#     if (PG == 'CNV8') or (PG == 'CAv'):
+#         convDict = {'A1':'S', 'E1':'P'}  # Lookup table... could be problematic, since there may not be one-to-one correspondence! Should be OK for orbitals?
+#
+#         ePSsyms = ['S', 'A2', 'B1', 'B2', 'P', 'D', 'F', 'G']  # Full sym list from https://epolyscat.droppages.com/SymmetryLabels
+#
+#         if Ssym is None:
+#             Ssym = ePSsyms
+#
+#         if Csym is None:
+#             Csym = ePSsyms
+#
+#         self.genSymList(Ssym=Ssym, Csym=Csym)  # Regenerate full sym list with ePS labels
+#
+#         # Set init and final syms from dict
+#
+#         # Basic version - will fail if these ARE ALREADY SET TO ePS SYMS.
+# #         self.ePSrecords['InitSym'] = convDict[self.ePSrecords['InitSym']]
+# #         self.ePSrecords['TargSym'] = convDict[self.ePSrecords['TargSym']]
+#
+#         for item in ['InitSym', 'TargSym']:
+#
+#             try:
+#                 self.ePSrecords[item] = convDict[self.ePSrecords[item]]
+#
+#             except KeyError as k:
+#                 print(f"Didn't find symmetry {k} in self.ePSrecords[{item}], left as {self.ePSrecords[item]}")
+#
+#
+#     else:
+#         print(f"*** Couldn't find ePS labels for PG={PG}, please check point group & symmetry labels.")
 
 
 def writeInputConf(self):

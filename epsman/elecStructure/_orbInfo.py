@@ -94,9 +94,10 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
 
     # (5) Check for point-group, try reading directly from file if missing.
     # 02/02/22 added this functionality.
+    orbPD.attrs['PointGroup'] = {}
 
     if 'symmetry_detected' in orbPD.attrs['metadata'].items():
-        orbPD.attrs['PointGroup'] = orbPD.attrs['metadata']['symmetry_detected']
+        orbPD.attrs['PointGroup']['Label'] = orbPD.attrs['metadata']['symmetry_detected']
 
         if 'symmetry_used' in orbPD.attrs['metadata'].items():
             if orbPD.attrs['metadata']['symmetry_used'] is not orbPD.attrs['metadata']['symmetry_detected']:
@@ -192,6 +193,19 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
     # Set to self
     self.orbPD = orbPD
 
+    if 'ePSLabel' in orbPD.attrs['PointGroup'].keys():
+        # self.PG = orbPD.attrs['PointGroup']['ePSLabel']
+        self.setPG(orbPD.attrs['PointGroup']['ePSLabel'])
+
+    elif 'Label' in orbPD.attrs['PointGroup'].keys():
+        # self.PG = orbPD.attrs['PointGroup']['Label']
+        self.setPG(orbPD.attrs['PointGroup']['Label'])
+
+    else:
+        self.PG = None
+        print(f"***Warning, no point group found, please run self.setPG() to set manually.")
+
+
     # 22/01/22 update - just reformat orbPD instead of col setting? Am I missing something now...?
     orbGrps =  orbPD.reset_index().set_index('iOrbGrp')  # .drop_duplicates(keep='first')  # Note drop_duplicates not for index values - this may keep multiple entries per iOrbGrp
     self.orbGrps = orbGrps[~orbGrps.index.duplicated()]   # Drop duplicates by INDEX
@@ -212,7 +226,7 @@ def orbInfoSummary(self, showSummary = True, showFull = True, showGrouped = Fals
     """
     if showSummary:
         if 'PointGroup' in self.orbPD.attrs.keys():
-            print(f"Found Point Group: {self.orbPD.attrs['PointGroup']['Label']}.")
+            print(f"Found input file Point Group: {self.orbPD.attrs['PointGroup']['Label']}.")
 
         if 'PGmap' in self.orbPD.attrs.keys():
             print(f"Mapped PGs: {self.orbPD.attrs['PGmap'].attrs['notes']}")

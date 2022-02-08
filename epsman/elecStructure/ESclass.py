@@ -92,11 +92,12 @@ class EShandler():
 
     # Orbital info methods.
     from ._orbInfo import setOrbInfoPD, orbInfoSummary
-    from ._ePSsetup import setChannel, setePSinputs, genSymList, convertSymList, writeInputConf
+    from ._ePSsetup import setChannel, setePSinputs, genSymList, writeInputConf, setPG
 
     def __init__(self, fileName = None, fileBase = None, outFile = None, verbose = 1):
 
         self.setFiles(fileName=fileName, fileBase=fileBase, outFile=outFile)
+        self.PG = None   # Force PG attrib creation
         self.verbose = verbose
 
         # If a Gamess file is passed, read it.
