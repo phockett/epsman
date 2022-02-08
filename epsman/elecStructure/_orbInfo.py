@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 
 from epsman._util import fileParse, parseLineTokens
+from epsman.sym.convertSyms import setePSPGlabel, convertSymsGamessePS
 
 #************* Functions for getting orb info: these will likely want to go into EShandler class.
 def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
@@ -37,10 +38,22 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
     For point-group, CCLIB metadata[symmetry_detected] and metadata[symmetry_used], see https://cclib.github.io/data_notes.html#metadata
     Not set for Gamess file import?
 
+    08/02/22    Updated Gamess symmetry handling with new look-up functions.
+
     02/02/22    Added additional symmetry handling routines for Gamess case.
                 Note this requies self.fullPath for the input file to be set.
 
     25/01/22    Added groups and zeroInd parameters, and updates & debugged code.
+
+
+    TODO:
+
+    - multindex for output table? As of 08/02/22 something like this look reasonable:
+        ```
+        testOrbPD.columns = [['Symmetries', 'Occupation', 'Occupation', 'Misc', 'Misc', 'Symmetries', 'Symmetries'], testOrbPD.columns]
+        testOrbPD = testOrbPD[testOrbPD.columns.sort_values()]
+        ```
+        But may cause issue elsewhere in current implementation.
 
     """
 
@@ -75,6 +88,9 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
     # (4) Summary data - propagate from CCLIB structure for now
     for key in ['metadata', 'nelectrons', 'nmo', 'atomcoords','homos']:
         orbPD.attrs[key] = getattr(self.data, key)
+
+    # Add file info for ref.
+    orbPD.attrs['file'] = {'fileName': self.fileName, 'filepath': self.fileBase}
 
     # (5) Check for point-group, try reading directly from file if missing.
     # 02/02/22 added this functionality.
@@ -121,7 +137,7 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
 
         # Reset data to avoid extra lines
         startPhrase = 'DIMENSIONS OF THE SYMMETRY SUBSPACES'
-        (lineList, dumpSegs) = fileParse(self.fullPath.as_posix(), startPhrase, endPhrase, verbose = self.verbose)
+        (lineList, dumpSegs) = fileParse(self.fullPath.as_posix(), startPhrase, endPhrase, verbose = False)  # self.verbose) # For testing only?
 
         PG['Dimensions'] = {}
         PG['Members'] = []
@@ -134,12 +150,44 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
 
                 PG['Members'].extend(lineList[0:-1:2])
 
-        orbPD.attrs['PG'] = PG
+        PG = setePSPGlabel(PG)  # Set ePS label from Gamess PG
+
+        orbPD.attrs['PointGroup'] = PG
+
+        # Map PointGroup > ePS symmetry labels
+        orbPD.attrs['PGmap'] = convertSymsGamessePS(PG)
+
+        # Try setting ePS labels in main table - may fail if mapping incomplete
+        try:
+            # This works, but drops multindex as is
+            # dimMapFunc['syms'] = dimMapFunc['Gamess'].apply(lambda x: x[:-1] + x[-1].lower())
+            # new_df = pd.merge(testOrbPD, dimMapFunc, how='left', on='syms')  #.dropna(how='any')
+
+            # Try manual - OK!
+            orbPD['Gamess'] = orbPD['syms'].apply(lambda x: x[:-1] + x[-1].upper())  # Set Gamess labels
+            orbPD['ePS'] = orbPD['Gamess'].apply(lambda x: orbPD.attrs['PGmap'].attrs['mappingDict'][x])  # Map from conversion dict keys
+
+            # print(f"Mapped PGs OK: {orbPD.attrs['PGmap'].attrs['notes']}")
+
+        except:
+            print("***Warning: failed to map input symmetries to ePS labels, check self.orbPD.attrs['PGmap'].")
 
 
     # Check OccN & HOMO OK
     if orbPD['OccN'].sum() != orbPD.attrs['nelectrons']:
         print(f"*** Warning (setOrbInfoPD): assigned {orbPD['OccN'].sum()} electrons but should be {orbPD.attrs['nelectrons']} - check and set in self.orbPD.")
+
+
+    # Additional attribs
+    orbPD.name = 'Orbitals table'  # TODO: propagate from file?
+    # orbPD.attrs['notes'] = f"Gamess ({gamessPGDict['gamessLabel']})  > ePS ({ePSPG}) dim mapping."
+
+    # Set caption for display - this seems to remove attrs?  Also breaks DataFrame in some cases.
+    # TODO: more style settings, see https://pandas.pydata.org/pandas-docs/stable/user_guide/style.html#Table-Styles
+    # attrs = orbPD.attrs.copy()
+    # orbPD = orbPD.style.set_caption(orbPD.name)
+    # orbPD.attrs = attrs
+
 
     # Set to self
     self.orbPD = orbPD
@@ -155,7 +203,7 @@ def setOrbInfoPD(self, groups = ['E','syms'], zeroInd = False):
 
 
 
-def orbInfoSummary(self, showSummary = True, showFull = True, showGrouped = True):
+def orbInfoSummary(self, showSummary = True, showFull = True, showGrouped = False):
     """
     Print info from self.orbPD (via CCLIB). If not set, run self.setOrbInfoPD() first.
 
@@ -163,7 +211,12 @@ def orbInfoSummary(self, showSummary = True, showFull = True, showGrouped = True
 
     """
     if showSummary:
-        print(f"Found Point Group: {self.orbPD.attrs['PG']['Label']}.")
+        if 'PointGroup' in self.orbPD.attrs.keys():
+            print(f"Found Point Group: {self.orbPD.attrs['PointGroup']['Label']}.")
+
+        if 'PGmap' in self.orbPD.attrs.keys():
+            print(f"Mapped PGs: {self.orbPD.attrs['PGmap'].attrs['notes']}")
+
         print(f"Found {self.orbPD.index.get_level_values('OrbN').nunique()} orbitals, in {self.orbPD.index.get_level_values('iOrbGrp').nunique()} groups.")
         print(f"Found {self.orbPD['syms'].nunique()} orb symmetries: {self.orbPD['syms'].unique()}")
         print(f"Assigned {self.orbPD['OccN'].sum()} electrons to {self.orbPD[self.orbPD['Occ']].index.get_level_values('OrbN').nunique()} orbitals/{self.orbPD[self.orbPD['Occ']].index.get_level_values('iOrbGrp').nunique()} orbital groups.")
