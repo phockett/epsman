@@ -28,7 +28,7 @@ import cclib
 from cclib.io import moldenwriter  # Molden class + functions
 
 # import epsman as em  # For base class
-
+from epsman._util import fileParse
 
 class EShandler():
     """
@@ -138,7 +138,7 @@ class EShandler():
                 # Case for empty class
                 self.fileName = None
             else:
-                print('*** No electronic structure file set. TODO - implement dir scan here')
+                print('*** No electronic structure file set. TODO - implement dir scan here, see em._util.getFileList')
                 self.fileName = None
 
         else:
@@ -198,12 +198,22 @@ class EShandler():
 
     def readGamessLog(self):
         """
-        Read Gamess log file using CCLIB.io.ccread(self.fullPath)
+        Read Gamess log file using CCLIB.io.ccread(self.fullPath).
+
+        File parser details:
+
+        - https://cclib.github.io/data.html
+        - https://cclib.github.io/data_notes.html
+
+        self.setOrbInfoPD() is used to reformat the CCLIB data to Pandas.
+
+        For point-group, CCLIB metadata[symmetry_detected] and metadata[symmetry_used], see https://cclib.github.io/data_notes.html#metadata
+        Not set for Gamess file import?
 
         """
 
         self.data = cclib.io.ccread(self.fullPath.as_posix())
-        print(f"\n*** Read file {self.fullPath}")
+        print(f"\n*** Read file {self.fullPath} with CCLIB, data set to self.data.")
 
         try:
             print("Read %i atoms and %i MOs" % (self.data.natom, self.data.nmo))
@@ -405,90 +415,3 @@ class moldenCCLIBReformatted(moldenwriter.MOLDEN):
             lines.append('')
         lines.append('')
         return lines
-
-
-
-
-
-# FILEPARSE from epsproc
-# Should just import... but included directly here for now!
-
-# File parsing function - scan file for keywords & read segments
-#   Following above idiomatic solution, with full IO
-#   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python
-def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = False):
-    """
-    Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.
-
-    Parameters
-    ----------
-    fileName : str
-        File to read (file in working dir, or full path)
-    startPhrase : str, optional
-        Phrase denoting start of section to read. Default = None
-    endPhase : str, optional
-        Phrase denoting end of section to read. Default = None
-    comment : str, optional
-        Phrase denoting comment lines, which are skipped. Default = None
-
-    Returns
-    -------
-    list
-        [lineStart, lineStop], ints for line #s found from start and end phrases.
-    list
-        segments, list of lines read from file.
-
-    All lists can contain multiple entries, if more than one segment matches the search criteria.
-
-    """
-
-    lineStart = []    # Create empty list to hold line #s
-    lineStop = []     # Create empty list to hold line #s
-    segments = [[]]   # Possible to create empty multi-dim array here without knowing # of segments? Otherwise might be easier to use np textscan functions
-    readFlag = False
-    n = 0
-
-    # Force list to ensure endPhase is used correctly for single phase case (otherwise will test chars)
-    if type(endPhrase) is str:
-        endPhrase = [endPhrase]
-
-    # Open file & scan each line.
-    with open(fileName,'r') as f:
-        for (i, line) in enumerate(f):  # Note enumerate() here gives lines with numbers, e.g. fullFile=enumerate(f) will read in file with numbers
-            i = i + 1  # Offset for file line numbers (1 indexed)
-            # If line matches startPhrase, print line & append to list.
-            # Note use of lstrip to skip any leading whitespace.
-            # if startPhrase in line:
-            if line.lstrip().startswith(startPhrase):
-                if verbose:
-                    print('Found "', startPhrase, '" at line: ', i)
-
-                lineStart.append(i)
-
-                readFlag = True
-
-            # Read lines into segment[] until endPhrase found
-            if readFlag:
-                # Check for end of segment (start of next Command sequence)
-                if endPhrase and ([line.startswith(endP) for endP in endPhrase].count(True) > 0):  # This allows for multiple endPhases
-                                                                                                    # NOTE: this will iterate over all chars in a phrase if a single str is passed.
-                    # Log stop line and list
-                    lineStop.append(i)
-                    readFlag = False
-
-                    # Log segment and create next
-                    segments.append([])
-                    n += 1
-
-                    continue            # Continue will skip rest of loop
-
-                 # Check for comments, skip line but keep reading
-                elif comment and line.startswith(comment):
-                    continue            # Continue will skip rest of loop
-
-                segments[n].append([n, i, line])    # Store line if part  of defined segment
-
-    if verbose:
-        print('Found {0} segments.'.format(n+1))
-
-    return ([lineStart, lineStop], segments) # [:-1])
