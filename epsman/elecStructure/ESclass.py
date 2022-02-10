@@ -92,7 +92,7 @@ class EShandler():
 
     # Orbital info methods.
     from ._orbInfo import setOrbInfoPD, orbInfoSummary
-    from ._ePSsetup import setChannel, setePSinputs, genSymList, writeInputConf, setPG
+    from ._ePSsetup import setChannel, setePSinputs, genSymList, writeInputConf, setPG, setePSglobals
 
     def __init__(self, fileName = None, fileBase = None, outFile = None, verbose = 1):
 

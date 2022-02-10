@@ -316,6 +316,8 @@ jobComplete={self.hostDefn[self.host]['jobComplete'].as_posix()}
             f.write(self.jobSettings)
             print('Written local job conf file (working dir): ' + str(Path(self.hostDefn['localhost']['wrkdir'], self.genFile)))
 
+    else:
+        print("No records in self.jobSettings, can't generate genFile.")
 
 
 

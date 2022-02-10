@@ -22,6 +22,7 @@ import collections
 
 from epsman import multiEChunck
 from epsman.sym.defineSyms import getePSsymmetries
+# from epsman._util import setAttributesFromDict
 
 #************* Functions for setting ePS jobs based on orb info: these will likely want to go into main ESjob class, but initial versions (10/06/21) used in EShandler class.
 
@@ -72,8 +73,52 @@ def setChannel(self, channelInd, orbOcc = None):
         print("Updated orb table...")
         self.orbInfoSummary(showSummary=False, showFull=False, showGrouped=True)
 
+def setePSglobals(self, overwriteFlag = True, **kwargs):
+    """
+    Set global options for ePS job, and store as self.ePSglobals.
 
-def setePSinputs(self, PG=None, Ssym = None, Csym = None):
+    Minimally this will set self.ePSglobals = {'LMax': 30}.
+    All options set here will be written to the ePS input file header in "key value" style, as defined in setePSinputs().
+
+    Parameters
+    ----------
+    overwriteFlag : bool, optional, default = True
+        Overwrite existing settings if True.
+        If False skip if self.ePSglobals exists.
+        Note there is no update/add params option at the moment.
+
+    kwargs : optional keyword args.
+        These are used to set the values.
+        e.g. self.setePSglobals(LMax = 30, VCorr = 'PZ')
+
+    """
+
+    # if not hasattr(self, 'ePSglobals'):
+    # #         self.ePSrecords = {}  # As dict
+    #     self.ePSglobals = collections.OrderedDict()  # As ordered dict, will maintain insertion order
+    #
+    #     # Minimal default settings.
+    #     self.ePSglobals['LMax'] = 30
+
+    # Use setAttribs... not quite correct, only want single dict here!
+    # self.ePSglobals = self.setAttributesFromDict(**kwargs, overwriteFlag = overwriteFlag)
+
+    if not hasattr(self, 'ePSglobals') or overwriteFlag:
+        self.ePSglobals = {k:v for k,v in kwargs.items() if (k is not 'self') and (k is not 'overwriteFlag')}
+
+    # TODO: add update function here too.
+
+    # Minimal defaults if nothing is set
+    if not self.ePSglobals:
+        self.ePSglobals = {'LMax':30}
+
+    if self.verbose:
+        print("Set self.ePSglobals for global job settings.")
+        print(self.ePSglobals)
+
+
+
+def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
     """
     Create ePS input records from existing data (from electronic structure file).
 
@@ -82,6 +127,12 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
     NOTE: if PG is set, additionally run self.convertSymList() to convert to ePolyScat symmetry labels.
     ***** CURRENTLY NOT FULLY IMPLEMENTED, for symTest case pass full list of ePS symmetries manually instead (otherwise Gamess defaults from self.orbPD['syms'] are used).
 
+    Update 08/02/22: symmetries should now be implemented, but mostly untested.
+    Also added 'symKey' option to define table from orbPD to use for symmetry labels, defaults to 'ePS' labels.
+
+    Use **kwargs  to define any further global settings, passed to setePSglobals().
+
+    -----------
 
     Should generate output to match current file format, roughly:
 
@@ -109,9 +160,22 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
 
     """
 
+    # Set some default/global settings
+    self.setePSglobals(**kwargs)
+
+    # if not hasattr(self, 'ePSglobals'):
+    # #         self.ePSrecords = {}  # As dict
+    #     self.ePSglobals = collections.OrderedDict()  # As ordered dict, will maintain insertion order
+    #
+    #     # Minimal default settings.
+    #     self.ePSglobals['LMax'] = 30
+
+
+    # Set job records from electronic structure files.
     if not hasattr(self, 'ePSrecords'):
 #         self.ePSrecords = {}  # As dict
         self.ePSrecords = collections.OrderedDict()  # As ordered dict, will maintain insertion order
+
 
     #*** Job metadata
     #*****************************************************************
@@ -148,9 +212,9 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None):
 
     #*** Symmetries
     # For the moment guess some things from the orbitals, but should do this properly. https://trello.com/c/UZuip2yt/181-symmetry-direct-products-etc
-    totSym = self.orbGrps['syms'][self.orbGrps['Occ']].mode().to_string(index = False)  # Assume most common case is totally symmetric, and use as InitSym
+    totSym = self.orbGrps[symKey][self.orbGrps['Occ']].mode().to_string(index = False)  # Assume most common case is totally symmetric, and use as InitSym
     self.ePSrecords['InitSym'] = totSym
-    self.ePSrecords['TargSym'] = targetUPEs['syms'].to_string(index = False, header=False)  # OK for single ionizing channel, should also check intersection case above.
+    self.ePSrecords['TargSym'] = targetUPEs[symKey].to_string(index = False, header=False)  # OK for single ionizing channel, should also check intersection case above.
 
 
     # # Symmetry pairs for ScatSym (==ion x electron symm) and ScatContSym (==electron symm), input file will loop through these
@@ -266,8 +330,25 @@ def genSymList(self, Ssym = None, Csym = None, symKey = 'ePS'):
 
 
 def writeInputConf(self):
-    """Basic dictionary > ePS job conf template"""
+    """
+    Basic dictionary > ePS job conf template
 
+    10/02/22    Added self.ePSglobals parsing. Ugly.
+
+    """
+
+    # Set globals
+    ePSstring = 'headerSettings="'
+    for k, v in self.ePSglobals.items():
+        if isinstance(v, str):
+            ePSstring += f"{k} '{v}'\n"   # May need to debug here - some fields with ' ' delims, some not.
+        else:
+            ePSstring += f"{k} {v}\n"  # No additional delims for numeric values
+
+    # ePSstring.replace('=', ' ')  # For header options only.
+    self.ePSjobConfHeader = ePSstring.strip('\n') + '"'
+
+    # Set main job conf string
     ePSstring = ''
     for k, v in self.ePSrecords.items():
 #         ePSstring.join(f'{k}={v}\n')
@@ -297,7 +378,7 @@ def setJobInputConfig(self, jobES = None):
         try:
             jobES = self.esData
         except AttributeError:
-            print("***Missing self.esData, self.jobSettings cannot be written.")
+            print("***Error: jobES=None and missing self.esData, self.jobSettings cannot be written.")
             return 0
 
     self.jobSettings = f"""
@@ -313,6 +394,10 @@ note='{self.jobNote}'
 # (c) Molecule (job) settings
 #
 
+# Global configuration
+{jobES.ePSjobConfHeader}
+
+# Job settings
 {jobES.ePSjobConf}
 
 """

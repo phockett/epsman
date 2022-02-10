@@ -304,6 +304,12 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
 
     """
 
+    # Check local file exists
+    if not fileLocal.is_file():
+        print(f"\n*** Can't push {fileLocal} to remote, local file does not exist.")
+        return False
+
+
     # Check fileRemote & set filename if not supplied
     # NOTE: this may not behave as expected, since .is_file() will usually fail for remote file not on local filesystem.
     if not fileRemote.is_file():
