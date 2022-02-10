@@ -48,6 +48,110 @@ class ESjob(em.epsJob):
         # self.esData.
 
 
+    def buildePSjob(self, channel=None, mol= 'test', batch='test', note=None,
+                    Estart=1.0, Estop = 1.0, dE = 1.0, EJob = None, precision = 2,
+                    scrType = 'basicNoDefaults', writeInpLog = True):
+        """
+        Master ePS job creation routine for electronic-structe case.
+        This tries to run all job creation steps, with useful output.
+
+        Parameters
+        ----------
+        channel : int
+            Ionizing channel (orbital), for `self.esData.setChannel(channel)`
+
+        mol, batch : strings, optional, default = 'test'
+            Job labels, used for `self.setJob(mol = mol, orb = f'orb{job.esData.channel.name}', batch = batch)`
+            This defines the job paths & names.
+
+        note : string, optional, default = None
+            Used for additional job annotation.
+            `job.jobNote = f'{job.mol}, orb {job.esData.channel.name} ionization, batch {batch}, {note}.'`
+            This is propagated to generator files & outputs.
+
+        Estart, Estop, dE : floats, optional, default to 1.0
+            Energy settings for the job, passed to em.multiEChunck()
+
+        Ejob, precision : int, optional, default to None, 2
+            Additional energy settings for the job, passed to em.multiEChunck()
+
+        scrType : string, default = 'basicNoDefaults'
+            Template script for job generation.
+            Passed to self.writeInp().
+
+        writeInpLog : bool, default = True
+            Write log file on job creation if True.
+            Passed to self.writeInp().
+
+
+        """
+
+        # Set channel
+        if channel is not None:
+            self.esData.setChannel(channel)
+
+        # TODO: set default case for HOMO here.
+
+        # Init job
+        try:
+            # Alternative method form - currently missing jobNote
+            self.setJob(mol = mol, orb = f'orb{self.esData.channel.name}', batch = batch) #, jobNote = f'{job.mol}, orb {jobES.channel.name} ionization, sym testing run.')
+            self.jobNote = f'{self.mol}, orb {self.esData.channel.name} ionization, batch {batch}, {note}.'  # Additional notes, included at inp file head.
+
+        # except AttributeError as err:
+            # TODO: add more specific checks here!
+            # print("*** Failed to build job, no channel set - pass channel=int, or run self.esData.setChannel() to fix.")
+            # return False
+
+        except Exception as err:
+            print("\n*** Failed to build job, can't run self.setJob.")
+            print(err)
+            return False
+
+        # Build ePS generator file/configuration inputs
+        try:
+            # CURRENTLY NEED ALL OF THIS TO SET JOB FROM ES....
+            self.esData.setePSinputs()  # Set self.ePSglobals and self.ePSrecords from inputs
+            self.esData.writeInputConf()  # Dictionaries > strings for job template
+            self.setJobInputConfig()  # Settings string > template file string
+
+        except Exception as err:
+            print("\n*** Failed to build job, can't set input configuration.")
+            print(err)
+            return False
+
+        # Set generators
+        try:
+            self.writeGenFile()
+            self.createJobDirTree()
+
+        except Exception as err:
+            print("\n*** Failed to build job, can't write gen file or create job tree - is the host set?")
+            print(err)
+            return False
+
+        # Push gen file
+        # Note - need pushFile even for localhost case, otherwise paths not set correctly.
+        try:
+            self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'], overwritePrompt=False)  # OK for file in wrkdir, force overwrite - currently not working!!!
+
+        except Exception as err:
+            print(f"\n*** Failed to build job, can't push gen file {self.genFile} to host at {self.hostDefn[self.host]['genDir']}.")
+            print(err)
+            return False
+
+        # Set energies & create ePS input files from generator
+        try:
+            self.Elist = em.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
+            self.writeInp(scrType = scrType, wLog = writeInpLog)
+
+        except Exception as err:
+            print(f"\n*** Failed to build job at self.writeInp.")
+            print(err)
+            return False
+
+
+
 
     def setMasterESfile(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True):
         """

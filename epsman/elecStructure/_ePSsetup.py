@@ -73,6 +73,7 @@ def setChannel(self, channelInd, orbOcc = None):
         print("Updated orb table...")
         self.orbInfoSummary(showSummary=False, showFull=False, showGrouped=True)
 
+
 def setePSglobals(self, overwriteFlag = True, **kwargs):
     """
     Set global options for ePS job, and store as self.ePSglobals.

@@ -447,6 +447,9 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 
     else:
         EJobRange = [EJob-3, EJob+3]  # If set explicitly, aim for close-ish value.
 
+    if EJobRange[0] > Elist.size:
+        EJobRange[0] = Elist.size  # If not forced this may create additional energy points later.
+
     EJobtest = np.gcd(Elist.size, np.arange(EJobRange[0],EJobRange[1])).max()  # Check greatest common divisor
 
     # Check that divisor is reasonable - if not, expand the job range by one step and repeat.
@@ -487,7 +490,13 @@ def writeInp(self, scrType = 'basic', wLog = True):
         # Set ranges separately for readability
         E1 = str(round(self.Elist[0,n], dp))
         E2 = str(round(self.Elist[-1,n], dp))
-        dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
+        # dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
+
+        # Set dE = 0 for singleton case
+        if self.Elist[0,n].size == 1:
+            dE = '0'
+        else:
+            dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
 
         # Run shell script for E chunk.
         result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scrType]).as_posix() +

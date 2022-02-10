@@ -179,7 +179,12 @@ def setJobPaths(self):
         # Print paths if set, but only for self.host
         if self.verbose:
             print(f"\n*** Job paths set in self.hostDefn['{self.host}']:\n")
-            pprint.pprint(self.hostDefn[self.host])
+
+            try:
+                pprint.pprint(self.hostDefn[self.host])
+
+            except KeyError as err:
+                print(f"*** Warning: can't find host '{self.host}' in self.hostDefn.")
 
     else:
         print('Skipping setJobPaths() until job settings defined, run setJob() to set.')
