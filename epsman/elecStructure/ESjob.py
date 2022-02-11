@@ -93,10 +93,14 @@ class ESjob(em.epsJob):
         # TODO: set default case for HOMO here.
 
         # Init job
+        print(f"\n*** Building job {mol}, orb{self.esData.channel.name} ({self.esData.channel.ePS}/{self.esData.PG}), batch: {batch}")
+        
         try:
+            # Set symmetries for job label (currently just sets ePS defined syms, may also want to propagate self.esData.channel.syms?)
+            orbLabel = f'orb{self.esData.channel.name}_{self.esData.channel.ePS}'
             # Alternative method form - currently missing jobNote
-            self.setJob(mol = mol, orb = f'orb{self.esData.channel.name}', batch = batch) #, jobNote = f'{job.mol}, orb {jobES.channel.name} ionization, sym testing run.')
-            self.jobNote = f'{self.mol}, orb {self.esData.channel.name} ionization, batch {batch}, {note}.'  # Additional notes, included at inp file head.
+            self.setJob(mol = mol, orb = orbLabel, batch = batch) #, jobNote = f'{job.mol}, orb {jobES.channel.name} ionization, sym testing run.')
+            self.jobNote = f'{self.mol}, orb {self.esData.channel.name} ({self.esData.channel.ePS}/{self.esData.PG}) ionization, batch {batch}, {note}.'  # Additional notes, included at inp file head.
 
         # except AttributeError as err:
             # TODO: add more specific checks here!
@@ -132,13 +136,14 @@ class ESjob(em.epsJob):
 
         # Push gen file
         # Note - need pushFile even for localhost case, otherwise paths not set correctly.
-        try:
-            self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'], overwritePrompt=False)  # OK for file in wrkdir, force overwrite - currently not working!!!
-
-        except Exception as err:
-            print(f"\n*** Failed to build job, can't push gen file {self.genFile} to host at {self.hostDefn[self.host]['genDir']}.")
-            print(err)
-            return False
+        # But - should be OK if .createJobDirTree() executed correctly?
+        # try:
+        #     self.pushFile(self.genFile, self.hostDefn[self.host]['genDir'], overwritePrompt=False)  # OK for file in wrkdir, force overwrite - currently not working!!!
+        #
+        # except Exception as err:
+        #     print(f"\n*** Failed to build job, can't push gen file {self.genFile} to host at {self.hostDefn[self.host]['genDir']}.")
+        #     print(err)
+        #     return False
 
         # Set energies & create ePS input files from generator
         try:

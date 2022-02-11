@@ -547,5 +547,5 @@ def writeInp(self, scrType = 'basic', wLog = True):
 
         # 22/02/21 tidying up - is self.logFile full path?
         # THIS IS CURRENTLY BROKEN FOR SOME CASES - genFile & logFile local path mismatch.
-        # self.pushFile(self.logFile, self.hostDefn[self.host]['logFile'])
-        self.pushFile(self.hostDefn['localhost']['logFile'], self.hostDefn[self.host]['logFile'])
+        self.pushFile(self.logFile, self.hostDefn[self.host]['logFile'])  # Assume working dir?
+        # self.pushFile(self.hostDefn['localhost']['logFile'], self.hostDefn[self.host]['logFile'])  # With full local path
