@@ -7,24 +7,49 @@ Functions for defining symmetry lists for various contexts.
 
 import re
 from urllib.request import urlopen
+from pathlib import Path
 
 from epsman._util import parseLineTokens
 
-def getePSsymmetries(url = 'https://epolyscat.droppages.com/SymmetryLabels'):
+def getePSsymmetries(url = 'https://epolyscat.droppages.com/SymmetryLabels', localCopy = 'ePS_manual_SymmetryLabels_Feb2022.html'):
     """
     Pull symmetries from the ePS manual and set to local data structure.
 
     TODO: may want to store this locally and just update from web periodically (generally won't change).
 
+    14/02/22: failing today with `ConnectionResetError: [Errno 104] Connection reset by peer`
+    Good argument for keeping a local copy!
+
+    TODO: fix file path, should use inspect? This currently only works if the full path is set explicitly.
+
     """
 
     # Get ePS manual & parse
-    with urlopen(url) as response:
-       html = response.read()
+    try:
+        with urlopen(url) as response:
+           html = response.read()
+
+        df = html.decode("utf-8")  # Force bytes > utf8
+
+    # Get a local copy
+    except:
+        print(f"***Failed to get {url}, setting symmetry labels from local file.")
+
+        localCopy = Path(localCopy)
+
+        # Try module path if file is missing
+        if not localCopy.is_file():
+            srcPath = Path(__file__).resolve()
+            localCopy = srcPath.parent/localCopy
+
+        if localCopy.is_file():
+            with open(localCopy, "r", encoding='utf-8') as f:
+                df = f.read()
+        else:
+            print(f"***Couldn't find local copy at {localCopy}")
+            return {}
 
     # Basic parsing using known tags
-    df = html.decode("utf-8")  # Force bytes > utf8
-
     PGs = re.findall(r'<dt>(.*?)</dt>',str(df))  # Get PGs OK, just need to strip outputs
 #     syms = re.findall(r'<dd>(.*?)\n',str(df))  # Get PG members - OK except for DAh
     syms = re.findall(r'<dd>(.*?)</dd>',str(df),flags=re.DOTALL)  # Returns empty, UNLESS `flags=re.DOTALL` set to include newlines

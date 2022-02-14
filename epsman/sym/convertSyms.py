@@ -44,7 +44,7 @@ def setePSPGlabel(PG):
         PG['gamessLabel'] = PG['gamessLabel'] + ', ' + str(PG['Label']['NAXIS'])
 
         if int(PG['Label']['NAXIS']) < 8:
-            PG['ePSLabel'].replace('N', str(PG['Label']['NAXIS']))
+            PG['ePSLabel'] = PG['ePSLabel'].replace('N', str(PG['Label']['NAXIS']))
 
         else:
             PG['ePSLabel'] = PG['ePSLabel'].replace('N', 'A')

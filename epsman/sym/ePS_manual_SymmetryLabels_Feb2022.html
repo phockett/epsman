@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>SymmetryLabels.html</title>
+</head>
+
+<body vlink="navy" link="navy" bgcolor="FFFFCC">
+
+<p>
+</p><h1>Internal Symmetry Labels</h1>
+Each point group has a series of symmetry labels for the different symmetry types.  These labels are used to specify
+the symmetry of initial, final, and target states, as well as the symmetry of the continuum orbitals.
+Below is a list of all currently programmed point groups and their symmetry types.
+<p></p>
+<dl>
+<dt> C1</dt>
+<dd>'A'
+</dd>
+<dt> Cs</dt>
+<dd>'AP', 'APP'
+</dd>
+<dt> Ci</dt>
+<dd>'AG', 'AU'
+</dd>
+<dt> C2</dt>
+<dd>'A', 'B'
+</dd>
+<dt> D2</dt>
+<dd>'A', 'B1', 'B2', 'B3'
+</dd>
+<dt> D3</dt>
+<dd>'A1', 'A2', 'E'
+</dd>
+<dt> C2v</dt>
+<dd>'A1', 'A2', 'B1', 'B2'
+</dd>
+<dt> C3v</dt>
+<dd>'A1', 'A2', 'E'
+</dd>
+<dt> C4v</dt>
+<dd>'A1', 'A2', 'B1', 'B2', 'E'
+</dd>
+<dt> C2h</dt>
+<dd>'AG', 'BG', 'AU', 'BU'
+</dd>
+<dt> D2h</dt>
+<dd>'AG', 'B1G', 'B2G', 'B3G', 'AU', 'B1U', 'B2U', 'B3U'
+</dd>
+<dt> D3h</dt>
+<dd>'A1P', 'A2P', 'EP', 'A1PP', 'A2PP', 'EPP'
+</dd>
+<dt> D6h</dt>
+<dd>'A1G', 'A2G', 'B1G', 'B2G', 'E1G', 'E2G', 'A1U', 'A2U', 'B1U', 'B2U', 'E1U', 'E2U'
+</dd>
+<dt> D2d</dt>
+<dd>'A1', 'A2', 'B1', 'B2', 'E'
+</dd>
+<dt> D3d</dt>
+<dd>'A1G', 'A2G', 'EG', 'A1U', 'A2U', 'EU'
+</dd>
+<dt> Td</dt>
+<dd>'A1', 'A2', 'E ', 'T1', 'T2'
+</dd>
+<dt> Oh</dt>
+<dd>'A1G', 'A2G', 'EG', 'T1G', 'T2G', 'A1U', 'A2U', 'EU', 'T1U', 'T2U'
+</dd>
+<dt> CAv</dt>
+<dd>(C-infinity-v) 'S', 'A2', 'B1', 'B2', 'P', 'D', 'F', 'G'
+</dd>
+<dt> DAh</dt>
+<dd>(D-infinity-h) 'SG', 'A2G', 'B1G', 'B2G', 'PG', 'DG', 'FG', 'GG',
+'SU ', 'A2U', 'B1U', 'B2U', 'PU ', 'DU ', 'FU ', 'GU '
+</dd>
+<dt> Ih</dt>
+<dd>'AG', 'T1G', 'T2G', 'GG', 'HG', 'AU', 'T1U', 'T2U', 'GU', 'HU'
+</dd>
+</dl>
+
+<p>
+Note that in the case of atoms, the program uses the Ih symmetry so that 'AG' corresponds to 'S',
+'T1U' corresponds to 'P', 'HG' corresponds to 'D', 'GU' and 'T2U' correspond to 'F', and 'GG' and 'HG'
+correspond to 'G'
+</p>
+
+<script>mendeleyWebImporter = {
+  downloadPdfs(t) { return this._call('downloadPdfs', [t]); },
+  open() { return this._call('open', []); },
+  _call(methodName, methodArgs) {
+    window.postMessage({ token: '0.13079704660499958', methodName, methodArgs }, 'https://epolyscat.droppages.com');
+    return new Promise(resolve => {
+      const listener = window.addEventListener('message', event => {
+        const data = event.data;
+        if (typeof data !== 'object' || !('result' in data)) return;
+        window.removeEventListener('message', listener);
+        resolve(data.result);
+      });
+    });
+  }
+};</script></body></html>
