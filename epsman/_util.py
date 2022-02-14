@@ -273,7 +273,7 @@ def pushFileDict(self, fileKey, **kwargs):
 
 # Routine to check and push file to remote
 # Follows basic method from genFile handling in createJobDirTree()
-def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
+def pushFile(self, fileLocal, fileRemote, overwritePrompt = True, mkdir = 'prompt'):
     """
     Routine to check and push file to remote
 
@@ -295,6 +295,11 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
         If set to True, prompt user for file overwrite.
         If set to False, overwrite existing files.
         If set to None, do not overwrite.
+
+    mkdir : bool or str, default = 'prompt'
+        If set to True, create remote dir (and parents) if missing.
+        If set to 'prompt', prompt user for remote dir creation.
+        If set to False, don't create remote dir.
 
     Returns
     -------
@@ -335,10 +340,21 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
         testDirP = self.c.run('[ -d "' + fileRemote.parent.as_posix() + '" ]', warn = True)
 
         # If dir missing just exit
-        # TODO: dir creation.
+        # TODO: dir creation. 14/02/22 in place, needs testing.
         if not testDirP.ok:
-            print(f"\n*** Remote directory {fileRemote.parent} does not exist, can't push file {fileLocal} to remote.")
-            return False
+            dirFlag = 'n'
+
+            if mkdir:
+                dirFlag = 'y'
+                if mkdir is 'prompt':
+                    dirFlag = input(f"Remote dir {fileRemote.parent} doesn't exist, create? (y/n) ")
+
+                if dirFlag == 'y':
+                    self.c.run('mkdir -p ' + fileRemote.parent.as_posix())
+
+            if dirFlag == 'n':
+                print(f"\n*** Remote directory {fileRemote.parent} does not exist, can't push file {fileLocal} to remote.")
+                return False
 
 
     print(f"\n*** Pushing file: {fileLocal} to remote: {fileRemote}")
