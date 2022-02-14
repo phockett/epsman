@@ -81,6 +81,8 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
     Minimally this will set self.ePSglobals = {'LMax': 30}.
     All options set here will be written to the ePS input file header in "key value" style, as defined in setePSinputs().
 
+    For a full list of parameters, see the ePS manual, https://epolyscat.droppages.com/.
+
     Parameters
     ----------
     overwriteFlag : bool, optional, default = True
@@ -91,6 +93,15 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
     kwargs : optional keyword args.
         These are used to set the values.
         e.g. self.setePSglobals(LMax = 30, VCorr = 'PZ')
+
+    Notes
+    -----
+
+    If no parameters are passed, to following default settings will be used:
+        - LMax = 30, this is a single integer which is the maximum l to be used for wave functions.
+        - FegeEng = channel IP (if set), this is the energy correction used in the fege potential
+
+    Values are set to a dictionary, self.ePSglobals, which can also be configured manually.
 
     """
 
@@ -112,6 +123,13 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
     # Minimal defaults if nothing is set
     if not self.ePSglobals:
         self.ePSglobals = {'LMax':30}
+
+        try:
+            self.ePSglobals['FegeEng'] = self.ePSrecords['IP']
+            # = np.round(-self.channel['E'], decimals = 3)  # Set effective channel IP (but may want only 1st IP here?)
+        except:
+            if self.verbose:
+                print("***Skipping self.ePSglobals['FegeEng'], self.ePSrecords['IP'] not set - run self.setChannel() first, or set FegeEng variable manually to use.")
 
     if self.verbose:
         print("Set self.ePSglobals for global job settings.")

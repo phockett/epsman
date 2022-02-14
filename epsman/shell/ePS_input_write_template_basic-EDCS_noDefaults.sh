@@ -9,7 +9,8 @@
 #
 # Remaining code loops over energies & symmetries and builds input.
 #
-# 08/02/21	_noDefaults version for more general templating from ePSman routines.
+# 14/02/22	basic-EDCS_noDefaults, combine updated _noDefaults version with crude EDCS handling (based on ePS sample jobs 13, 20 as 29/09/19 version.)
+# 08/02/21	basic_noDefaults version for more general templating from ePSman routines.
 # 30/09/19  Updated version for use with separate job defn. files.
 # 29/09/19	EDCS test version. Crude replication of ePS test13, plus multi-E assignment from command line.
 #						Running via python scipt for E list generation.
@@ -18,7 +19,7 @@
 # 13/08/15
 
 # Template file details
-template='Basic photoionization template, 30/09/19 (updated 08/02/22)'
+template='Basic EDCS template, 29/09/19 (updated 14/02/22)'
 
 #*******************************************************************************************
 # (a) Set E range (also used for job title, so set first)
@@ -95,33 +96,40 @@ echo Writing $En energies to job file:
 echo $file
 echo %%%%%%%%
 
+# Set matrix element files for EDCS data, as per ePS test13 format
+matEse=$idyDir/${mol}_E$Emin\-$Emax\_dE$Estep\eV_se.dat
+# matEloc=$idyDir/${mol}_E$Emin\-$Emax\_dE$Estep\eV_loc.dat
+
 # Loop over symmetries & construct output
 m=0
 SymmString=$'\n'
 DumpIdyString=$'\n'
 GetCroString="GetCro "
 
-for item in "${Ssym[@]}"
+# For EDCS case modified to just use Csym values, and run scat only per symmetry
+for item in "${Csym[@]}"
 do
-	SymmString+="# Symmetries set $((m+1)), S${Ssym[m]}C${Csym[m]}"$'\n'
-	SymmString+="ScatSym '${Ssym[m]}' # Scattering symmetry of total final state"$'\n'
+	# SymmString+="# Symmetries set $((m+1)), S${Ssym[m]}C${Csym[m]}"$'\n'
+	# SymmString+="ScatSym '${Ssym[m]}' # Scattering symmetry of total final state"$'\n'
+	# SymmString+="ScatContSym '${Csym[m]}' # Scattering symmetry of continuum electron"$'\n'
+	# SymmString+="FileName 'MatrixElements' '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' 'REWIND'"$'\n'$'\n'
+	# SymmString+="GenFormPhIon"$'\n'
+	# SymmString+="DipoleOp"$'\n'
+	# SymmString+="GetPot"$'\n'
+	# SymmString+="PhIon"$'\n'
+	# SymmString+="GetCro"$'\n\n\n'
 	SymmString+="ScatContSym '${Csym[m]}' # Scattering symmetry of continuum electron"$'\n'
-	SymmString+="FileName 'MatrixElements' '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' 'REWIND'"$'\n'$'\n'
-	SymmString+="GenFormPhIon"$'\n'
-	SymmString+="DipoleOp"$'\n'
-	SymmString+="GetPot"$'\n'
-	SymmString+="PhIon"$'\n'
-	SymmString+="GetCro"$'\n\n\n'
+	SymmString+="Scat\n\n"
 
-	GetCroString+=$'\n'"'$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"
-
-	DumpIdyString+="# S${Ssym[m]}C${Csym[m]}"$'\n'
-	for ((i=0; $i<$imax; i++));	# Use bc for decimals
-	do
-		c=$(bc<<<"$Emin+$i*$Estep")
-		DumpIdyString+="DumpIdy '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' $c "$'\n'
-	done
-	DumpIdyString+=$'\n\n\n'
+	# GetCroString+=$'\n'"'$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"
+	#
+	# DumpIdyString+="# S${Ssym[m]}C${Csym[m]}"$'\n'
+	# for ((i=0; $i<$imax; i++));	# Use bc for decimals
+	# do
+	# 	c=$(bc<<<"$Emin+$i*$Estep")
+	# 	DumpIdyString+="DumpIdy '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' $c "$'\n'
+	# done
+	# DumpIdyString+=$'\n\n\n'
 
 	m=$((m+1))
 done
@@ -147,6 +155,7 @@ IPot $IP
 
 
 # Set initial and final orbital occupations
+# For scattering only the target state is used (as per test20.inp)
 OrbOccInit
   $OrbOccInit
 OrbOcc        # occupation of the orbital groups of target
@@ -158,7 +167,7 @@ Convert '$elecStructure' 'molden2006'
 GetBlms
 ExpOrb
 
-# Set global symmetries & spins
+# Set global symmetries & spins - not required for scattering case, although might be needed for GenFormPhIon?
 SpinDeg $SpinDeg        	# Spin degeneracy of the total scattering state (=1 singlet)
 TargSym '$TargSym'      		# Symmetry of the target state
 TargSpinDeg $TargSpinDeg    # Target spin degeneracy
@@ -168,17 +177,24 @@ InitSpinDeg $InitSpinDeg    # Initial state spin degeneracy'
 # Set energies
 ScatEng $Earray
 
+# *** GenFormScat here...?  Ordering matters.
+# GenFormScat
+# Try GenFormPhIon as per test20.
+GenFormPhIon
+
 #*** Scat - set final state symmetries & do scattering calc. for each set
+GetPot
+FileName 'MatrixElements' '$matEse' 'REWIND'
+GrnType 1
 
 ${SymmString}
 
-#*** Final GetCro (all symmetries)
-
-${GetCroString}
-
-#*** DumpIdy, all symmetries
-
-${DumpIdyString}
+#*** Collect matrix elements (all symmetries) & cross-sections
+# MatrixElementsCollect '$matEloc'
+# MatrixElementsCombine '$matEse'
+MatrixElementsCollect '$matEse'
+TotalCrossSection
+EDCS
 
 #*** END OF JOB
 

@@ -20,6 +20,7 @@ def setScripts(self):
                     'basicNoDefaults':'ePS_input_write_template_basic_noDefaults.sh',
                     'basic-heavy':'ePS_input_write_template_basic-heavy.sh',
                     'wf-sph':'ePS_input_write_template_wf_sph.sh',
+                    'EDCS':'ePS_input_write_template_basic-EDCS_noDefaults.sh',
                     'nb-tpl-JR-v1':'ePSproc_epsman_template_dev_051119_JR-single.ipynb',
                     'nb-tpl-JR-v2':'ePSproc_epsman_template_dev_051219_JR-single.ipynb',
                     'nb-tpl-JR-v3':'ePSproc_epsman_template_tidy_100120_JR-single.ipynb',
