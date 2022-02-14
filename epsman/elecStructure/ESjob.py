@@ -94,7 +94,7 @@ class ESjob(em.epsJob):
 
         # Init job
         print(f"\n*** Building job {mol}, orb{self.esData.channel.name} ({self.esData.channel.ePS}/{self.esData.PG}), batch: {batch}")
-        
+
         try:
             # Set symmetries for job label (currently just sets ePS defined syms, may also want to propagate self.esData.channel.syms?)
             orbLabel = f'orb{self.esData.channel.name}_{self.esData.channel.ePS}'
@@ -154,6 +154,17 @@ class ESjob(em.epsJob):
             print(f"\n*** Failed to build job at self.writeInp.")
             print(err)
             return False
+
+
+        # May also need to push electronic structure files...?
+        try:
+            self.checkLocalESfiles()
+
+        except Exception as err:
+            print(f"\n*** Failed to build job at self.checkLocalESfiles() - electronic structure files may be missing on host.")
+            print(err)
+            return False
+
 
 
 
