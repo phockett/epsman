@@ -302,6 +302,9 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
 
     Fabric object with details if failed.
 
+    TODO: fix fileRemote.is_file() part - this currently appends filename regardless, but OK if dir only passed.
+    TODO: add mkdir stage? Or option for this at least.
+
     """
 
     # Check local file exists
@@ -312,8 +315,31 @@ def pushFile(self, fileLocal, fileRemote, overwritePrompt = True):
 
     # Check fileRemote & set filename if not supplied
     # NOTE: this may not behave as expected, since .is_file() will usually fail for remote file not on local filesystem.
-    if not fileRemote.is_file():
+    # if not fileRemote.is_file():
+    #     fileRemote = fileRemote.joinpath(fileLocal.name)
+
+    # Use Fabric for proper remote files checks...
+    # test = self.c.run('[ -f "' + fileRemote.as_posix() + '" ]', warn = True)
+    #
+    # if not test.ok:
+
+    # (1) check if passed fileRemote is a directory
+    testDir = self.c.run('[ -d "' + fileRemote.as_posix() + '" ]', warn = True)
+
+    # (2) if it is a directory, append the filename
+    if testDir.ok:
         fileRemote = fileRemote.joinpath(fileLocal.name)
+
+    # (3) if not a directory, assume it's a filename and check parent dir is OK
+    else:
+        testDirP = self.c.run('[ -d "' + fileRemote.parent.as_posix() + '" ]', warn = True)
+
+        # If dir missing just exit
+        # TODO: dir creation.
+        if not testDirP.ok:
+            print(f"\n*** Remote directory {fileRemote.parent} does not exist, can't push file {fileLocal} to remote.")
+            return False
+
 
     print(f"\n*** Pushing file: {fileLocal} to remote: {fileRemote}")
 
