@@ -31,7 +31,7 @@ def runJobs(self):
                         warn = True, timeout = 10, pty=False)
 
     if self.verbose:
-        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobCompleted']}")
+        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobComplete']}")
 
 
 # Tidy up job files

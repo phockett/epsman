@@ -50,7 +50,8 @@ class ESjob(em.epsJob):
 
     def buildePSjob(self, channel=None, mol= 'test', batch='test', note=None,
                     Estart=1.0, Estop = 1.0, dE = 1.0, EJob = None, precision = 2,
-                    scrType = 'basicNoDefaults', writeInpLog = True):
+                    scrType = 'basicNoDefaults', writeInpLog = True,
+                    overwriteFlag = False):
         """
         Master ePS job creation routine for electronic-structe case.
         This tries to run all job creation steps, with useful output.
@@ -83,6 +84,9 @@ class ESjob(em.epsJob):
             Write log file on job creation if True.
             Passed to self.writeInp().
 
+        overwriteFlag : bool, default = False
+            Overwrite any existing settings if True.
+
 
         """
 
@@ -99,8 +103,12 @@ class ESjob(em.epsJob):
             # Set symmetries for job label (currently just sets ePS defined syms, may also want to propagate self.esData.channel.syms?)
             orbLabel = f'orb{self.esData.channel.name}_{self.esData.channel.ePS}'
             # Alternative method form - currently missing jobNote
-            self.setJob(mol = mol, orb = orbLabel, batch = batch) #, jobNote = f'{job.mol}, orb {jobES.channel.name} ionization, sym testing run.')
-            self.jobNote = f'{self.mol}, orb {self.esData.channel.name} ({self.esData.channel.ePS}/{self.esData.PG}) ionization, batch {batch}, {note}.'  # Additional notes, included at inp file head.
+            self.setJob(mol = mol, orb = orbLabel, batch = batch, jobNote = note, overwriteFlag = overwriteFlag) #, jobNote = f'{job.mol}, orb {jobES.channel.name} ionization, sym testing run.')
+
+            if (note is None) and (self.jobNote is None):
+                self.jobNote = f'{self.mol}, orb {self.esData.channel.name} ({self.esData.channel.ePS}/{self.esData.PG}) ionization, batch {batch}, {note}.'  # Additional notes, included at inp file head.
+            # else:
+            #     self.jobNote = note
 
         # except AttributeError as err:
             # TODO: add more specific checks here!

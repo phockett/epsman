@@ -259,13 +259,16 @@ def setGenFile(self, genFile = None):
 
     NOTE: currently have issue with wrkdir vs. genDir, and assumptions on where genFile is located on local machine.
 
+    Default filename is set as Path(f'{self.mol}.{self.batch}.{self.orb}.conf')
+
     """
 
     if self.mol is not None:
         # Default setting
         if self.genFile is None and genFile is None:
             # self.genFile = Path(f'{self.mol}_{self.orb}.conf')
-            self.genFile = Path(f'{self.batch}.{self.orb}.conf')
+            # self.genFile = Path(f'{self.batch}.{self.orb}.conf')
+            self.genFile = Path(f'{self.mol}.{self.batch}.{self.orb}.conf')
         elif self.genFile is None and genFile is not None:
             self.genFile = Path(genFile)
         # else:
