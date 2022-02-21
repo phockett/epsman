@@ -154,7 +154,7 @@ OrbOcc        # occupation of the orbital groups of target
 $CnvOrbSel
 
 # Set electronic structure to read in
-Convert '$elecStructure' 'molden2006'
+Convert '$elecStructure' '$elecType'
 GetBlms
 ExpOrb
 

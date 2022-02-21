@@ -208,6 +208,7 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
 
     #*** Electronic struture
     self.ePSrecords['elecStructure'] = self.moldenFile
+    self.ePSrecords['elecType'] = 'molden'     # For ePS IO, molden or molden2006 or gamess should be OK, see https://epolyscat.droppages.com/Convert
     self.ePSrecords['IP'] = np.round(-self.channel['E'], decimals = 3)  # Set effective channel IP (but may want only 1st IP here?)
 
 
