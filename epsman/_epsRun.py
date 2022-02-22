@@ -12,8 +12,26 @@ from itertools import compress
 
 # Run a set of jobs
 # Not sure if nohup will work as expected here...
-def runJobs(self):
-    """Basic wrapper for running ePS jobs remotely."""
+def runJobs(self, runScript = None):
+    """
+    Basic wrapper for running ePS jobs remotely.
+
+    Parameters
+    ----------
+    runScript : str, optional, default = None
+        Set script to use on remote machine.
+        If None, use self.runScript if set, or set as 'ePS_batch_nohup.sh'.
+
+    """
+
+    # Set default runner
+    if runScript is None:
+        if self.runScript is None:
+            runScript = 'ePS_batch_nohup.sh'
+            self.runScript = runScript
+        else:
+            runScript = self.runScript
+
 
     # With nohup
     # result = self.c.run('nohup ' + Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_job.sh').as_posix())
@@ -27,7 +45,7 @@ def runJobs(self):
     # Nohup file output now set in script as $jobConfFile.nohup.log
     # Further notes: https://github.com/phockett/epsman/issues/17#issuecomment-916352658
     cmd = f" {self.hostDefn[self.host]['genFile'].as_posix()} &> /dev/null &"
-    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], 'ePS_batch_nohup.sh').as_posix() + cmd,
+    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], runScript).as_posix() + cmd,
                         warn = True, timeout = 10, pty=False)
 
     if self.verbose:

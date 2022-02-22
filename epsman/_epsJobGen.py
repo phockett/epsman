@@ -198,7 +198,9 @@ def initConnection(self, host = None, user = None, IP = None, password = None, h
 # Setup job parameters (previously done manually).
 # This sets all parameters required for dirs and file IO.
 def setJob(self, mol = None, orb = None, batch = None, jobNote = None,
-            elecStructure = None, genFile = None, jobSettings = None, overwriteFlag = False):
+            elecStructure = None, genFile = None, jobSettings = None,
+            writeScript = None, runScript = None,
+            overwriteFlag = False):
     """
     Init job settings. This is crude, but ultimately all these parameters are required.
 
@@ -228,6 +230,13 @@ def setJob(self, mol = None, orb = None, batch = None, jobNote = None,
 
     jobSettings : str, default = None
         Job string, not yet fully implmented.
+
+    writeScript : str, optional, default = None
+
+
+    runScript : str, optional, default = None
+        Set which script to use to run ePS on remote.
+        Used by self.runJobs(); if None default will be used.
 
     overwriteFlag : bool, default = False
         Set to True to force overwrite of existing values with passed params.
@@ -469,20 +478,29 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 
 
 # Function to write ePS input files, multi-E chunks
 # Loop over chuncks, here set to run shell script with passing of E values and job title.
-def writeInp(self, scrType = 'basic', wLog = True):
+def writeInp(self, scrType = None, wLog = True):
     """
     Write ePS input files from job structure, in multi-E chunks.
 
     Parameters
     ----------
-    scrType : str, default = 'basic'
+    scrType : str, default = None
         Type of shell script to call, as defined in self.scrDefn (see setScripts() function for details)
+        If not set try self.writeScript, default to 'basic'.
 
     wLog : bool, default = True
         Write local log file from script run stdout.
         Log file will be written using self.genFile path & name.
 
     """
+
+    # Set default runner
+    if scrType is None:
+        if self.writeScript is None:
+            scrType = 'basic'
+            self.writeScript = scrType
+        else:
+            scrType = self.writeScript
 
     dp = 2  # Set for output name formatting for round(%f, dp)
 
