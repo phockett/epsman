@@ -19,6 +19,7 @@ Welcome to ePSman - job management tools for ePolyScat
    :maxdepth: 2
    :caption: Basic demos:
 
+   demos/ESgamess_class_demo_300321
    demos/epsman_ESjob-class_demo_120222
    demos/epsman_ESjob-class_demo_connection_pt2_120222
 
