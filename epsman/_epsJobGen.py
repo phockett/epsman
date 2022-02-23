@@ -421,7 +421,7 @@ def createJobDirTree(self, localHost = False):
     return True
 
 # Functionalise with adaptive job number.
-def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 2):
+def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRange = None, precision = 2):
     """
     Basic multi-E job set-up, with adaptive chunking into sub-jobs.
 
@@ -436,6 +436,11 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 
         Number of energy points per input file (sub-jobs).
         If set to None, this will be set automatically.
         If set to an int, this will determine job chunck size, but may be overriden in some cases to nearest common divisor.
+
+    EJobRange : list or np.array, optional, default = [5,21]
+        Set [min, max] E per chunck.
+        If EJob < min, EJob will be used.
+        If EJob > max, max will be used.
 
     precision : int, optional, default = 2
         Precision for energies, generate via np.round.
@@ -452,12 +457,15 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, precision = 
     # Generate initial Elist
     Elist = np.round(np.arange(Estart,Estop+dE,dE), decimals = precision)
 
-    if EJob is None:
+    if (EJob is None) and (EJobRange is None):
         # With adaptive job chunking - select max GCD from a range of values.
-        EJobRange = [5,21] # Set [min,max] chunck size to test
+        EJobRange = [5,15] # Set [min,max] chunck size to test
 
-    else:
+    elif EJobRange is None:
         EJobRange = [EJob-3, EJob+3]  # If set explicitly, aim for close-ish value.
+
+        if EJobRange[0] < 1:
+            EJobRange[0] = 1  # Must be at least 1!
 
     if EJobRange[0] > Elist.size:
         EJobRange[0] = Elist.size  # If not forced this may create additional energy points later.
