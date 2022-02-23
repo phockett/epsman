@@ -48,7 +48,7 @@ class ESjob(em.epsJob):
         # self.esData.
 
 
-    def buildePSjob(self, channel=None, mol= 'test', batch='test', note=None,
+    def buildePSjob(self, channel=None, mol='mol', batch='batch', note=None,
                     Estart=1.0, Estop = 1.0, dE = 1.0, EJob = None, precision = 2,
                     scrType = 'basicNoDefaults', writeInpLog = True,
                     overwriteFlag = False):
@@ -61,7 +61,7 @@ class ESjob(em.epsJob):
         channel : int
             Ionizing channel (orbital), for `self.esData.setChannel(channel)`
 
-        mol, batch : strings, optional, default = 'test'
+        mol, batch : strings, optional, default = 'mol','batch'
             Job labels, used for `self.setJob(mol = mol, orb = f'orb{job.esData.channel.name}', batch = batch)`
             This defines the job paths & names.
 

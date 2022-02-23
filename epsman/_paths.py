@@ -52,7 +52,10 @@ def setPaths(self):
     # For epsman on remote, should set for github or python subdirs?
 
     # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')  # Local files
-    self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/shell')  # Scripts from epsman repo
+    # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/shell')  # Scripts from epsman repo
+    self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'github/epsman/epsman/shell')  # Scripts from epsman repo
+    self.hostDefn[self.host]['scpFile'] = Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scrType])
+
     self.hostDefn[self.host]['jobPath'] = Path(self.hostDefn[self.host]['wrkdir'], 'jobs')
     self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobPath'], 'completed')
 
@@ -172,7 +175,8 @@ def setJobPaths(self):
             self.hostDefn[host]['genFile'] = Path(self.hostDefn[host]['genDir'], self.genFile)
             # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
             if self.genFile is not None:
-                self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
+                # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
+                self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch, self.orb) # Just use mol/batch/orb to match dir tree creation?
 
             # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
             self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.

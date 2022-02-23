@@ -514,7 +514,7 @@ def writeInp(self, scrType = None, wLog = True):
         # dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
 
         # Set dE = 1 for singleton case (setting =0 breaks shell script routine!)
-        if self.Elist[0,n].size == 1:
+        if self.Elist.size == 1:
             dE = '1'
         else:
             dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))

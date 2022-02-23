@@ -71,6 +71,10 @@ class epsJob():
                 'webDir':Path(Path.home(), 'github/ePSdata')}
             }
 
+        # Set default paths
+        self.setScripts()
+        job.writeScript = 'basicNoDefaults'
+
         # Settings for connection - init to None.
         # self.host = host
         # self.user = user
@@ -85,6 +89,3 @@ class epsJob():
         # self.genFile = None
         # self.jobSettings = None
         self.setJob(mol = mol, orb = orb, batch = batch, genFile = genFile)
-
-        # Set default paths
-        self.setScripts()
