@@ -155,7 +155,8 @@ class ESjob(em.epsJob):
 
         # Set energies & create ePS input files from generator
         try:
-            self.Elist = em.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
+            # self.Elist = em.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
+            self.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
             self.writeInp(scrType = scrType, wLog = writeInpLog)
 
         except Exception as err:
