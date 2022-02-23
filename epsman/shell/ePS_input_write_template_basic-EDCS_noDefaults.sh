@@ -114,23 +114,28 @@ do
 	SymmString+="# Symmetries set $((m+1)), S${Ssym[m]}C${Csym[m]}"$'\n'
 	SymmString+="ScatSym '${Ssym[m]}' # Scattering symmetry of total final state"$'\n'
 	SymmString+="ScatContSym '${Csym[m]}' # Scattering symmetry of continuum electron"$'\n'
-	SymmString+="FileName 'MatrixElements' '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' 'REWIND'"$'\n'$'\n'
-	SymmString+="GenFormScat"$'\n'
-	# SymmString+="DipoleOp"$'\n'
-	SymmString+="GetPot"$'\n'
-	# SymmString+="PhIon"$'\n'
-	# SymmString+="GetCro"$'\n\n\n'
+	# SymmString+="FileName 'MatrixElements' '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy' 'REWIND'"$'\n'$'\n'
+
+	# For EDSC case only need first instance (with valid symmetries)...?
+	if (($m == 0))
+	then
+		SymmString+="GenFormScat"$'\n'
+		# SymmString+="DipoleOp"$'\n'
+		SymmString+="GetPot"$'\n'
+		# SymmString+="PhIon"$'\n'
+		# SymmString+="GetCro"$'\n\n\n'
+	fi
 
 	# For scattering calcs...
-	SymmString+="Scat"$'\n'
+	SymmString+="Scat"$'\n\n\n'
 
 	# These throw errors if run per symmetry? Might be issue with MatE storage/collection?
 	# Try setting explicitly first...
-	SymmString+="MatrixElementsCollect '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"$'\n'
-	SymmString+="TotalCrossSection"$'\n'
-	SymmString+="EDCS"$'\n\n\n'
+	# SymmString+="MatrixElementsCollect '$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"$'\n'
+	# SymmString+="TotalCrossSection"$'\n'
+	# SymmString+="EDCS"$'\n\n\n'
 
-	GetCroString+=$'\n'"'$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"
+	# GetCroString+=$'\n'"'$idyDir/${mol}S${Ssym[m]}C${Csym[m]}.idy'"
 	#
 	# DumpIdyString+="# S${Ssym[m]}C${Csym[m]}"$'\n'
 	# for ((i=0; $i<$imax; i++));	# Use bc for decimals
@@ -189,7 +194,7 @@ ScatEng $Earray
 
 
 #*** Scat - set final state symmetries & do scattering calc. for each set
-# FileName 'MatrixElements' '$matEse' 'REWIND'
+FileName 'MatrixElements' '$matEse' 'REWIND'
 GrnType 1
 
 ${SymmString}
@@ -201,8 +206,9 @@ ${SymmString}
 # TotalCrossSection
 # EDCS
 
-${GetCroString}
+# ${GetCroString}
 
+MatrixElementsCollect '$matEse'
 TotalCrossSection
 EDCS
 
