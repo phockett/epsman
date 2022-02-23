@@ -59,7 +59,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon',
                 # 'IPython.sphinxext.ipython_console_highlighting']  # Actually this throws an error on RTD - try adding ipyhton to requirements.txt instead...
 
 # api doc settings
-apidoc_module_dir = '../../pemtk'
+apidoc_module_dir = '../../epsman'
 apidoc_output_dir = 'modules'
 apidoc_excluded_paths = ['tests']
 apidoc_separate_modules = True
@@ -71,7 +71,7 @@ if on_rtd:
                             "numpy","scipy","xarray","pandas","numba",
                             "matplotlib","mpl_toolkits","seaborn","plotly",
                             "pyvista","holoviews",
-                            "natsort", "lmfit", "epsproc"]
+                            "natsort", "lmfit", "epsman"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
