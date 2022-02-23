@@ -176,7 +176,8 @@ def setJobPaths(self):
             # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.genFile.stem)
             if self.genFile is not None:
                 # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], Path(self.genFile.stem).stem) # This form will work for X.Y.conf and X.conf styles.
-                self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch, self.orb) # Just use mol/batch/orb to match dir tree creation?
+                # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch, self.orb) # Just use mol/batch/orb to match dir tree creation?
+                self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch) # Just use mol/batch to match dir tree creation?
 
             # self.hostDefn[host]['jobRoot'] = Path(self.hostDefn[host]['systemDir'], self.batch)  # Use job type (batch) here
             self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
