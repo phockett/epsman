@@ -172,6 +172,8 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
     Notes/TODO:
 
     - Pretty basic sym handling to improve.
+        - If self.symList is missing, generate it (using defaults if Csym=None and Ssym=None)
+        - If Csym or Ssym are set, self.symList will be regenerated and overwritten (if present).
     - Test for open shell systems, likely logic currently fails here.
     - Currently set for existing output via .conf file > shell script, which is a bit messy and needs replacing.
     - These are set to handle a single job, with the exception of Eke and Syms, which might be split into separate files.
@@ -243,6 +245,10 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
         print("self.symList not set, running for defaults (all symmetry species).")
         self.genSymList(Ssym=Ssym, Csym=Csym)
 
+    elif (Ssym is not None) or (Csym is not None):
+        print(f"Updating symList with Ssym={Ssym}, Csym={Csym}")
+        self.genSymList(Ssym=Ssym, Csym=Csym)
+
     # 08/02/22 DEPRECATED AS OF https://github.com/phockett/epsman/commit/8f9f38c9f2ec99cdfb99e8fb33e184f92872e0e4
     # Symmetries & conversions now set in orbPD, via epsman.sym.convertSyms functionality.
 #     if PG is not None:
@@ -261,7 +267,7 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
     # Set some default/global settings
     self.setePSglobals(**kwargs)
 
-    
+
 
 def genSymList(self, Ssym = None, Csym = None, symKey = 'ePS'):
     """
