@@ -19,8 +19,6 @@ from pathlib import Path
 # import getpass
 import socket
 
-
-
 # Set master class
 class epsJob():
     """
@@ -34,7 +32,7 @@ class epsJob():
 
     # Import local functions
     from ._paths import setScripts, setPaths, setJobPaths, setWrkDir, setHostDefns
-    from ._epsJobGen import setHost, initConnection, setJob, setGenFile, createJobDirTree, writeGenFile, writeInp
+    from ._epsJobGen import setHost, initConnection, setJob, setGenFile, createJobDirTree, writeGenFile, writeInp, multiEChunck
     from ._epsRun import runJobs, tidyJobs
     # from ._epsProc import getNotebookJobList, getNotebookList, setNotebookTemplate, runNotebooks, tidyNotebooks, getNotebooks
     from ._util import getFileList, checkLocalFiles, checkFiles, pullFileDict, pullFile, pushFileDict,  pushFile,  setAttribute, setAttributesFromDict, syncFilesDict

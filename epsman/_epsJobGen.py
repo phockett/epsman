@@ -421,7 +421,7 @@ def createJobDirTree(self, localHost = False):
     return True
 
 # Functionalise with adaptive job number.
-def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRange = None, precision = 2):
+def multiEChunck(self, Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRange = None, precision = 2):
     """
     Basic multi-E job set-up, with adaptive chunking into sub-jobs.
 
@@ -452,7 +452,12 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRange = 
     Elsit : np.array, 2D
         Final energy list, corresponding to one row per input file.
 
+    23/02/22: updated to self.multiEChunck method... may want to set options in a dictionary rather than self.attribs?
+
     """
+
+    # Log values
+    self.setAttributesFromDict(locals(), overwriteFlag = True)
 
     # Generate initial Elist
     Elist = np.round(np.arange(Estart,Estop+dE,dE), decimals = precision)
@@ -481,7 +486,8 @@ def multiEChunck(Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRange = 
     Elist.shape = EJobtest, -1
     print('E = {0}:{1}:{2}, {3} points total, {4}/{5} = {6} job files will be written.'.format(Elist[0,0],dE,Elist[-1,-1],Elist.size,Elist.size,EJobtest, Elist.shape[1]))
 
-    return Elist
+    # return Elist
+    self.Elist = Elist
 
 
 # Function to write ePS input files, multi-E chunks
