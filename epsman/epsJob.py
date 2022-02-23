@@ -73,7 +73,7 @@ class epsJob():
 
         # Set default paths
         self.setScripts()
-        job.writeScript = 'basicNoDefaults'
+        self.writeScript = 'basicNoDefaults'
 
         # Settings for connection - init to None.
         # self.host = host

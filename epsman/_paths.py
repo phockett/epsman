@@ -54,7 +54,7 @@ def setPaths(self):
     # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')  # Local files
     # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/shell')  # Scripts from epsman repo
     self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'github/epsman/epsman/shell')  # Scripts from epsman repo
-    self.hostDefn[self.host]['scpFile'] = Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scrType])
+    self.hostDefn[self.host]['scpFile'] = Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[self.writeScript])
 
     self.hostDefn[self.host]['jobPath'] = Path(self.hostDefn[self.host]['wrkdir'], 'jobs')
     self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobPath'], 'completed')
