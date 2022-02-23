@@ -179,8 +179,9 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
 
     """
 
+    # MOVED TO END, since some settings might need self.ePSrecords
     # Set some default/global settings
-    self.setePSglobals(**kwargs)
+    # self.setePSglobals(**kwargs)
 
     # if not hasattr(self, 'ePSglobals'):
     # #         self.ePSrecords = {}  # As dict
@@ -256,6 +257,11 @@ def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwar
     self.ePSrecords['Ssym']=f"({' '.join([item[0] for item in self.symList])})"   # Current format for looping script input writer... but ugly!
     self.ePSrecords['Csym']=f"({' '.join([item[1] for item in self.symList])})"
 
+
+    # Set some default/global settings
+    self.setePSglobals(**kwargs)
+
+    
 
 def genSymList(self, Ssym = None, Csym = None, symKey = 'ePS'):
     """
