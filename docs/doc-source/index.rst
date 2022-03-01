@@ -14,6 +14,7 @@ Welcome to ePSman - job management tools for ePolyScat
    :caption: Intro:
 
    about
+   epsman_overview_notes_010322
 
 .. toctree::
    :maxdepth: 2
