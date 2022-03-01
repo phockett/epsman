@@ -71,7 +71,7 @@ if on_rtd:
                             "numpy","scipy","xarray","pandas","numba",
                             "matplotlib","mpl_toolkits","seaborn","plotly",
                             "pyvista","holoviews",
-                            "fabric"]  #, "epsman"]
+                            "fabric","pygames","cclib"]  #, "epsman"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
