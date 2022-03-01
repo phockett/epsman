@@ -30,6 +30,12 @@ def setScripts(self):
                     'nb-sh-JR':'jr_epsProc_nb.sh'
                     }
 
+    # ePS runners
+    self.scpDefnRunners = {'batch':'ePS_batch_job.sh',
+                            'batchNohup':'ePS_batch_nohup.sh',
+                            'batch-intel':'ePS_batch_job-intel.sh',
+                            'batchNohup-intel':'ePS_batch_nohup-intel.sh'}
+
     # Python scripts for repo processing & packaging, currently in /repo directory.
     self.scpDefnRepo = {'nb-post-doi':'nbHeaderPost.py',
                     'pkg':'pkgFiles.py',

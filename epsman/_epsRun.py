@@ -27,7 +27,7 @@ def runJobs(self, runScript = None):
     # Set default runner
     if runScript is None:
         if self.runScript is None:
-            runScript = 'ePS_batch_nohup.sh'
+            runScript = self.scpDefnRunners['batchNohup']   # Default to 'ePS_batch_nohup.sh'
             self.runScript = runScript
         else:
             runScript = self.runScript
@@ -48,8 +48,13 @@ def runJobs(self, runScript = None):
     result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], runScript).as_posix() + cmd,
                         warn = True, timeout = 10, pty=False)
 
+    # Log result for reference
+    job.result = result
+
     if self.verbose:
         print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobComplete']}")
+
+
 
 
 # Tidy up job files

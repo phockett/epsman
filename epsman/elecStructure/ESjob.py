@@ -49,6 +49,7 @@ class ESjob(em.epsJob):
 
 
     def buildePSjob(self, channel=None, mol='mol', batch='batch', note=None,
+                    Ssym = None, Csym = None,
                     Estart=1.0, Estop = 1.0, dE = 1.0, EJob = None, precision = 2,
                     scrType = 'basicNoDefaults', writeInpLog = True,
                     overwriteFlag = False):
@@ -69,6 +70,11 @@ class ESjob(em.epsJob):
             Used for additional job annotation.
             `job.jobNote = f'{job.mol}, orb {job.esData.channel.name} ionization, batch {batch}, {note}.'`
             This is propagated to generator files & outputs.
+
+        Ssym, Csym : lists, optional, default = None
+            Symmetry settings for Scattering and Continuum symmetries.
+            If None, defaults to all pairs.
+            (As set by self.esData.setePSinputs() and  self.esData.genSymList().)
 
         Estart, Estop, dE : floats, optional, default to 1.0
             Energy settings for the job, passed to em.multiEChunck()
@@ -123,7 +129,7 @@ class ESjob(em.epsJob):
         # Build ePS generator file/configuration inputs
         try:
             # CURRENTLY NEED ALL OF THIS TO SET JOB FROM ES....
-            self.esData.setePSinputs()  # Set self.ePSglobals and self.ePSrecords from inputs
+            self.esData.setePSinputs(Ssym = Ssym, Csym = Csym)  # Set self.ePSglobals and self.ePSrecords from inputs
             self.esData.writeInputConf()  # Dictionaries > strings for job template
             self.setJobInputConfig()  # Settings string > template file string
 

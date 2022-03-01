@@ -137,7 +137,7 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
 
 
 
-def setePSinputs(self, PG=None, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
+def setePSinputs(self, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
     """
     Create ePS input records from existing data (from electronic structure file).
 
