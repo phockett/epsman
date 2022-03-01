@@ -56,6 +56,7 @@ def setPaths(self):
     # TODO: finish this... should add looping over necessary paths, functionalised and with more searching. Sigh.
     # FOR NOW - set know paths based on above.
     # For epsman on remote, should set for github or python subdirs?
+    # TODO: for local pull from module path?
 
     # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['wrkdir'], 'scripts2019')  # Local files
     # self.hostDefn[self.host]['scpdir'] = Path(self.hostDefn[self.host]['home'], 'python/epsman/shell')  # Scripts from epsman repo
