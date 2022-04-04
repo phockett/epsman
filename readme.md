@@ -1,4 +1,7 @@
 # ePSMan
+
+Feb 2022: some updates and docs, see https://epsman.readthedocs.io/en/latest/about.html
+
 02/10/19
 
 Management tools for ePolyScat job generation & execution.
