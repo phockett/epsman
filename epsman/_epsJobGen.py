@@ -436,6 +436,7 @@ def multiEChunck(self, Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRa
         Number of energy points per input file (sub-jobs).
         If set to None, this will be set automatically.
         If set to an int, this will determine job chunck size, but may be overriden in some cases to nearest common divisor.
+        If set = 1 this will force full Elist return (maximum chuncking).
 
     EJobRange : list or np.array, optional, default = [5,21]
         Set [min, max] E per chunck.
@@ -477,14 +478,22 @@ def multiEChunck(self, Estart = 0.1, Estop = 30.1, dE = 2.5, EJob = None, EJobRa
 
     EJobtest = np.gcd(Elist.size, np.arange(EJobRange[0],EJobRange[1])).max()  # Check greatest common divisor
 
-    # Check that divisor is reasonable - if not, expand the job range by one step and repeat.
-    while (EJobtest < EJobRange[0]) or (EJobtest > EJobRange[1]):
-        Elist = np.append(Elist, Elist[-1]+dE)
-        EJobtest = np.gcd(Elist.size, np.arange(EJobRange[0],EJobRange[1])).max()  # Check greatest common divisor
+    # Force full chunking!
+    if EJob == 1:
+        # Elist = np.append(Elist,Elist)
+        Elist = np.array([Elist,Elist])
+        # Elist.shape = Elist.size, 1
+        print('E = {0}:{1}:{2}, {3} points total, single E job files will be written.'.format(Elist[0,0],dE,Elist[-1,-1],Elist.size))
 
+    else:
+        # Check that divisor is reasonable - if not, expand the job range by one step and repeat.
+        while (EJobtest < EJobRange[0]) or (EJobtest > EJobRange[1]):
+            Elist = np.append(Elist, Elist[-1]+dE)
+            EJobtest = np.gcd(Elist.size, np.arange(EJobRange[0],EJobRange[1])).max()  # Check greatest common divisor
 
-    Elist.shape = EJobtest, -1
-    print('E = {0}:{1}:{2}, {3} points total, {4}/{5} = {6} job files will be written.'.format(Elist[0,0],dE,Elist[-1,-1],Elist.size,Elist.size,EJobtest, Elist.shape[1]))
+        Elist.shape = EJobtest, -1
+
+        print('E = {0}:{1}:{2}, {3} points total, {4}/{5} = {6} job files will be written.'.format(Elist[0,0],dE,Elist[-1,-1],Elist.size,Elist.size,EJobtest, Elist.shape[1]))
 
     # return Elist
     self.Elist = Elist
@@ -527,8 +536,14 @@ def writeInp(self, scrType = None, wLog = True):
         E2 = str(round(self.Elist[-1,n], dp))
         # dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
 
+        # if E1 == E2:
+        #     # Run shell script for E chunk.
+        #     result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], self.scrDefn[scrType]).as_posix() +
+        #         f' {E1} {E2} {dE} ' + self.hostDefn[self.host]['genFile'].as_posix())
+
         # Set dE = 1 for singleton case (setting =0 breaks shell script routine!)
-        if self.Elist.size == 1:
+        # For E1==E2, dE=0.0 is OK, but not pleasing - should change file naming schema here?
+        if (self.Elist.size == 1) or (E1==E2):
             dE = '1'
         else:
             dE = str(round(self.Elist[1,n]-self.Elist[0,n], dp))
