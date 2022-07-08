@@ -2,6 +2,8 @@
 ePSman run functions
 --------------------
 
+08/07/22    Added Docker run option, see https://github.com/phockett/open-photoionization-docker-stacks/tree/main/ePolyScat
+
 03/10/19    First attempt.
 
 """
@@ -9,6 +11,7 @@ ePSman run functions
 from pathlib import Path
 import numpy as np
 from itertools import compress
+
 
 # Run a set of jobs
 # Not sure if nohup will work as expected here...
@@ -33,27 +36,52 @@ def runJobs(self, runScript = None):
             runScript = self.runScript
 
 
-    # With nohup
-    # result = self.c.run('nohup ' + Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_job.sh').as_posix())
+    # 08/07/22: quick wrapper to provide new docker-option. May need some additional global settings too...
+    if runScript != 'docker':
+        # With nohup
+        # result = self.c.run('nohup ' + Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_job.sh').as_posix())
 
-    # With nohup wrapper script to allow job to run independently of terminal.
-    # Turn warnings off, and set low timeout, to ensure hangup... probably...
-    # result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 10)
+        # With nohup wrapper script to allow job to run independently of terminal.
+        # Turn warnings off, and set low timeout, to ensure hangup... probably...
+        # result = self.c.run(Path(self.hostDefn[self.host]['jobPath'], 'ePS_batch_nohup.sh').as_posix(), warn = True, timeout = 10)
 
-    # 09/09/21 - updated to fix hangup issues & for new scripts (using .conf file supplied paths)
-    # Note Fabric/ssh redirect output (see See https://stackoverflow.com/a/27600071)
-    # Nohup file output now set in script as $jobConfFile.nohup.log
-    # Further notes: https://github.com/phockett/epsman/issues/17#issuecomment-916352658
-    cmd = f" {self.hostDefn[self.host]['genFile'].as_posix()} &> /dev/null &"
-    result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], runScript).as_posix() + cmd,
-                        warn = True, timeout = 10, pty=False)
+        # 09/09/21 - updated to fix hangup issues & for new scripts (using .conf file supplied paths)
+        # Note Fabric/ssh redirect output (see See https://stackoverflow.com/a/27600071)
+        # Nohup file output now set in script as $jobConfFile.nohup.log
+        # Further notes: https://github.com/phockett/epsman/issues/17#issuecomment-916352658
+        cmd = f" {self.hostDefn[self.host]['genFile'].as_posix()} &> /dev/null &"
+        result = self.c.run(Path(self.hostDefn[self.host]['scpdir'], runScript).as_posix() + cmd,
+                            warn = True, timeout = 10, pty=False)
 
-    # Log result for reference
-    self.result = result
+        # Log result for reference
+        self.result = result
 
-    if self.verbose:
-        print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobComplete']}")
+        if self.verbose:
+            print(f"*** Running ePolyScat with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobComplete']}")
 
+    else:
+        # VERY basic docker run command.
+        # See https://github.com/phockett/open-photoionization-docker-stacks/tree/main/ePolyScat
+        #
+        # Implement Docker-fabric here? See https://docker-fabric.readthedocs.io/en/stable/
+        #
+        # 08/07/22 - first go. Mount job dir to /data in container; runscript in container will then run all these jobs.
+        # TODO: pass additional options/ENV stuff in conf options. Currently only passing jobPath for mount point below.
+        # TODO: use local script for more control?
+        # TODO: Docker compose file for more control?
+        # TODO: testing, running without sudo OK? Plus correct backgrounding?
+
+        # Setup basic case, e.g. docker run -d --rm -v <host-dir>:/data --env NCPUS=24 --name eps24 eps bash -c "./runJobs.sh /data/jobs > /data/jobs/log.txt"
+        NCPUS = 24
+        cmd = f'docker run -d --rm -v {self.hostDefn[self.host]['jobPath'].as_posix()}:/data --env NCPUS={NCPUS} eps bash -c "./runJobs.sh > /data/{self.hostDefn[self.host]['genFile'].as_posix()}.txt"'
+
+        result = self.c.run(cmd, warn = True, timeout = 10, pty=False)
+
+        # Log result for reference
+        self.result = result
+
+        if self.verbose:
+            print(f"*** Running ePolyScat via Docker with {result} \n\n Host {self.host}. \nLog file: {self.hostDefn[self.host]['genFile'].as_posix()}.nohup.log \nOutput file dest: {self.hostDefn[self.host]['jobPath']}")
 
 
 
