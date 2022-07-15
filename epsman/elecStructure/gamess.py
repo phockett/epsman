@@ -125,7 +125,12 @@ class ESgamess():
             except:
                 pass
 
-            self.printCoords()
+            # Add atomsDict, refDict and atomsHist
+            for item in ['atomsDict', 'refDict', 'atomsHist']:
+                self.setAttribute(item, {})
+
+            # self.printCoords()
+            self.printTable()
 
             # Automatic Gamess pipeline execution
             if buildES:
@@ -446,7 +451,8 @@ class ESgamess():
         """
         Generate list of atoms from RDkit molecule.
         Format [atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z]
-        And set to self.atomList
+        And set to self.atomsDict.
+        (NOTE: self.atomList currently reserved for Gamess input format, and just lists atoms to use for Gamess calc - see gamessInput.atom_section().)
 
         """
 
@@ -454,13 +460,71 @@ class ESgamess():
             conf = self.mol.GetConformer(0)
 
         atomList = []
+        coordDict = {}  # Also set dict format for use with setCoords
         for atom in self.mol.GetAtoms():
             pos = conf.GetAtomPosition(atom.GetIdx())
 
             atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
+            coordDict[atom.GetIdx()] = {'x':pos.x, 'y':pos.y, 'z':pos.z}
 
-        self.atomList = {'table':atomList,
-                         'items':['Ind','Species','Atomic Num.','x','y','z']}
+        # Dict form - currently will break Gamess func definitions!
+        # self.atomList = {'table':atomList,
+        #                  'items':['Ind','Species','Atomic Num.','x','y','z']}
+        # self.atomList = atomList
+
+        # Update current & history
+        currDict = self.atomsDict.copy()
+        self.atomsDict = {'table':atomList,
+                         'items':['Ind','Species','Atomic Num.','x','y','z'],
+                         'coordDict':coordDict}
+
+        if currDict != self.atomsDict:
+            self.updateAtomsHist(currDict)
+
+
+    def updateAtomsHist(self, atomDict):
+        """Log atomDict history"""
+
+        # Check last item - assumes unordered dict with int sequence keys
+        currInd = -1
+        if self.atomsHist:
+            # np.array([k for k,v in dataIn.items() if isinstance(k,int)]).max()  # Allows for non-int cases
+            currInd = np.array(list(self.atomsHist.keys())).max()
+
+        # Ignore cases where blank dict is passed
+        if atomDict:
+            self.atomsHist[currInd+1] = atomDict.copy()
+
+
+    def setRef(self, atomDict = None, refKey = None, histKey = None):
+        """
+        Set reference coords (as atom dictionary)
+
+        Either:
+
+        - Pass nothing to use self.atomsDict
+        - Pass atomDict directly to set directly.
+        - Pass histKey to use item from self.atomsHist.
+
+        """
+
+        if refKey is None:
+            refKey = 'ref'
+
+        note = f'Set reference coords key {refKey} from passed dict.'
+
+        if atomDict is None:
+            atomDict = self.atomsDict.copy()
+            note = f'Set reference coords key {refKey} from self.atomsDict.'
+
+        if histKey is not None:
+            atomDict = self.atomsHist[histKey]
+            note = f"Set reference coords key {refKey} from self.atomsHist['{histKey}']"
+
+        self.refDict[refKey] = atomDict
+
+        if self.verbose:
+            print(note)
 
 
     def printTable(self):
@@ -482,7 +546,7 @@ class ESgamess():
 
         try:
             # self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
-            self.pdTable = pd.DataFrame(self.atomList['table'], columns=self.atomList['items'])
+            self.pdTable = pd.DataFrame(self.atomDict['table'], columns=self.atomDict['items'])
 
             if self.__notebook__:
                 display(self.pdTable)
