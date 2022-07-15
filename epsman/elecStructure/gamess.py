@@ -132,8 +132,24 @@ class ESgamess():
                 self.buildES(fileOut)
 
 
-    def molFromSmiles(self, addH = False):
-        """Generate molecule from smiles following pygames docs examples"""
+    def molFromSmiles(self, addH = False, canonicalise=True, runOpt=True):
+        """
+        Generate molecule from smiles following `pygamess docs <https://github.com/kzfm/pygamess#basic-usage>`_.
+
+        See also `RDkit docs <https://www.rdkit.org/docs/source/rdkit.Chem.rdmolfiles.html?highlight=molfromsmiles#rdkit.Chem.rdmolfiles.MolFromSmiles>`_.
+
+        Parameters
+        ----------
+        addH : bool, default = False
+            Add hydrogens?
+
+        canonicalise : bool, default = True
+            Canonicalise?
+            This runs :py:func:`rdkit.Chem.rdMolTransforms.CanonicalizeConformer` (see `RDkit docs <https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#rdkit.Chem.rdMolTransforms.CanonicalizeConformer>`__.)
+
+        runOpt : bool, default = True
+
+        """
 
         if self.smiles is not None:
 
@@ -143,10 +159,15 @@ class ESgamess():
                 self.mol = Chem.AddHs(self.mol)
 
             # self.mol_with_atom_index()
-
-            # Basic geom routine to set some positions
             AllChem.EmbedMolecule(self.mol)   # This creates a conformer idx=0, with (arb?) coords
-            AllChem.UFFOptimizeMolecule(self.mol,maxIters=200)  # Try basic opt
+
+            if runOpt:
+                # Basic geom routine to set some positions
+                AllChem.UFFOptimizeMolecule(self.mol,maxIters=200)  # Try basic opt
+
+            # Canonicalise? This sets x-axis as highest sym axis, see https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#module-rdkit.Chem.rdMolTransforms
+            if canonicalise:
+                AllChem.CanonicalizeConformer(self.mol.GetConformer())
 
         else:
             pass
@@ -374,7 +395,7 @@ class ESgamess():
 
         canonicalise : bool, default = True
             Canonicalise before transform?
-            This runs :py:func:`rdkit.Chem.rdMolTransforms` (see `RDkit docs <https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#module-rdkit.Chem.rdMolTransforms>`__.)
+            This runs :py:func:`rdkit.Chem.rdMolTransforms.CanonicalizeConformer` (see `RDkit docs <https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#rdkit.Chem.rdMolTransforms.CanonicalizeConformer>`__.)
 
         All transforms are applied to self.mol.
 
@@ -421,6 +442,26 @@ class ESgamess():
             print("*** Set frame rotations, new coord table:")
             self.printTable()
 
+    def getAtoms(self, conf = None):
+        """
+        Generate list of atoms from RDkit molecule.
+        Format [atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z]
+        And set to self.atomList
+
+        """
+
+        if conf is None:
+            conf = self.mol.GetConformer(0)
+
+        atomList = []
+        for atom in self.mol.GetAtoms():
+            pos = conf.GetAtomPosition(atom.GetIdx())
+
+            atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
+
+        self.atomList = {'table':atomList,
+                         'items':['Ind','Species','Atomic Num.','x','y','z']}
+
 
     def printTable(self):
         """
@@ -431,15 +472,17 @@ class ESgamess():
         TODO: amalgamate these!
         """
 
-        conf = self.mol.GetConformer(0)
-        atomList = []
-        for atom in self.mol.GetAtoms():
-            pos = conf.GetAtomPosition(atom.GetIdx())
-
-            atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
+        # conf = self.mol.GetConformer(0)
+        # atomList = []
+        # for atom in self.mol.GetAtoms():
+        #     pos = conf.GetAtomPosition(atom.GetIdx())
+        #
+        #     atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
+        self.getAtoms()
 
         try:
-            self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
+            # self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
+            self.pdTable = pd.DataFrame(self.atomList['table'], columns=self.atomList['items'])
 
             if self.__notebook__:
                 display(self.pdTable)
