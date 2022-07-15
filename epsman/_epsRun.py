@@ -73,7 +73,7 @@ def runJobs(self, runScript = None):
 
         # Setup basic case, e.g. docker run -d --rm -v <host-dir>:/data --env NCPUS=24 --name eps24 eps bash -c "./runJobs.sh /data/jobs > /data/jobs/log.txt"
         NCPUS = 24
-        cmd = f'docker run -d --rm -v {self.hostDefn[self.host]['jobPath'].as_posix()}:/data --env NCPUS={NCPUS} eps bash -c "./runJobs.sh > /data/{self.hostDefn[self.host]['genFile'].as_posix()}.txt"'
+        cmd = f'docker run -d --rm -v {self.hostDefn[self.host]["jobPath"].as_posix()}:/data --env NCPUS={NCPUS} eps bash -c "./runJobs.sh > /data/{self.hostDefn[self.host]["genFile"].as_posix()}.txt"'
 
         result = self.c.run(cmd, warn = True, timeout = 10, pty=False)
 
