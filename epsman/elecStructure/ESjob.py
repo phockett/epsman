@@ -130,6 +130,12 @@ class ESjob(em.epsJob):
         try:
             # CURRENTLY NEED ALL OF THIS TO SET JOB FROM ES....
             self.esData.setePSinputs(Ssym = Ssym, Csym = Csym)  # Set self.ePSglobals and self.ePSrecords from inputs
+
+            # 09/05/23 - added this to fix broken electronic structure file paths on remote in ePS jobs...
+            # Hopefully won't break anything else...
+            if self.host != 'localhost':
+                self.esData.ePSrecords['elecStructure']=self.hostDefn[self.host]['elecFile']
+
             self.esData.writeInputConf()  # Dictionaries > strings for job template
             self.setJobInputConfig()  # Settings string > template file string
 
@@ -187,6 +193,9 @@ class ESjob(em.epsJob):
     def setMasterESfile(self, fileName = None, fileBase = None, outFile = None, master = 'localhost', overwriteFlag = True):
         """
         Set electronic structure files for master, create object and check file.
+
+        NOTE: fileName cannot contain full path, since this is then set by fileBase/fileName.
+        TODO: add some checks/work-arounds here!
 
         """
 
