@@ -89,6 +89,9 @@ do
 	En=$((En+1))
 done
 
+# Set Emax with headroom
+Emax_grid=$(bc<<<"$Emax*1.5")    # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding
+
 echo %%%%%%%%
 echo Writing $En energies to job file:
 echo $file
@@ -139,7 +142,8 @@ cat > $jobDir/$file.inp <<eoi
 # Template: $template
 
 LMax  30     # maximum l to be used for wave functions
-EMax  $Emax    # EMax, maximum asymptotic energy in eV
+# EMax  $Emax    # EMax, maximum asymptotic energy in eV
+EMax $Emax_grid   # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding (otherwise can get seg faults in some cases)
 IPot $IP
 FegeEng $IP   # Energy correction used in the fege potential
 

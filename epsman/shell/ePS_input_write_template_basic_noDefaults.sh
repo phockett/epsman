@@ -91,7 +91,7 @@ do
 done
 
 # Set Emax with headroom
-Emax_grid=$(bc<<<"$EMax*1.5")    # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding
+Emax_grid=$(bc<<<"$Emax*1.5")    # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding
 
 echo %%%%%%%%
 echo Writing $En energies to job file:
@@ -145,7 +145,7 @@ cat > $jobDir/$file.inp <<eoi
 # Master job config settings
 $headerSettings
 
-EMax $Emax_grid   # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding
+EMax $Emax_grid   # EMax, maximum asymptotic energy in eV, note *1.5 to ensure adequate gridding (otherwise can get seg faults in some cases)
 IPot $IP
 
 
