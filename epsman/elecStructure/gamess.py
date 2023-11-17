@@ -546,7 +546,8 @@ class ESgamess():
 
         try:
             # self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
-            self.pdTable = pd.DataFrame(self.atomDict['table'], columns=self.atomDict['items'])
+            # self.pdTable = pd.DataFrame(self.atomDict['table'], columns=self.atomDict['items'])
+            self.pdTable = pd.DataFrame(self.atomsDict['table'], columns=self.atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
 
             if self.__notebook__:
                 display(self.pdTable)
