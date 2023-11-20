@@ -56,8 +56,10 @@ try:
 except ImportError:
     print("*** PubChemPy not available, molecule download functions will not be available.")
 
+pdFlag=False
 try:
     import pandas as pd
+    pdFlag=True
 except ImportError:
     print("*** Pandas not available, fancy tabulated data display will not be available.")
 
@@ -544,16 +546,30 @@ class ESgamess():
         #     atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
         self.getAtoms()
 
-        try:
-            # self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
-            # self.pdTable = pd.DataFrame(self.atomDict['table'], columns=self.atomDict['items'])
+        # TODO: change to check pd is loaded instead of try/except - miss other errors here.
+#         try:
+#             # self.pdTable = pd.DataFrame(atomList, columns=['Ind','Species','Atomic Num.','x','y','z'])
+#             # self.pdTable = pd.DataFrame(self.atomDict['table'], columns=self.atomDict['items'])
+#             self.pdTable = pd.DataFrame(self.atomsDict['table'], columns=self.atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
+
+#             if self.__notebook__:
+#                 display(self.pdTable)
+
+#         except AttributeError or NameError:
+#             self.printCoords()  # Fallback if Pandas is not available.
+            
+        
+        # 20/11/23 - if/else version instead of try/except above.
+        # Note pdFlag now set at module load.
+        if pdFlag:
             self.pdTable = pd.DataFrame(self.atomsDict['table'], columns=self.atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
 
             if self.__notebook__:
                 display(self.pdTable)
-
-        except AttributeError or NameError:
+                
+        else:
             self.printCoords()  # Fallback if Pandas is not available.
+            
 
 
     def printCoords(self):

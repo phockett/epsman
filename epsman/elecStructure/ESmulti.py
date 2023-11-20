@@ -14,6 +14,8 @@ TODO:
 
 from copy import deepcopy
 import numpy as np
+from epsman.elecStructure.gamess import ESgamess
+    
 
 class ESmulti():
     """
@@ -23,7 +25,7 @@ class ESmulti():
 
     """
 
-    from epsman.elecStructure.gamess import ESgamess
+#     from epsman.elecStructure.gamess import ESgamess
 
     # Init as per single ESgamess instance
     # Default to building job
