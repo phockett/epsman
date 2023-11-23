@@ -27,7 +27,9 @@ import numpy as np
 
 from pathlib import Path
 
-from epsman._util import isnotebook
+import logging
+
+from epsman._util import isnotebook, CustomStreamHandler
 
 # TODO: remember how to handle this elegantly/selectively - would still like to create empty class.
 try:
@@ -67,6 +69,8 @@ except ImportError:
 class ESgamess():
     """
     Class to wrap pygamess + epsman functionality.
+    
+    Demo: https://epsman.readthedocs.io/en/latest/demos/ESgamess_class_demo_300321.html
 
     Basic Gamess job setup and handling from `pygamess docs <https://github.com/kzfm/pygamess#basic-usage>`_, with `RDKit <https://rdkit.org/docs/index.html>`_ on the backend.
 
@@ -79,6 +83,13 @@ class ESgamess():
     TODO:
 
     - More RDkit functionality, see https://www.rdkit.org/docs/source/rdkit.Chem.rdchem.html#rdkit.Chem.rdchem.RWMol
+    
+    Note on params:
+    
+    - After initGamess(), Gamess config set in self.params.
+    - Modify with dict syntax by  input section group (see https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/input.pdf)
+          E.g. for maxit=40, set self.params['contrl']['maxit'] = 40
+    - TODO: wrap this? Existing methods in Pygamess?
 
     """
 
@@ -137,7 +148,12 @@ class ESgamess():
             # Automatic Gamess pipeline execution
             if buildES:
                 self.buildES(fileOut)
+                
+        # Set pyGamess basis dict for reference
+        self.listBasis()
 
+
+#***** BASIC MOLECULE SETUP ROUTINES
 
     def molFromSmiles(self, addH = False, canonicalise=True, runOpt=True):
         """
@@ -298,6 +314,9 @@ class ESgamess():
 
         if self.__notebook__:
             AllChem.Draw.IPythonConsole.drawMol3D(self.mol,drawAs=style)
+
+
+#***** MOLECULE MODIFICATION ROUTINES
 
     def setCoords(self, coordList = None):
         """
@@ -589,6 +608,11 @@ class ESgamess():
 
         print(section)
 
+
+        
+#***** GAMESS SETUP ROUTINES
+
+        
     def initGamess(self, gamess_path = '/opt/gamess', **kwargs):
         """
         Init Gamess object & build (default) input card.
@@ -691,6 +715,130 @@ class ESgamess():
     #
     #     print(self.mol.GetProp("total_energy"))
 
+
+
+#***** PYGAMESS ADDITIONAL CONFIG WRAPPERS
+
+    def listBasis(self):
+        """
+        List PyGamess supported basis sets.
+        
+        Reproducted from PyGamess, 23/11/23 (this list may change)
+        See pygamess config at https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L291
+        
+        """
+        
+        basisDict = {}
+        
+        for basis_type in ["STO3G", "STO-3G"]:
+            basisDict[basis_type] = {'gbasis': 'sto', 'ngauss': '3'}
+        
+        for basis_type in ["321G", "3-21G"]:
+            basisDict[basis_type] = {'gbasis': 'N21', 'ngauss': '3'}
+            
+        for basis_type in ["631G", "6-31G"]:
+            basisDict[basis_type] = {'gbasis': 'N31', 'ngauss': '6'}
+        
+        for basis_type in ["6311G", "6-311G"]:
+            basisDict[basis_type] = {'gbasis': 'N311', 'ngauss': '6'}
+            
+        for basis_type in ["631G*", "6-31G*", "6-31G(D)", "631G(D)"]:
+            basisDict[basis_type] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1'}
+            
+        for basis_type in ["631G**", "6-31G**", "631GDP", "6-31G(D,P)", "631G(D,P)"]:
+            basisDict[basis_type] = {'gbasis': 'N31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1'}
+            
+        for basis_type in ["631+G**", "6-31+G**", "631+GDP", "6-31+G(D,P)", "631+G(D,P)"]:
+            basisDict[basis_type] = {'gbasis': 'n31', 'ngauss': '6', 'ndfunc': '1', 'npfunc': '1', 'diffsp': '.true.', }
+            
+        for basis_type in ["AM1"]:
+            basisDict[basis_type] = {'gbasis': 'am1'}
+            
+        for basis_type in ["PM3"]:
+            basisDict[basis_type] = {'gbasis': 'pm3'}
+            
+        for basis_type in ["MNDO"]:
+            basisDict[basis_type] = {'gbasis': 'mndo'}
+            
+        basisDict['note']="PyGamess supported basis sets as of Nov. 2023, see pygamess config at https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L291 for updates."
+        
+        self.basisDict = basisDict
+        
+        
+
+    def setBasis(self, basis):
+        """ 
+        Thin wrapper for self.g.basis_set 
+        
+        Parameters
+        ----------
+        
+        basis : string definition of basis set.
+            For pygamess supported config, see self.basisDict.
+            For unsupported basis sets, set manually using self.setParam()
+        
+        """
+        
+
+        
+        # For basis, logger.ERROR gives message if basis not available.
+        # Grab log and handle if necessary here
+        # NOTE this isn't caught with try/except, since it doesn't raise an error.
+        
+        # Logger code adapted from https://stackoverflow.com/questions/59345532/error-log-count-and-error-log-messages-as-list-from-logger
+        # CustomStreamHandler set in ._util.py
+        handler = CustomStreamHandler()
+        pygLog = logging.getLogger('pygamess.gamess')
+        pygLog.addHandler(handler)
+        
+#         try:
+#             self.g.basis_set(basis)
+            
+#         except:
+            
+        self.g.basis_set(basis)
+        
+        if handler.error_logs and handler.error_logs[-1].message == 'basis type not found':
+            print(f"*** Basis configuration {basis} not supported by PyGamess.")
+            print(f"To set manually, pass Gamess basis params as a dictionary to self.setParam().")
+            print("E.g. for 'ACCD' configure with self.setParam(inputGroup='basis',inputDict={'gbasis':'ACCD'}), \
+                  Any other required params can also be set, e.g. self.setParam(inputGroup='contrl',inputDict={'ISPHER':'1'}).")
+            
+        else:
+            print(f"Set basis to specification {basis}.")
+            print(f"self.params['basis']: {self.params['basis']}")
+        
+        
+    def setParam(self, inputGroup='contrl', inputDict={}, resetGroup=False):
+        """ 
+        Set Gamess input card from dictionary of items.
+        
+        Options are set as 
+        - For a new group, self.param[inputGroup] = inputDict
+        - For an existing group, self.param[inputGroup].update(inputDict)
+        
+        For Gamess options, see the manual https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/input.pdf
+        
+        """
+        
+        if inputGroup in self.params.keys():
+            if not resetGroup:
+                print(f"Updating existing group '{inputGroup}'. (To overwrite, pass 'resetGroup=True')")
+                self.params[inputGroup].update(inputDict)
+            else:
+                print(f"Replacing existing group '{inputGroup}'.")
+                self.params[inputGroup]=inputDict
+                
+            
+        else:
+            print(f"Setting new group '{inputGroup}'.")
+            self.params[inputGroup] = inputDict
+            
+        print(f"Updated group '{inputGroup}': {self.params[inputGroup]}")
+            
+
+    
+#***** GAMESS RUNNERS & OUTPUTS
 
     # def runGamess(self, job = 'Default', sym = 'C1', **kwargs):
     def runGamess(self, fileOut = None, runType = 'energy', **kwargs):
