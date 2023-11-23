@@ -37,7 +37,7 @@ def parseLineTokens(testLine):
 # File parsing function - scan file for keywords & read segments
 #   Following above idiomatic solution, with full IO
 #   https://stackoverflow.com/questions/3961265/get-line-number-of-certain-phrase-in-file-python
-def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = False):
+def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, verbose = 0):
     """
     Parse a file, return segment(s) from startPhrase:endPhase, excluding comments.
 
@@ -81,7 +81,7 @@ def fileParse(fileName, startPhrase = None, endPhrase = None, comment = None, ve
             # Note use of lstrip to skip any leading whitespace.
             # if startPhrase in line:
             if line.lstrip().startswith(startPhrase):
-                if verbose:
+                if verbose>2:
                     print('Found "', startPhrase, '" at line: ', i)
 
                 lineStart.append(i)
