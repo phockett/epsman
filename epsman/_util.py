@@ -10,6 +10,8 @@ Utility functions for use with ePSman.
 import re
 from pathlib import Path
 
+import logging
+
 #****** FILE PARSING
 
 # Parse digits from a line using re
@@ -201,7 +203,7 @@ def checkLocalFiles(self, fileList, scanDir = None, verbose = False):
 
         # Assume that scanDir should be used if not None, and that fileTest is a subdir or file (not full path).
         if scanDir is not None:
-            Path(scanDir, fileTest)
+            fileTest = Path(scanDir, fileTest)
 
         result = fileTest.exists()  # Test for destination file, will return True if exists
         checkList.append(result)
@@ -625,3 +627,19 @@ def isnotebook():
             return False  # Other type (?)
     except NameError:
         return False      # Probably standard Python interpreter
+
+
+#****** LOGGING
+
+# Test grabbing log output...
+# https://stackoverflow.com/questions/59345532/error-log-count-and-error-log-messages-as-list-from-logger
+# This is used in ESgamess class to grab logger messages from pyGamess for Error checking - there's likely a slicker way however.
+class CustomStreamHandler(logging.StreamHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.error_logs = []
+
+    def emit(self, record):
+        if record.levelno == logging.ERROR:
+            self.error_logs.append(record)
+        super().emit(record)
