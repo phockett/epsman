@@ -26,6 +26,7 @@ from pygamess import Gamess
 import numpy as np
 
 from pathlib import Path
+import os
 
 import logging
 
@@ -643,6 +644,24 @@ class ESgamess():
         #
         # print("*** Gamess input card set to self.gCard['default']")
         # print(self.gCard['default'])
+        
+        #***** Check Gamess executable exists - note this does not set anything currently, just reproduces pyGamess check.
+        # Method as used in pygamess.py_rungms
+        # See https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L420
+        gamesses = [f for f in os.listdir(gamess_path) if f.startswith('gamess') and f.endswith('.x')]
+        if len(gamesses) < 1:
+#             raise IOError("gamess.*.x not found")
+            print(f"*** Executable gamess.*.x not found on path {gamess_path}. Gamess runs from Python not available.")
+    
+        else:
+            gamess = os.path.join(gamess_path, gamesses[0])
+            print(f"Gamess executable: {gamess}")
+            
+        # Set Gamess help script here too?
+        # Found at /opt/gamess/tools/gmshelp
+        # And just parses /opt/gamess/INPUT.DOC
+        # So maybe just write python equivalent?
+        
 
 
     def setGamess(self, job = None, note = None, sym = None, atomList = None):
@@ -725,6 +744,7 @@ class ESgamess():
         
         Reproducted from PyGamess, 23/11/23 (this list may change)
         See pygamess config at https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L291
+        See the Gamess manual for more options, https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/docs-input.txt.
         
         """
         
@@ -760,10 +780,17 @@ class ESgamess():
         for basis_type in ["MNDO"]:
             basisDict[basis_type] = {'gbasis': 'mndo'}
             
-        basisDict['note']="PyGamess supported basis sets as of Nov. 2023, see pygamess config at https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L291 for updates."
+        basisDict['note']="PyGamess supported basis sets as of Nov. 2023, see pygamess config at https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L291 for updates. See the Gamess manual for more options, https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/docs-input.txt."
+        
+        basisDict['basisList'] = list(basisDict.keys())
         
         self.basisDict = basisDict
         
+        
+    def basis(self):
+        """List pyGamess supported basis sets."""
+        print('PyGamess supported basis sets:')
+        print(self.basisDict['basisList'])
         
 
     def setBasis(self, basis):
@@ -774,7 +801,7 @@ class ESgamess():
         ----------
         
         basis : string definition of basis set.
-            For pygamess supported config, see self.basisDict.
+            For pygamess supported config, see self.basis().
             For unsupported basis sets, set manually using self.setParam()
         
         """
@@ -803,6 +830,7 @@ class ESgamess():
             print(f"To set manually, pass Gamess basis params as a dictionary to self.setParam().")
             print("E.g. for 'ACCD' configure with self.setParam(inputGroup='basis',inputDict={'gbasis':'ACCD'}), \
                   Any other required params can also be set, e.g. self.setParam(inputGroup='contrl',inputDict={'ISPHER':'1'}).")
+            print("See the Gamess manual for settings, https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/docs-input.txt.")
             
         else:
             print(f"Set basis to specification {basis}.")
@@ -811,13 +839,28 @@ class ESgamess():
         
     def setParam(self, inputGroup='contrl', inputDict={}, resetGroup=False):
         """ 
-        Set Gamess input card from dictionary of items.
+        Set Gamess input card options from dictionary of items.
         
         Options are set as 
-        - For a new group, self.param[inputGroup] = inputDict
-        - For an existing group, self.param[inputGroup].update(inputDict)
+        - For a new group, `self.param[inputGroup] = inputDict`
+        - For an existing group, `self.param[inputGroup].update(inputDict)` unless `resetGroup=True` is passed/
         
         For Gamess options, see the manual https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/input.pdf
+        or https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/docs-input.txt
+        
+        Parameters
+        ----------
+        
+        inputGroup : str, default='contrl'
+            Gamess input group to write to.
+            
+        inputDict : dictionary, default = {}
+            Configuration settings dictionary.
+            Note all options are keyword:value pairs.
+            
+        resetGroup : bool, default = False
+            If True, overwrite any existing entries for the group.
+            If False, add new entries to any existing entries for the group.
         
         """
         
