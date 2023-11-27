@@ -533,29 +533,33 @@ class ESgamess():
         if refKey is None:
             refKey = 'ref'
 
-        note = f'Set reference coords key {refKey} from passed dict.'
+        note = f'Set reference coords key '{refKey}' from passed dict.'
 
         if atomDict is None:
             atomDict = self.atomsDict.copy()
-            note = f'Set reference coords key {refKey} from self.atomsDict.'
+            note = f'Set reference coords key '{refKey}' from self.atomsDict.'
 
         if histKey is not None:
             atomDict = self.atomsHist[histKey]
-            note = f"Set reference coords key {refKey} from self.atomsHist['{histKey}']"
+            note = f"Set reference coords key '{refKey}' from self.atomsHist['{histKey}']"
 
         self.refDict[refKey] = atomDict
+        
+        self.printTable(refKey = refKey)  # Set and display Pandas version.
 
         if self.verbose:
             print(note)
 
 
-    def printTable(self):
+    def printTable(self, refKey = None):
         """
-        Show pretty table using Pandas (use printCoords() for simple version).
+        Show pretty table using Pandas (use printCoords() for simple version), and also set to `self.pdTable`.
 
         Code is very similar to printCoords(), based on pyGamess routines (atom_section, https://github.com/kzfm/pygamess/blob/master/pygamess/gamess.py)
 
         TODO: amalgamate these!
+        
+        If refKey is passed, use `self.refDict[refKey]` instead of `self.getAtoms()` for structure, and output to `self.refDict[refKey]['pd']`
         """
 
         # conf = self.mol.GetConformer(0)
@@ -564,7 +568,7 @@ class ESgamess():
         #     pos = conf.GetAtomPosition(atom.GetIdx())
         #
         #     atomList.append([atom.GetIdx(), atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z])
-        self.getAtoms()
+#         self.getAtoms()
 
         # TODO: change to check pd is loaded instead of try/except - miss other errors here.
 #         try:
@@ -578,14 +582,26 @@ class ESgamess():
 #         except AttributeError or NameError:
 #             self.printCoords()  # Fallback if Pandas is not available.
             
+        # 27/11/23 - quick mod to allow use of refKey
+        if refKey is None:
+            self.getAtoms()
+            atomsDict = self.atomsDict
+        else:
+            atomsDict = self.refDict[refKey]
+    
         
         # 20/11/23 - if/else version instead of try/except above.
         # Note pdFlag now set at module load.
         if pdFlag:
-            self.pdTable = pd.DataFrame(self.atomsDict['table'], columns=self.atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
+            pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
 
             if self.__notebook__:
-                display(self.pdTable)
+                display(pdTable)
+                
+            if refKey is None:
+                self.pdTable = pdTable
+            else:
+                self.refDict[refKey]['pd'] = pdTable
                 
         else:
             self.printCoords()  # Fallback if Pandas is not available.
