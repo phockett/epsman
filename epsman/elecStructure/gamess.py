@@ -19,6 +19,10 @@ Aims here:
 - Enable full ePS job pipeline, starting with a Gamess calculation.
 - Provide methods for generating ePS jobs with multiple inputs, e.g. bond length scans.
 
+28/11/23 updates
+
+- Added setCoords() dispatcher, and methods _setCoordsPD() and _setCoordsDict().
+- Added genXYZ() for XYZ string creation.
 
 """
 
@@ -35,6 +39,7 @@ from epsman._util import isnotebook, CustomStreamHandler
 # TODO: remember how to handle this elegantly/selectively - would still like to create empty class.
 try:
     from rdkit import Chem
+    from rdkit.Chem import rdDetermineBonds  # For XYZ mol creation routines.
     from rdkit.Chem import AllChem  # Larger import, generally won't need all this functionality...?
 
     # Quick module check for py3Dmol, required for rdkit 3D plotting routines.
@@ -79,6 +84,7 @@ class ESgamess():
 
     - molFromSmiles(), molFromFile(), for core RDkit molecule creation
     - molFromPubChem(), for PubChemPy molecule downloader
+    - molFromXYZ(), for XYZ string or file molecule definition (requires RDkit > 2022.3)
 
 
     TODO:
@@ -94,12 +100,13 @@ class ESgamess():
 
     """
 
-    from epsman._util import setAttribute
+    from epsman._util import setAttribute, checkLocalFiles
 
     __notebook__ = isnotebook()
 
 
-    def __init__(self, searchName = None, smiles = None, molFile = None, addH = False, molOverride = None,
+    def __init__(self, searchName = None, smiles = None, molFile = None, xyz = None,
+                    addH = False, molOverride = None,
                     job = None, sym = 'C1', atomList = None, verbose = 1,
                     buildES = False, fileOut = None):
 
@@ -109,6 +116,7 @@ class ESgamess():
         self.setAttribute('name', searchName)
         self.setAttribute('smiles', smiles)
         self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
+        self.setAttribute('xyz',xyz, printFlag=False)  # Skip printing in this case!
 
         # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
         # This will be used at Gamess input file write INSTEAD of self.mol if set.
@@ -119,6 +127,7 @@ class ESgamess():
         self.molFromFile()
         self.molFromPubChem()
         self.molFromSmiles(addH = addH)
+        self.molFromXYZ()
 
 
         # Additional vars for Gamess job
@@ -277,6 +286,62 @@ class ESgamess():
             self.molFromFile()  # Try reading file
 
 
+    def molFromXYZ(self):
+        """
+        Basic wrapper for Chem.MolFromXYZBlock() and Chem.MolFromXYZFile().
+        
+        Molecule creation from basic XYZ format:
+        
+        ```
+        [no. atoms]
+        
+        [Atom 0] [x] [y] [z]
+        [Atom 1] [x] [y] [z]
+        ...
+        
+        ```
+        
+        To generate from an existing structure, use self.genXYZ().
+        
+        """
+        
+        if self.xyz is not None:
+            if hasattr(Chem, 'MolFromXYZBlock'):
+                
+                molXYZ = False
+                
+                # Crude string check - if from string will have newlines.
+                if '\n' in self.xyz:
+                    molXYZ = Chem.MolFromXYZBlock(self.xyz)
+                    
+                else: 
+                    fileCheck = self.checkLocalFiles([self.xyz])[0]  # Explicitly support only single file here.
+                    
+                    if fileCheck:
+                        molXYZ = Chem.MolFromXYZFile(self.xyz)  # May want Path().as_posix() and file checks here.
+                    else:
+                        print(f"*** File {self.xyz} not found.")
+                
+                # Proceed to tidy-up if molXYZ has now been set.
+                if molXYZ:
+                    # Tidy up, per https://mattermodeling.stackexchange.com/questions/10561/unexpected-atoms-while-working-with-xyz-files-in-rdkit
+                    # And https://github.com/rdkit/UGM_2022/blob/main/Notebooks/Landrum_WhatsNew.ipynb
+                    # Without this can get multiple separate molecules with H added
+                    conn_mol = Chem.Mol(molXYZ)
+                    Chem.rdDetermineBonds.DetermineConnectivity(conn_mol)
+                    Chem.rdDetermineBonds.DetermineConnectivity
+
+                    # Set output
+                    self.mol = conn_mol
+                
+            else:
+                print("Failed to set molecule from XYZ format, `Chem.MolFromXYZ` methods missing. RDkit may need updating (v>2022.3).")
+            
+        else:
+            pass
+            
+            
+            
 
     def mol_with_atom_index(self):
         """
@@ -576,6 +641,10 @@ class ESgamess():
             print("*** Set frame rotations, new coord table:")
             self.printTable()
 
+            
+            
+#*** Molecule info routines
+
     def getAtoms(self, conf = None):
         """
         Generate list of atoms from RDkit molecule.
@@ -736,6 +805,37 @@ class ESgamess():
         print(section)
 
 
+#*** Additional conversion routines
+
+    def genXYZ(self, refKey=None):
+        """
+        Generate XYZ string representation from self.pdTable or self.refDict[refKey]['pd'] if refKey!=None
+        
+        TODO: add some error checking etc. here, very basic.
+        
+        """
+        
+        # Generate XYZ representation from self.pdTable or ref table.
+        if refKey is None:
+            pdMol = self.pdTable
+        else:
+            pdMol = self.refDict[refKey]['pd']
+            
+        xyzStr = pdMol.to_string(columns=['Species','x','y','z'], index=False, header=False)
+        xyzStr = f"{pdMol.shape[0]}\n\n" + xyzStr
+
+        if refKey is None:
+            self.xyzStr = xyzStr
+        else:
+            self.refDict[refKey]['xyzStr'] = xyzStr
+        
+        if self.verbose:
+            print("Generated XYZ string repr:\n")
+            print(xyzStr)
+            print(f"\nData set to {'self.xyzStr' if refKey is None else f'self.refDict[{refKey}]'}")
+        
+
+        
         
 #***** GAMESS SETUP ROUTINES
 
