@@ -23,11 +23,13 @@ Aims here:
 
 - Added setCoords() dispatcher, and methods _setCoordsPD() and _setCoordsDict().
 - Added genXYZ() for XYZ string creation.
+- Added molFromXYZ() for XYZ molecule generation.
 
 """
 
 from pygamess import Gamess
 import numpy as np
+import re
 
 from pathlib import Path
 import os
@@ -881,7 +883,7 @@ class ESgamess():
     
         else:
             gamess = os.path.join(gamess_path, gamesses[0])
-            print(f"Gamess executable: {gamess}")
+            print(f"*** Found Gamess executable: {gamess}")
             
         # Set Gamess help script here too?
         # Found at /opt/gamess/tools/gmshelp
@@ -1123,9 +1125,10 @@ class ESgamess():
         #     """Copy temp Gamess output file to specified location"""
         #
 
-        # Set job type
+        # Set job type & update input
         self.g.run_type(runType)
-
+#         self.g.input(self.mol)
+        
         if fileOut is not None:
             self.g.debug = True
 
@@ -1293,3 +1296,52 @@ class gamessInput(Gamess):
     #         header += self.print_section('cis')
     #
     #     return header
+
+    
+    
+    def parse_gamout(self, gamout, mol):
+        """
+        Add some additional error-checking to lib routine.
+        
+        Note this was written for pyGamess v0.5.0 (circa 2020).
+        parse_gamout() in v0.6.9 (Nov. 2023) has some additional stuff already.
+        
+        """
+        # Run lib parser
+        mol = super().parse_gamout(gamout, mol)
+        
+        # Additional checks
+        # Use Re as per parse_gamout(), but some additions and run with findall()
+        errorDict = {}
+        errorDict['Warnings'] = {'re':re.compile('.*WARNING: .*')}
+        errorDict['ddikick'] = {'re':re.compile('.*ddikick.x: .*')}  # Execution terminated due to error(s).*')
+        
+        # TODO: check and exclude "ddikick.x: exited gracefully." from issues below, but should report?
+        
+        # Search re
+        out_str = open(gamout, "r").read()
+        
+        for k,item in errorDict.items():
+            matches = item['re'].findall(out_str)
+
+            if matches:
+                print(f"*** Warning: found errors in Gamess output, type: {k}")
+                
+                # Set as mol property? This follows current parse_gamout style
+                # mol.SetProp(k, matches)
+                mol.SetProp(k, '\n'.join(matches))
+                
+                
+                if self.verbose:
+                    print(mol.GetProp(k))
+                else:
+                    print(f"*** Check self.mol.GetProp('{k}') for details.")
+                
+                
+                # Raise further? This is in main parse_gamout, but not for these types of error
+#                 if len(err_message) > 0:
+#                     raise GamessError(err_message)
+#                 else:
+#                     return nmol
+                
+        return mol
