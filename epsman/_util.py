@@ -562,7 +562,7 @@ def setAttributesFromDict(self, itemsDict, overwriteFlag = False):
 
 
 
-def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
+def setAttribute(self, attrib, newVal = None, overwriteFlag = False, printFlag = True):
     """
     Basic check & set attribute routine.
 
@@ -571,6 +571,8 @@ def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
         - attrib exists
             - but is None,
             - if overwriteFlag = True is passed.
+
+    printFlag: if True, print values, otherwise just confirm value set. (Only if self.verbose and setFlag.)
 
     TODO: consider attrs library here, https://www.attrs.org/en/stable/examples.html#validators
     """
@@ -593,7 +595,13 @@ def setAttribute(self, attrib, newVal = None, overwriteFlag = False):
         setFlag = True
 
     if self.verbose and setFlag:
-        print(f'Set {attrib} = {newVal}')
+        if printFlag:
+            print(f'Set {attrib} = {newVal}')
+        else:
+            if newVal is None:
+                print(f'Set {attrib} = {newVal}')   # Keep this for None case?
+            else:
+                print(f'Set {attrib} from passed values.')
 
 
 #****** ENV
