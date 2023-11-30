@@ -292,11 +292,11 @@ class ESgamess():
         """
         Basic wrapper for Chem.MolFromXYZBlock() and Chem.MolFromXYZFile().
         
-        Molecule creation from basic XYZ format:
+        Molecule creation from basic XYZ format (see https://en.wikipedia.org/wiki/XYZ_file_format):
         
         ```
         [no. atoms]
-        
+        [comment line, can be blank]
         [Atom 0] [x] [y] [z]
         [Atom 1] [x] [y] [z]
         ...
@@ -1319,29 +1319,38 @@ class gamessInput(Gamess):
         # TODO: check and exclude "ddikick.x: exited gracefully." from issues below, but should report?
         
         # Search re
-        out_str = open(gamout, "r").read()
-        
-        for k,item in errorDict.items():
-            matches = item['re'].findall(out_str)
+        with open(gamout, "r") as fileIn:
+            out_str = fileIn.read()
 
-            if matches:
-                print(f"*** Warning: found errors in Gamess output, type: {k}")
+            for k,item in errorDict.items():
+                matches = item['re'].findall(out_str)
                 
-                # Set as mol property? This follows current parse_gamout style
-                # mol.SetProp(k, matches)
-                mol.SetProp(k, '\n'.join(matches))
+                if matches:
+                    # Set as mol property? This follows current parse_gamout style
+                    # mol.SetProp(k, matches)
+                    mol.SetProp(k, '\n'.join(matches))
+
+                    if k != 'ddikick':
+                        print(f"*** Warning: found errors in Gamess output, type: {k}")
+
+                    if k == 'ddikick':
+                        if len(matches) == 1:
+                            print(f"*** ddikick exit status OK: {matches[0]}")
+                        else:
+                            print(f"*** Warning: found errors in Gamess output, type: {k}")
+
+
+                    if self.verbose:
+                        print(mol.GetProp(k))
+                    else:
+                        print(f"*** Check self.mol.GetProp('{k}') for details.")
+
+
+#                     # Raise further? This is in main parse_gamout, but not for these types of error
+#     #                 if len(err_message) > 0:
+#     #                     raise GamessError(err_message)
+#     #                 else:
+#     #                     return nmol
                 
-                
-                if self.verbose:
-                    print(mol.GetProp(k))
-                else:
-                    print(f"*** Check self.mol.GetProp('{k}') for details.")
-                
-                
-                # Raise further? This is in main parse_gamout, but not for these types of error
-#                 if len(err_message) > 0:
-#                     raise GamessError(err_message)
-#                 else:
-#                     return nmol
                 
         return mol
