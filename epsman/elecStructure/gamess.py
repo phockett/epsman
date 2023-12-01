@@ -1138,7 +1138,23 @@ class ESgamess():
         try:
             self.E = self.mol.GetProp('total_energy')
 
-            print(f"*** Gamess {runType} completed")
+# 30/11/23: added additional warnings info, now moved to parse_gamout() method
+#             try:
+#                 warnings = self.mol.GetProp('Warnings')
+#                 print(f"*** Gamess {runType} completed with warnings.")
+                
+#             except KeyError:
+#                 print(f"*** Gamess {runType} completed OK.")
+
+            
+#             warnings = self.mol.GetProp('Warnings')
+        
+#             if warnings:
+#                 print(f"*** Gamess {runType} completed with warnings.")
+                
+#             else:
+#                 print(f"*** Gamess {runType} completed OK.")
+                
 
             if self.verbose > 0:
                 print(f"E = {self.E}")
@@ -1156,6 +1172,10 @@ class ESgamess():
             Path(self.g.gamin).unlink()          # Tidy input
             self.gout = fileOut
             print(f"*** Gamess output file moved to {fileOut}")
+            
+        else:
+            # Just set tmp file name for consistency, although will be empty in this case.
+            self.gout = self.g.gamout
 
 
     def printGamess(self):
@@ -1322,6 +1342,7 @@ class gamessInput(Gamess):
         with open(gamout, "r") as fileIn:
             out_str = fileIn.read()
 
+            warnFlag = 0
             for k,item in errorDict.items():
                 matches = item['re'].findall(out_str)
                 
@@ -1332,19 +1353,26 @@ class gamessInput(Gamess):
 
                     if k != 'ddikick':
                         print(f"*** Warning: found errors in Gamess output, type: {k}")
+                        warnFlag = 1
 
                     if k == 'ddikick':
                         if len(matches) == 1:
                             print(f"*** ddikick exit status OK: {matches[0]}")
                         else:
                             print(f"*** Warning: found errors in Gamess output, type: {k}")
+                            warnFlag = 1
 
 
                     if self.verbose:
                         print(mol.GetProp(k))
                     else:
-                        print(f"*** Check self.mol.GetProp('{k}') for details.")
-
+                        # Check warnFlag to skip case for single ddikick normal exit message.
+                        if warnFlag:
+                            print(f"*** Check self.mol.GetProp('{k}') for details.")
+                
+                else:
+                    # Set empty if not present, this avoids errors rolling in from previous calculations.
+                    mol.SetProp(k,'') 
 
 #                     # Raise further? This is in main parse_gamout, but not for these types of error
 #     #                 if len(err_message) > 0:
@@ -1352,5 +1380,11 @@ class gamessInput(Gamess):
 #     #                 else:
 #     #                     return nmol
                 
-                
+                    
+        if warnFlag:
+            print(f"*** Gamess run completed with warnings.")
+        else:
+            print(f"*** Gamess run completed OK.")
+            
+            
         return mol
