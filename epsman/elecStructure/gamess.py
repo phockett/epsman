@@ -112,6 +112,7 @@ class ESgamess():
     def __init__(self, searchName = None, smiles = None, molFile = None, xyz = None,
                     addH = False, molOverride = None,
                     job = None, sym = 'C1', atomList = None, verbose = 1,
+                    precision = 6,
                     buildES = False, fileOut = None):
 
         self.verbose = verbose
@@ -140,9 +141,22 @@ class ESgamess():
         self.setAttribute('job', job)
         self.setAttribute('sym', sym)
         self.setAttribute('atomList', atomList)
+        self.setAttribute('precision', precision)  # Added 08/12/23, used for roundCoords() only so far.
 
         # Display some output unless mol is empty
         if hasattr(self, 'mol'):
+            
+            # Add atomsDict, refDict and atomsHist
+            for item in ['atomsDict', 'refDict', 'atomsHist']:
+                self.setAttribute(item, {})
+            
+            # Round coords and fix -ve 0 issues & update system
+            # Added 08/12/23, also run self.setTable and self.getAtoms to create required pdTable.
+            if self.precision is not None:
+                self.getAtoms()
+                self.pdTable = self.setTable(self.atomsDict)
+                self.roundCoords(decimals = self.precision, updateCoords = True, useRef = False)
+        
             try:
                 if self.__notebook__:
                     display(self.mol)  # If notebook, use display to push plot.
@@ -151,10 +165,6 @@ class ESgamess():
                     pass
             except:
                 pass
-
-            # Add atomsDict, refDict and atomsHist
-            for item in ['atomsDict', 'refDict', 'atomsHist']:
-                self.setAttribute(item, {})
 
             # self.printCoords()
             self.printTable()
@@ -752,6 +762,12 @@ class ESgamess():
             print(note)
 
 
+    def setTable(self, atomsDict):
+        """Set PD table from atomsDict."""
+    
+        return pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])
+    
+            
     def printTable(self, refKey = None):
         """
         Show pretty table using Pandas (use printCoords() for simple version), and also set to `self.pdTable`.
@@ -797,7 +813,8 @@ class ESgamess():
         # 20/11/23 - if/else version instead of try/except above.
         # Note pdFlag now set at module load.
         if pdFlag:
-            pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
+#             pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
+            pdTable = self.setTable(atomsDict)
 
             if self.__notebook__ and self.verbose:
                 display(pdTable)
