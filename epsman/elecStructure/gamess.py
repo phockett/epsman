@@ -31,6 +31,7 @@ from pygamess import Gamess
 import numpy as np
 import re
 import io
+from copy import deepcopy
 
 from pathlib import Path
 import os
@@ -831,9 +832,11 @@ class ESgamess():
 
 #*** Additional conversion routines
 
-    def genXYZ(self, refKey=None):
+    def genXYZ(self, refKey=None, printXYZ = True):
         """
         Generate XYZ string representation from self.pdTable or self.refDict[refKey]['pd'] if refKey!=None
+        
+        Results are printed if self.verbose and printXYZ (default=True)
         
         TODO: add some error checking etc. here, very basic.
         
@@ -853,19 +856,38 @@ class ESgamess():
         else:
             self.refDict[refKey]['xyzStr'] = xyzStr
         
-        if self.verbose:
+        if self.verbose and printXYZ:
             print("Generated XYZ string repr:\n")
             print(xyzStr)
             print(f"\nData set to {'self.xyzStr' if refKey is None else f'self.refDict[{refKey}]'}")
         
 
-    def setPDfromGamess(self, refKey = None, newCoords = None, updateMol = True):
+    def setPDfromGamess(self, refKey = None, newCoords = None, 
+                        updateMol = True, printXYZ = False):
         """
         Generate Pandas table from Gamess coord output.
         
-        Pass newCoords as string, or use self.mol.newCoords[0][-1] if None.
+        Parameters
+        ----------
+        refKey : str, default = None
+            Key for self.refDict, use for object storage if set, otherwise use defaults.
+            
+        newCoods : str or None, default = None
+            Pass newCoords as a string set from a Gamess output file.
+            Use self.mol.newCoords[0][-1] if None.
+            
+            Format is rows with 
+            'ATOM   CHARGE       X              Y              Z'
+            E.g. :
+            `' O           8.0   0.0000000000  -0.0000000054  -1.2374766478\n O           8.0  -0.0000000000  -0.0000000054   1.2374766478\n C           6.0   0.0000000000   0.0000000108  -0.0000000130'`
+            
+            This is parsed using pd.read_csv(), so exact column spacing doesn't matter.
+  
+        updateMol: bool, default = True
+            Push updated mol object to self.mol if true (uses self.molFromXYZ()).
+            Otherwise new coords are only set to self.pdTable or self.refDict[refKey]['pd']
         
-        Output table will be set as self.pdTable or 
+
         """
         
         # Use string IO for pd.read_csv
@@ -892,13 +914,20 @@ class ESgamess():
         # This should be robust even if atom ordering changes.
         # (Which is not the case for setCoords() )
         if updateMol:
-            self.genXYZ(refKey=refKey)
+            if self.verbose:
+                print(f"Updating with new coords, output set to {'self.mol' if refKey is None else f'self.refDict[{refKey}]'}")
+                      
+            self.genXYZ(refKey=refKey, printXYZ = printXYZ)
             
             # TODO: set molFromXYZ() to accept key, currently have to bypass here
             if refKey is not None:
+                self.refDict[refKey]['previousMol'] = deepcopy(self.mol)  # Backup existing mol object for reference
                 self.xyz = self.refDict[refKey]['xyzStr']
+                
             else:
+                self.previousMol = deepcopy(self.mol)  # Backup existing mol object for reference
                 self.xyz = self.xyzStr
+                
             self.molFromXYZ()
             self.printTable()
             
@@ -1270,7 +1299,30 @@ class ESgamess():
 #             newCoords = io.StringIO(testDL.mol.newCoords[0][-1])  # Get final coords passed from modified parse_gamout() routine
 #             self.xyz = self.mol.newCoords[0][-1]  # Using this directly fails, format is not correct
 #             self.molFromXYZ()
+
+            print("*** Gamess optimization run - reseting self.mol with updated coords.")
+            print("Note that atom ordering may change depending on Gamess output.")
+
+            # Properties to propagate...
+            prop = ['errorDict','newCoords']
+        
+            # Set via method.
+            # NOTE - this resets self.mol from self.mol.newCoords[0][-1]
+            # TODO: more logging/put these coords elsewhere for ref.
             self.setPDfromGamess()
+    
+            # Propagate attrs for debug
+            for attr in prop:
+                setattr(self.mol, attr, getattr(self.previousMol, attr))
+                
+            # Propagate errors - this just duplicates code in parse_gamout() wrapper below.
+            for k,item in self.mol.errorDict.items():
+                self.mol.SetProp(k, item['matches'])
+                    
+    
+            # Push self.E back to new mol object.
+            if self.E is not None:
+                self.mol.SetProp('total_energy',self.E)
             
 
         # Tidy up
@@ -1490,9 +1542,17 @@ class gamessInput(Gamess):
                         if warnFlag:
                             print(f"*** Check self.mol.GetProp('{k}') for details.")
                 
+                    # Also set errorDict
+                    errorDict[k]['matches'] = '\n'.join(matches)
+                    errorDict[k]['warnFlag'] = warnFlag
+                
                 else:
                     # Set empty if not present, this avoids errors rolling in from previous calculations.
                     mol.SetProp(k,'') 
+                    
+                    # Also set errorDict
+                    errorDict[k]['matches'] = ''
+                    errorDict[k]['warnFlag'] = 0
 
 #                     # Raise further? This is in main parse_gamout, but not for these types of error
 #     #                 if len(err_message) > 0:
@@ -1505,6 +1565,8 @@ class gamessInput(Gamess):
             print(f"*** Gamess run completed with warnings.")
         else:
             print(f"*** Gamess run completed OK.")
-            
-            
+        
+        # Set error output to propagate.
+        mol.errorDict = errorDict
+        
         return mol
