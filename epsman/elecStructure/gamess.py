@@ -155,7 +155,8 @@ class ESgamess():
             if self.precision is not None:
                 self.getAtoms()
                 self.pdTable = self.setTable(self.atomsDict)
-                self.roundCoords(decimals = self.precision, updateCoords = True, useRef = False)
+                self.roundCoords(decimals = self.precision, updateCoords = True, useRef = False, 
+                                 force = True, printTable = False)
         
             try:
                 if self.__notebook__:
@@ -400,7 +401,8 @@ class ESgamess():
 
 #***** MOLECULE MODIFICATION ROUTINES
 
-    def setCoords(self, coords = None, refKey = None, useRef = True):
+    def setCoords(self, coords = None, refKey = None, useRef = True, 
+                  force = False, printTable = True):
         """
         Dispatcher for setCoords methods. Pass new coords as dictionary or Pandas DataFrame.
         New coords will be applied to the system, and updated in self.mol and self.pdTable.
@@ -423,13 +425,20 @@ class ESgamess():
             If False, use self.pdTable for atom label checks. 
             (Applies only to Pandas DataFrame case.)
             
+        force : bool, optional, default = False
+            For Pandas table case only, if True skip any checks vs. existing table.
+        
+        printTable : bool, optional, default = True
+            If True, and self.verbose, show output table.
+            
         """
         
         # Dispatch to methods according to data type.
         if pdFlag:
             if type(coords) is pd.core.frame.DataFrame:
                 print("*** Updating coords (Pandas version).")
-                self._setCoordsPD(coords, refKey = refKey, useRef = useRef)
+                self._setCoordsPD(coords, refKey = refKey, useRef = useRef, 
+                                  force = force, printTable = printTable)
                 
         elif type(coords) is dict:
             print("*** Updating coords (dictionary version).")
@@ -442,7 +451,8 @@ class ESgamess():
 
     # setCoords testing - use Pandas table to confirm some properties...
     # See also runGeomScan for higher-level wrapper (although no checks there currently)
-    def _setCoordsPD(self, newTable, refKey = None, useRef = True):
+    def _setCoordsPD(self, newTable, refKey = None, useRef = True, 
+                     force = False, printTable = True):
         """
         Use new DataFrame to set coords. If self.verbose !=0 updated coord tables will be displayed.
         
@@ -464,6 +474,12 @@ class ESgamess():
             If False, use self.pdTable for atom label checks. 
             (Applies only to Pandas DataFrame case.)
             
+        force : bool, optional, default = False
+            If True skip any checks vs. existing table.
+            
+        printTable : bool, optional, default = True
+            If True, and self.verbose, show output table.
+            
         """
 
 #         print("*** Updating coords (Pandas version).")
@@ -484,47 +500,52 @@ class ESgamess():
         else:
             refTable = self.refDict[refKey]['pd']
 
-        # Compare newTable with refTable
-        # This should allow for a quick check on veracity, i.e. if any atoms don't match the ref structure, and force indexing to be consistent.
-        dfNew =  pd.merge(refTable, newTable, on=['Species','Atomic Num.'], suffixes=('_orig','_new'))
+        if not force:
+            # Compare newTable with refTable
+            # This should allow for a quick check on veracity, i.e. if any atoms don't match the ref structure, and force indexing to be consistent.
+            dfNew =  pd.merge(refTable, newTable, on=['Species','Atomic Num.'], suffixes=('_orig','_new'))
 
-        # For cases with multiples of same species, this may result in additional entries - check and fix
-        # NOTE this may have issues if Inds unaligned/broken? TBC.
-        if dfNew.shape[0] != refTable.shape[0]:
-            print(f"*** Warning, found duplicate entries when attempting to merge DataFrames, attempting to fix. Check self.coordDebug for details, or use dictionary methods to bypass.")
-            display(dfNew)
-            self.coordDebug = {'dfNewDupes':dfNew,
-                               'refTable':refTable,
-                               'newTable':newTable
-                              }   # Set for debugging!
-            
-            # This may result in duplicate coords for Ind_orig != Ind_new cases
-#             dfNew = dfNew.iloc[dfNew['Ind_orig'].unique()]
+            # For cases with multiples of same species, this may result in additional entries - check and fix
+            # NOTE this may have issues if Inds unaligned/broken? TBC.
+            if dfNew.shape[0] != refTable.shape[0]:
+                print(f"*** Warning, found duplicate entries when attempting to merge DataFrames, attempting to fix. Check self.coordDebug for details, or use dictionary methods to bypass.")
+                display(dfNew)
+                self.coordDebug = {'dfNewDupes':dfNew,
+                                   'refTable':refTable,
+                                   'newTable':newTable
+                                  }   # Set for debugging!
 
-            # This works, but assumes Inds match (?)
-            dfNew =  pd.merge(refTable, newTable, on=['Ind','Species','Atomic Num.'], suffixes=('_orig','_new'))
-            dfNew.rename(columns={'Ind':'Ind_orig'},inplace=True)
-            self.coordDebug['dfNewFixed'] = dfNew
+                # This may result in duplicate coords for Ind_orig != Ind_new cases
+    #             dfNew = dfNew.iloc[dfNew['Ind_orig'].unique()]
+
+                # This works, but assumes Inds match (?)
+                dfNew =  pd.merge(refTable, newTable, on=['Ind','Species','Atomic Num.'], suffixes=('_orig','_new'))
+                dfNew.rename(columns={'Ind':'Ind_orig'},inplace=True)
+                self.coordDebug['dfNewFixed'] = dfNew
+
+
+            # Display comparison table
+            if self.__notebook__ and self.verbose:
+                display(dfNew)
+
+            # Set new, consistent, table
+            print("*** Setting coords from '_new' columns.")
+
+            dfNewFinal = dfNew[['Ind_orig','Species','Atomic Num.','x_new','y_new','z_new']]
+            # dfNew2.rename(columns = ['Ind','Species','Atomic Num.','x','y','z'])
+            dfNewFinal.set_axis(['Ind','Species','Atomic Num.','x','y','z'], axis=1, inplace=True)
         
-        
-        # Display comparison table
-        if self.__notebook__ and self.verbose:
-            display(dfNew)
-
-        # Set new, consistent, table
-        print("*** Setting coords from '_new' columns.")
-
-        dfNewFinal = dfNew[['Ind_orig','Species','Atomic Num.','x_new','y_new','z_new']]
-        # dfNew2.rename(columns = ['Ind','Species','Atomic Num.','x','y','z'])
-        dfNewFinal.set_axis(['Ind','Species','Atomic Num.','x','y','z'], axis=1, inplace=True)
+        # FORCE case - just use new table as passed
+        else:
+            dfNewFinal = newTable
 
         # Push new table to self.setCoords() to update RDkit molecule
         geomTemp = dfNewFinal.to_dict()
         positionsDict = {k:[geomTemp['x'][k], geomTemp['y'][k], geomTemp['z'][k]] for k in geomTemp['Ind'].keys()}
-        self._setCoordsDict(coordList = positionsDict)
+        self._setCoordsDict(coordList = positionsDict, printTable = printTable)
+
         
-        
-    def _setCoordsDict(self, coordList = None):
+    def _setCoordsDict(self, coordList = None, printTable = True):
         """
         Basic wrapper for RDkit conformer.SetAtomPosition() to update coord table.
 
@@ -557,7 +578,7 @@ class ESgamess():
             for k, coords in coordList.items():
                 conf.SetAtomPosition(k, coords)
 
-        if self.verbose:
+        if self.verbose and printTable:
             print("*** Set atom positions, new coord table:")
             self.printTable()
 
