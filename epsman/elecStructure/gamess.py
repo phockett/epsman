@@ -30,6 +30,7 @@ Aims here:
 from pygamess import Gamess
 import numpy as np
 import re
+import io
 
 from pathlib import Path
 import os
@@ -335,6 +336,8 @@ class ESgamess():
 
                     # Set output
                     self.mol = conn_mol
+                else:
+                    print("Failed to set molecule from XYZ format, check `self.xyz` has valid input (XYZ string or filename).")
                 
             else:
                 print("Failed to set molecule from XYZ format, `Chem.MolFromXYZ` methods missing. RDkit may need updating (v>2022.3).")
@@ -474,6 +477,25 @@ class ESgamess():
         # This should allow for a quick check on veracity, i.e. if any atoms don't match the ref structure, and force indexing to be consistent.
         dfNew =  pd.merge(refTable, newTable, on=['Species','Atomic Num.'], suffixes=('_orig','_new'))
 
+        # For cases with multiples of same species, this may result in additional entries - check and fix
+        # NOTE this may have issues if Inds unaligned/broken? TBC.
+        if dfNew.shape[0] != refTable.shape[0]:
+            print(f"*** Warning, found duplicate entries when attempting to merge DataFrames, attempting to fix. Check self.coordDebug for details, or use dictionary methods to bypass.")
+            display(dfNew)
+            self.coordDebug = {'dfNewDupes':dfNew,
+                               'refTable':refTable,
+                               'newTable':newTable
+                              }   # Set for debugging!
+            
+            # This may result in duplicate coords for Ind_orig != Ind_new cases
+#             dfNew = dfNew.iloc[dfNew['Ind_orig'].unique()]
+
+            # This works, but assumes Inds match (?)
+            dfNew =  pd.merge(refTable, newTable, on=['Ind','Species','Atomic Num.'], suffixes=('_orig','_new'))
+            dfNew.rename(columns={'Ind':'Ind_orig'},inplace=True)
+            self.coordDebug['dfNewFixed'] = dfNew
+        
+        
         # Display comparison table
         if self.__notebook__ and self.verbose:
             display(dfNew)
@@ -837,7 +859,74 @@ class ESgamess():
             print(f"\nData set to {'self.xyzStr' if refKey is None else f'self.refDict[{refKey}]'}")
         
 
+    def setPDfromGamess(self, refKey = None, newCoords = None, updateMol = True):
+        """
+        Generate Pandas table from Gamess coord output.
         
+        Pass newCoords as string, or use self.mol.newCoords[0][-1] if None.
+        
+        Output table will be set as self.pdTable or 
+        """
+        
+        # Use string IO for pd.read_csv
+        output = io.StringIO(self.mol.newCoords[0][-1])
+        # pd.read_fwf(output,widths = [2,7,7,20,20,20], header=None)
+        readCSVtable = pd.read_csv(output, header=None, names = ['Species','Atomic Num.','x','y','z'], delim_whitespace=True)    #delimiter = '\t')
+        readCSVtable['Atomic Num.'] = readCSVtable['Atomic Num.'].astype('int64')  # Fix float > int.
+        readCSVtable.insert(0, 'Ind', readCSVtable.index)  # Add index column
+        
+        # Round coords and fix -ve 0 issues
+        newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = 4, updateCoords = False)
+        
+        if refKey is None:
+            self.pdTable = newCoords
+        else:
+            if refKey in self.refDict.keys():
+                self.refDict[refKey]['pd'] = newCoords
+            else:
+                self.refDict[refKey] = {'pd':newCoords,
+                                        'str':output}
+        
+        # Update main system/mol object?
+        # If so, generate XYZ representation then overwrite.
+        # This should be robust even if atom ordering changes.
+        # (Which is not the case for setCoords() )
+        if updateMol:
+            self.genXYZ(refKey=refKey)
+            
+            # TODO: set molFromXYZ() to accept key, currently have to bypass here
+            if refKey is not None:
+                self.xyz = self.refDict[refKey]['xyzStr']
+            else:
+                self.xyz = self.xyzStr
+            self.molFromXYZ()
+            self.printTable()
+            
+ 
+    def roundCoords(self, pdTable = None, decimals = 4, updateCoords = False, **kwargs):
+        """
+        Round PD table of coords to specified d.p. and tidy up (-0.00 cases).
+        
+        Pass pdTable, or None to use self.pdTable.
+        Pass updateCoods = True to run self.setCoords(coords = newCoords,**kwargs)
+        """
+
+        # Round coords
+        if pdTable is None:
+            newCoords = self.pdTable.round(decimals = decimals)
+        else:
+            newCoords = pdTable.round(decimals = decimals)
+
+        # Fix -0.0 within tolerance
+        newCoords[['x','y','z']] = newCoords[['x','y','z']].where(newCoords[['x','y','z']].abs() > 1e1**(-1*decimals), 0.0)
+
+        if updateCoords:
+            # Update main coord set
+            self.setCoords(coords = newCoords,**kwargs)
+            
+        else:
+            return newCoords
+
         
 #***** GAMESS SETUP ROUTINES
 
@@ -1057,7 +1146,7 @@ class ESgamess():
             print(f"*** Basis configuration {basis} not supported by PyGamess.")
             print(f"To set manually, pass Gamess basis params as a dictionary to self.setParam().")
             print("E.g. for 'ACCD' configure with self.setParam(inputGroup='basis',inputDict={'gbasis':'ACCD'}), \
-                  Any other required params can also be set, e.g. self.setParam(inputGroup='contrl',inputDict={'ISPHER':'1'}).")
+                  \nAny other required params can also be set, e.g. self.setParam(inputGroup='contrl',inputDict={'ISPHER':'1'}).")
             print("See the Gamess manual for settings, https://www.msg.chem.iastate.edu/gamess/GAMESS_Manual/docs-input.txt.")
             
         else:
@@ -1094,7 +1183,7 @@ class ESgamess():
         
         if inputGroup in self.params.keys():
             if not resetGroup:
-                print(f"Updating existing group '{inputGroup}'. (To overwrite, pass 'resetGroup=True')")
+                print(f"Updating existing group '{inputGroup}'. (To replace group, pass 'resetGroup=True')")
                 self.params[inputGroup].update(inputDict)
             else:
                 print(f"Replacing existing group '{inputGroup}'.")
@@ -1164,7 +1253,25 @@ class ESgamess():
                     self.printTable()
 
         except KeyError:
+            self.E = None
             print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
+            
+        # 08/12/23 - fixing issues if atom ordering has changed.
+        # In default g.parse_gamout this is set as (https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L177C1-L178C41):
+        #
+        #         for i, cds in enumerate(result.coordinates):
+        #             conf.SetAtomPosition(i, cds)
+        #
+        # THIS FAILS IF atom ordering has changed in Gamess output - this can happen in symmetrized (and other?) cases.
+        #
+        
+        # Check for optimized runs only?
+        if runType == 'optimize':
+#             newCoords = io.StringIO(testDL.mol.newCoords[0][-1])  # Get final coords passed from modified parse_gamout() routine
+#             self.xyz = self.mol.newCoords[0][-1]  # Using this directly fails, format is not correct
+#             self.molFromXYZ()
+            self.setPDfromGamess()
+            
 
         # Tidy up
         if fileOut is not None:
@@ -1326,6 +1433,9 @@ class gamessInput(Gamess):
         Note this was written for pyGamess v0.5.0 (circa 2020).
         parse_gamout() in v0.6.9 (Nov. 2023) has some additional stuff already.
         
+        See https://github.com/kzfm/pygamess/blob/d6c14da805945c5a6c1175900699f77fd20eee96/pygamess/gamess.py#L150
+        See also low-level function https://github.com/kzfm/pygamess/blob/master/pygamess/gamout_parser.py
+        
         """
         # Run lib parser
         mol = super().parse_gamout(gamout, mol)
@@ -1341,7 +1451,17 @@ class gamessInput(Gamess):
         # Search re
         with open(gamout, "r") as fileIn:
             out_str = fileIn.read()
-
+            
+            
+            # Check coords - for symmetrized case the ordering may change
+            # This follows method in https://github.com/kzfm/pygamess/blob/master/pygamess/gamout_parser.py
+            # BUT pass back to main class for coord check and set
+            coord_re = re.compile('COORDINATES OF ALL ATOMS ARE (.*?)------------\n(.*?)\n\n', re.DOTALL)
+            newCoords = coord_re.findall(out_str)
+            mol.newCoords = newCoords
+            
+            
+            # Iterate over warnings
             warnFlag = 0
             for k,item in errorDict.items():
                 matches = item['re'].findall(out_str)
