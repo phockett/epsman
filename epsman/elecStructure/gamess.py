@@ -154,7 +154,8 @@ class ESgamess():
             # Added 08/12/23, also run self.setTable and self.getAtoms to create required pdTable.
             if self.precision is not None:
                 self.getAtoms()
-                self.pdTable = self.setTable(self.atomsDict)
+#                 self.pdTable = self.setTable(self.atomsDict)
+                self.setTable()
                 self.roundCoords(decimals = self.precision, updateCoords = True, useRef = False, 
                                  force = True, printTable = False)
         
@@ -633,7 +634,8 @@ class ESgamess():
             self.printTable()
 
 
-    def rotateFrame(self, rotations = {'y':np.pi/2}, canonicalise=True):
+    def rotateFrame(self, rotations = {'y':np.pi/2}, canonicalise=True, 
+                    roundCoords = True, decimals = None):
         """
         Rotate molecule to reference frame, using rotation matricies + AllChem.TransformConformer() functionality.
 
@@ -653,7 +655,14 @@ class ESgamess():
             This runs :py:func:`rdkit.Chem.rdMolTransforms.CanonicalizeConformer` (see `RDkit docs <https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#rdkit.Chem.rdMolTransforms.CanonicalizeConformer>`__.)
 
         All transforms are applied to self.mol.
-
+        
+        roundCoords : bool, optional, default = True
+            If True, run `self.roundCoords()` on new frame to tidy up.
+            This uses `self.precision` to define rounding, or pass an integer to `decimals` to override.
+            
+        decimals : int, optional, default = None
+            If roundCoords is True, use this value for rounding precision instead of `self.precision`.
+            If None, use `self.precision`.
 
         Notes
         -----
@@ -693,6 +702,16 @@ class ESgamess():
         for k,v in rotations.items():
             AllChem.TransformConformer(self.mol.GetConformer(), tforms[k](v))
 
+        # Tidy-up
+        self.setTable()
+        if roundCoords is True:
+            if decimals is None:
+                decimals = self.precision
+                
+            # Round coords & update coords without checks or printing
+            self.roundCoords(decimals = decimals, updateCoords = True, 
+                             force = True, printTable = False, useRef = False)
+            
         if self.verbose:
             print("*** Set frame rotations, new coord table:")
             self.printTable()
@@ -783,10 +802,32 @@ class ESgamess():
             print(note)
 
 
-    def setTable(self, atomsDict):
-        """Set PD table from atomsDict."""
+    def setTable(self, atomsDict = None, refKey = None, returnTable = False):
+        """
+        Set PD table from atomsDict.
+        
+        If atomsDict = None, set using self.getAtoms()
+        
+        12/12/23 - extended for ref case and optional return.
+        May duplicate code elsewhere now.
+        """
     
-        return pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])
+        if atomsDict is None:
+            if refKey is None:
+                self.getAtoms()
+                atomsDict = self.atomsDict
+            else:
+                atomsDict = self.refDict[refKey]
+    
+        pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])
+        
+        if returnTable:
+            return pdTable
+        else:
+            if refKey is None:
+                self.pdTable = pdTable
+            else:
+                self.refDict[refKey]['pd'] = pdTable
     
             
     def printTable(self, refKey = None):
@@ -835,7 +876,7 @@ class ESgamess():
         # Note pdFlag now set at module load.
         if pdFlag:
 #             pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
-            pdTable = self.setTable(atomsDict)
+            pdTable = self.setTable(atomsDict, returnTable=True)
 
             if self.__notebook__ and self.verbose:
                 display(pdTable)
