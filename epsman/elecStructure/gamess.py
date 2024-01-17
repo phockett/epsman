@@ -435,7 +435,7 @@ class ESgamess():
         """
         
         # Dispatch to methods according to data type.
-        if pdFlag:
+        if pdFlag and (type(coords) is not dict):
             if type(coords) is pd.core.frame.DataFrame:
                 print("*** Updating coords (Pandas version).")
                 self._setCoordsPD(coords, refKey = refKey, useRef = useRef, 
@@ -753,6 +753,7 @@ class ESgamess():
 
         if currDict != self.atomsDict:
             self.updateAtomsHist(currDict)
+            
 
 
     def updateAtomsHist(self, atomDict):
@@ -1262,7 +1263,8 @@ class ESgamess():
             print(f"self.params['basis']: {self.params['basis']}")
         
         
-    def setParam(self, inputGroup='contrl', inputDict={}, resetGroup=False):
+    def setParam(self, inputGroup='contrl', inputDict={}, 
+                 resetGroup=False, removeGroup=False):
         """ 
         Set Gamess input card options from dictionary of items.
         
@@ -1286,6 +1288,10 @@ class ESgamess():
         resetGroup : bool, default = False
             If True, overwrite any existing entries for the group.
             If False, add new entries to any existing entries for the group.
+            
+        removeGroup : bool, default = False
+            If True, remove this group from the current input dict.
+            (TODO: set this case also if empty or None inputDict is passed?)
         
         """
         
@@ -1293,6 +1299,9 @@ class ESgamess():
             if not resetGroup:
                 print(f"Updating existing group '{inputGroup}'. (To replace group, pass 'resetGroup=True')")
                 self.params[inputGroup].update(inputDict)
+            elif removeGroup:
+                print(f"Removing existing group '{inputGroup}'.")
+                del self.params[inputGroup]
             else:
                 print(f"Replacing existing group '{inputGroup}'.")
                 self.params[inputGroup]=inputDict
@@ -1360,6 +1369,7 @@ class ESgamess():
                 if runType == 'optimize':
                     self.printTable()
 
+# TO FIX: this doesn't catch errors if same job is rerun, since self.mol.GetProp('total_energy') sets to previous value?
         except KeyError:
             self.E = None
             print("*** Warning: result does not include 'total_energy', this likely indicates Gamess run failed.")
@@ -1382,26 +1392,35 @@ class ESgamess():
             print("*** Gamess optimization run - reseting self.mol with updated coords.")
             print("Note that atom ordering may change depending on Gamess output.")
 
-            # Properties to propagate...
-            prop = ['errorDict','newCoords']
-        
-            # Set via method.
-            # NOTE - this resets self.mol from self.mol.newCoords[0][-1]
-            # TODO: more logging/put these coords elsewhere for ref.
-            self.setPDfromGamess()
+        # 16/01/23: added try/except here, to avoid issues when Gamess run fails with no coords set.
+        # TODO: parse "*** ERROR(S) DETECTED ***" section in Gamess file in this case (tail of file). Maybe a printTail() function for this?
+            try:
+                # Properties to propagate...
+                prop = ['errorDict','newCoords']
+
+                # Set via method.
+                # NOTE - this resets self.mol from self.mol.newCoords[0][-1]
+                # TODO: more logging/put these coords elsewhere for ref.
+                self.setPDfromGamess()
+
+                # Propagate attrs for debug
+                for attr in prop:
+                    setattr(self.mol, attr, getattr(self.previousMol, attr))
+
+                # Propagate errors - this just duplicates code in parse_gamout() wrapper below.
+                for k,item in self.mol.errorDict.items():
+                    self.mol.SetProp(k, item['matches'])
+                                
     
-            # Propagate attrs for debug
-            for attr in prop:
-                setattr(self.mol, attr, getattr(self.previousMol, attr))
-                
-            # Propagate errors - this just duplicates code in parse_gamout() wrapper below.
-            for k,item in self.mol.errorDict.items():
-                self.mol.SetProp(k, item['matches'])
+                # Push self.E back to new mol object.
+                if self.E is not None:
+                    self.mol.SetProp('total_energy',self.E)
                     
+            except IndexError as e: 
+#                 if e.message is "list index out of range":
+                print("Gamess run failed, check output file for details.")
     
-            # Push self.E back to new mol object.
-            if self.E is not None:
-                self.mol.SetProp('total_energy',self.E)
+
             
 
         # Tidy up
