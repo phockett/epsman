@@ -1528,20 +1528,38 @@ class gamessInput(Gamess):
         # Allow manual override for RDkit mol object - handy for custom coord cases
         # This assumes self.molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}
         if self.molOverride is not None:
-            for N, atom in self.molOverride.items():
-                if N in atomList:
-                    section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom['name'], atom['Z'], *atom['coords'])
+            # This works, but doesn't allow for changes in ordering
+#             for N, atom in self.molOverride.items():
+#                 if N in atomList:
+#                     section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom['name'], atom['Z'], *atom['coords'])
 
-
+            # 17/01/24 Ugly, but forces ordering from atomList - should be able to preset (Nmol, atom) to avoid extra loops here.
+            for N in atomList:
+                for Nmol, atom in self.molOverride.items():
+                    if N == Nmol:
+                        print(f"molOverride, adding (N,Nmol): {N},{Nmol}")
+                        section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom['name'], atom['Z'], *atom['coords'])
+                        
         else:
             # self.contrl['icharg'] = mol.GetFormalCharge()
             conf = mol.GetConformer(0)
-            for atom in mol.GetAtoms():
-                N = atom.GetIdx()
-                pos = conf.GetAtomPosition(N)
+            
+            # This works, but doesn't allow for changes in ordering
+#             for atom in mol.GetAtoms():
+#                 N = atom.GetIdx()
+#                 pos = conf.GetAtomPosition(N)
 
-                if N in atomList:
-                    section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
+#                 if N in atomList:
+#                     section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
+
+            # 17/01/24 Ugly, but forces ordering from atomList - should be able to preset (Nmol, atom) to avoid extra loops here.
+            for N in atomList:
+                for atom in mol.GetAtoms():
+                    Nmol = atom.GetIdx()
+                    pos = conf.GetAtomPosition(N)
+
+                    if Nmol == N:
+                        section += "{:<3} {:>4}.0   {:> 15.10f} {:> 15.10f} {: 15.10f} \n".format(atom.GetSymbol(), atom.GetAtomicNum(), pos.x, pos.y, pos.z)
 
         return section
 
