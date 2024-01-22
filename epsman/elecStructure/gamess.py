@@ -33,6 +33,10 @@ import re
 import io
 from copy import deepcopy
 
+# For head/tail functionality
+from collections import deque
+from itertools import islice
+
 from pathlib import Path
 import os
 
@@ -1000,7 +1004,7 @@ class ESgamess():
         # Round coords and fix -ve 0 issues
         newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = decimals, updateCoords = False)
         
-        if self.verbose > 1:
+        if self.__notebook__ and (self.verbose > 1):
             print("Updated coords from Gamess run:")
             display(newCoords)
         
@@ -1446,13 +1450,24 @@ class ESgamess():
                     setattr(self.mol, attr, getattr(self.previousMol, attr))
 
                 # Propagate errors - this just duplicates code in parse_gamout() wrapper below.
+                # Also check for significant warnings and print general message (specfics already from parse_gamout() log).
+                warnFlag = 0
                 for k,item in self.mol.errorDict.items():
                     self.mol.SetProp(k, item['matches'])
+                    
+                    if item['warnFlag']:
+                        warnFlag = 1
+                        
+                if warnFlag:
+                    print("*** WARNINGS FOUND IN GAMESS OUTPUT, values for E and molecular coords may reflect input molecule if run did not complete.")
                                 
     
                 # Push self.E back to new mol object.
                 if self.E is not None:
                     self.mol.SetProp('total_energy',self.E)
+                    
+                # Warn if errors
+#                 for k in errorDict[k]['warnFlag']
                     
             except IndexError as e: 
 #                 if e.message is "list index out of range":
@@ -1473,12 +1488,57 @@ class ESgamess():
             self.gout = self.g.gamout
 
 
-    def printGamess(self):
-        """Print full Gamess output."""
+    def head(self, lines=10):
+        """
+        Print head of Gamess file.
+        
+        Pass integer for number of lines, default lines=10
+        """
+        
+        self.printGamess(head=lines)
+ 
+    def tail(self, lines=20):
+        """
+        Print head of Gamess file.
+        
+        Pass integer for number of lines, default lines=20
+        """
+        
+        self.printGamess(tail=lines)
+        
+            
+    def printGamess(self, tail = None, head = None):
+        """
+        Print Gamess output.
+        
+        Default case prints full output file.
+        
+        Pass "head=N" or "tail=N" for N head or end lines only.
+        
+        self.head() and self.tail() are shortcuts for this
+        
+        """
 
         try:
             with open(self.gout, 'r') as f:
-                print(f.read())
+                
+                print(f"*** Contents from file {self.gout}.")
+                
+                # 22/01/24 - added head and tail options here.
+                # Code from https://stackoverflow.com/a/5896320, thanks to Sven Marnach (https://stackoverflow.com/users/279627/sven-marnach)
+                if head is not None:
+                    print(f"Showing {head} header lines.")
+                    for line in islice(f, head):
+                        print(line.strip('\n'))
+                
+                elif tail is not None:
+                    print(f"Showing {tail} tail lines.")
+                    for line in deque(f, maxlen=tail):
+                        print(line.strip('\n'))
+                
+                # Print full file
+                else:
+                    print(f.read())
 
         except FileNotFoundError as err:
             print(f"Error: Missing file {self.gout}")
