@@ -967,7 +967,7 @@ class ESgamess():
             
         newCoods : str or None, default = None
             Pass newCoords as a string set from a Gamess output file.
-            Use self.mol.newCoords[0][-1] if None.
+            Use self.mol.newCoords[-1][-1] if None.
             
             Format is rows with 
             'ATOM   CHARGE       X              Y              Z'
@@ -1460,8 +1460,20 @@ class ESgamess():
                         
                 if warnFlag:
                     print("*** WARNINGS FOUND IN GAMESS OUTPUT, values for E and molecular coords may reflect input molecule if run did not complete.")
-                                
     
+                # Set table for geom iterations - just reformats self.mol.newCoords
+                # Added 22/01/24, note PD only.
+                if pdFlag:
+                    coordList = io.StringIO('\n'.join([coords[-1] for coords in self.mol.newCoords]))
+                    pdTest = pd.read_csv(coordList, header=None, names = ['Species','Atomic Num.','x','y','z'], delim_whitespace=True)
+                    pdTest.index = pd.MultiIndex.from_product([range(0, len(self.mol.newCoords)),range(0, len(self.atomsDict['table']))], names=['Geom iter','Atom index'])
+                    
+                    self.geomOpt = pdTest
+                    
+                    if self.verbose:
+                        print("Set geom opt coord outputs to self.geomOpt.")
+                
+            
                 # Push self.E back to new mol object.
                 if self.E is not None:
                     self.mol.SetProp('total_energy',self.E)
