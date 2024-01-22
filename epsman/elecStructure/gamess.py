@@ -803,7 +803,8 @@ class ESgamess():
             print(note)
 
 
-    def setTable(self, atomsDict = None, refKey = None, returnTable = False):
+    def setTable(self, atomsDict = None, refKey = None, returnTable = False, 
+                 roundCoords = True, decimals = 4):
         """
         Set PD table from atomsDict.
         
@@ -811,6 +812,9 @@ class ESgamess():
         
         12/12/23 - extended for ref case and optional return.
         May duplicate code elsewhere now.
+        
+        22/01/24 - added rounding options, otherwise these are overwritten/lost on run.
+        
         """
     
         if atomsDict is None:
@@ -822,6 +826,10 @@ class ESgamess():
     
         pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])
         
+        if roundCoords:
+            # use roundCoods, set updateCoords = False to prevent circular logic here.
+            pdTable = self.roundCoords(pdTable = pdTable, decimals = decimals, updateCoords = False)
+        
         if returnTable:
             return pdTable
         else:
@@ -831,7 +839,7 @@ class ESgamess():
                 self.refDict[refKey]['pd'] = pdTable
     
             
-    def printTable(self, refKey = None):
+    def printTable(self, refKey = None, roundCoords = True, decimals = 4):
         """
         Show pretty table using Pandas (use printCoords() for simple version), and also set to `self.pdTable`.
 
@@ -877,7 +885,7 @@ class ESgamess():
         # Note pdFlag now set at module load.
         if pdFlag:
 #             pdTable = pd.DataFrame(atomsDict['table'], columns=atomsDict['items'])  # Nov 2023 debugged, now "atomsDict"
-            pdTable = self.setTable(atomsDict, returnTable=True)
+            pdTable = self.setTable(atomsDict, returnTable=True, roundCoords = roundCoords, decimals = decimals)
 
             if self.__notebook__ and self.verbose:
                 display(pdTable)
@@ -943,7 +951,8 @@ class ESgamess():
         
 
     def setPDfromGamess(self, refKey = None, newCoords = None, 
-                        updateMol = True, printXYZ = False):
+                        updateMol = True, printXYZ = False,
+                        decimals = 4):
         """
         Generate Pandas table from Gamess coord output.
         
@@ -963,9 +972,15 @@ class ESgamess():
             
             This is parsed using pd.read_csv(), so exact column spacing doesn't matter.
   
-        updateMol: bool, default = True
+        updateMol : bool, default = True
             Push updated mol object to self.mol if true (uses self.molFromXYZ()).
             Otherwise new coords are only set to self.pdTable or self.refDict[refKey]['pd']
+            
+        printXYZ : bool, default = False
+            Print output from self.genXYZ (useful for debugging).
+            
+        decimals : int, default = 4
+            Decimal places setting for self.roundCoords().
         
 
         """
@@ -978,7 +993,7 @@ class ESgamess():
         readCSVtable.insert(0, 'Ind', readCSVtable.index)  # Add index column
         
         # Round coords and fix -ve 0 issues
-        newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = 4, updateCoords = False)
+        newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = decimals, updateCoords = False)
         
         if refKey is None:
             self.pdTable = newCoords
@@ -1014,7 +1029,9 @@ class ESgamess():
                 self.previousMol = deepcopy(self.mol)  # Backup existing mol object for reference
                 self.xyz = self.xyzStr
                 
-            self.molFromXYZ()
+            self.molFromXYZ()  # Note this updates RDkit object at self.mol only.
+#            self.setTable(decimals = decimals)    # Update self.pdTable
+#             self.roundCoords(decimals = decimals, updateCoords = True)  # Round new coords again
             self.printTable()
             
  
