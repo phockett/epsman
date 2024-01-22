@@ -982,6 +982,12 @@ class ESgamess():
         
         if refKey is None:
             self.pdTable = newCoords
+#             self.printTable()   # 17/01/24 - in debugging this ONLY WORKS for updateMol case if this call is present - BAD CIRCULAR logic somewhere.
+                                  # Possibly issue with deepcopy below?
+            self.setTable()  # 22/01/24 - try this instead? OK.
+                             # Issue is likely that self.getAtoms() needs to run to update conformer and self.atomsDict prior to updateMol code below? TBC.
+                             # Although code below should only need self.pdTable set? As of Dec. 2023 should be able to just use setCoords() instead here?
+    
         else:
             if refKey in self.refDict.keys():
                 self.refDict[refKey]['pd'] = newCoords
@@ -1401,7 +1407,11 @@ class ESgamess():
                 # Set via method.
                 # NOTE - this resets self.mol from self.mol.newCoords[0][-1]
                 # TODO: more logging/put these coords elsewhere for ref.
-                self.setPDfromGamess()
+#                 self.setPDfromGamess()
+
+                # TESTING 17/01/24 - above not working, might be issue with object duplication and/or coord ordering?
+                # Try this instead...
+                self.setPDfromGamess(newCoords = self.mol.newCoords[-1][-1])
 
                 # Propagate attrs for debug
                 for attr in prop:
