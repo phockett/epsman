@@ -985,8 +985,13 @@ class ESgamess():
 
         """
         
-        # Use string IO for pd.read_csv
-        output = io.StringIO(self.mol.newCoords[0][-1])
+        if newCoords is None:
+            # Use string IO for pd.read_csv
+            output = io.StringIO(self.mol.newCoords[-1][-1])
+            
+        else:
+            output = io.StringIO(newCoords)
+        
         # pd.read_fwf(output,widths = [2,7,7,20,20,20], header=None)
         readCSVtable = pd.read_csv(output, header=None, names = ['Species','Atomic Num.','x','y','z'], delim_whitespace=True)    #delimiter = '\t')
         readCSVtable['Atomic Num.'] = readCSVtable['Atomic Num.'].astype('int64')  # Fix float > int.
@@ -995,13 +1000,18 @@ class ESgamess():
         # Round coords and fix -ve 0 issues
         newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = decimals, updateCoords = False)
         
+        if self.verbose > 1:
+            print("Updated coords from Gamess run:")
+            display(newCoords)
+        
         if refKey is None:
             self.pdTable = newCoords
 #             self.printTable()   # 17/01/24 - in debugging this ONLY WORKS for updateMol case if this call is present - BAD CIRCULAR logic somewhere.
                                   # Possibly issue with deepcopy below?
-            self.setTable()  # 22/01/24 - try this instead? OK.
+#             self.setTable()  # 22/01/24 - try this instead? OK.
                              # Issue is likely that self.getAtoms() needs to run to update conformer and self.atomsDict prior to updateMol code below? TBC.
                              # Although code below should only need self.pdTable set? As of Dec. 2023 should be able to just use setCoords() instead here?
+                            # 22/01/24 FINAL UPDATE HOPEFULLY: acutally looks like issue was with io.StringIO(self.mol.newCoords[0][-1]) above. Hopefully now fixed.
     
         else:
             if refKey in self.refDict.keys():
@@ -1428,6 +1438,7 @@ class ESgamess():
 
                 # TESTING 17/01/24 - above not working, might be issue with object duplication and/or coord ordering?
                 # Try this instead...
+                # TODO: add updatedMol = False for cases with errors? Currently this runs, but just sets to existing coords, as per energy case.
                 self.setPDfromGamess(newCoords = self.mol.newCoords[-1][-1])
 
                 # Propagate attrs for debug
