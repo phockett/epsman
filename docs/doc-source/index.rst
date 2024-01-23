@@ -29,6 +29,7 @@ Welcome to ePSman - job management tools for ePolyScat
    :caption: ESgamess class demos 2024:
    
    demos/ESgamess_class_demo_221123-tidy
+   demos/ESgamess_class_demo_symmetry_011223-tidy
 
 
 .. toctree::
