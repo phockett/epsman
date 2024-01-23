@@ -24,6 +24,12 @@ Welcome to ePSman - job management tools for ePolyScat
    demos/epsman_ESjob-class_demo_120222
    demos/epsman_ESjob-class_demo_connection_pt2_120222
 
+.. toctree::
+   :maxdepth: 2
+   :caption: ESgamess class demos 2024:
+   
+   demos/ESgamess_class_demo_221123-tidy
+
 
 .. toctree::
    :maxdepth: 4
