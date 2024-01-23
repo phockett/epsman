@@ -25,6 +25,19 @@ Aims here:
 - Added genXYZ() for XYZ string creation.
 - Added molFromXYZ() for XYZ molecule generation.
 
+Dec 2023, Jan 2024 updates
+
+- Debugged geom opt case.
+- Added some additional geom opt outputs and warnings parsing.
+- For list see https://github.com/phockett/epsman/commits/restructure160221/
+
+TODO:
+
+- Add coord sorting? E.g. testDL.pdTable.sort_values('z')
+    - Gamess needs z=0 atom set first? (TBC, but definitely required for CO2 with symmetry test case).
+    - Sorting PD table will not reset molecule, so will need to wrap this back if required to be permanent.
+    - Maybe cleaner just to leave as-is, with "atomList" manual selector for difficult cases?
+    
 """
 
 from pygamess import Gamess
@@ -956,7 +969,7 @@ class ESgamess():
 
     def setPDfromGamess(self, refKey = None, newCoords = None, 
                         updateMol = True, printXYZ = False,
-                        decimals = 4):
+                        decimals = 4, geomOpt = False):
         """
         Generate Pandas table from Gamess coord output.
         
@@ -985,6 +998,12 @@ class ESgamess():
             
         decimals : int, default = 4
             Decimal places setting for self.roundCoords().
+            
+        geomOpt : bool, default = False
+            If True, assume that input contains multiple sets of coords from geometry optimization.
+            In this case, set an additional multi-index for the output, including all geometries.
+            Set to self.refDict[refKey]['pd'] if refKey is passed, otherwise default to self.geomOpt.
+            Note that updateMol section is **always** skipped in this case.
         
 
         """
@@ -1004,12 +1023,20 @@ class ESgamess():
         # Round coords and fix -ve 0 issues
         newCoords = self.roundCoords(pdTable = readCSVtable,  decimals = decimals, updateCoords = False)
         
+        # GeomOpt case additions
+        if geomOpt:
+            newCoords.index = pd.MultiIndex.from_product([range(0, len(self.mol.newCoords)),range(0, len(self.atomsDict['table']))], names=['Geom iter','Atom index'])
+        
         if self.__notebook__ and (self.verbose > 1):
             print("Updated coords from Gamess run:")
             display(newCoords)
         
         if refKey is None:
-            self.pdTable = newCoords
+            if geomOpt:
+                self.geomOpt = newCoords
+            else:
+                self.pdTable = newCoords
+                
 #             self.printTable()   # 17/01/24 - in debugging this ONLY WORKS for updateMol case if this call is present - BAD CIRCULAR logic somewhere.
                                   # Possibly issue with deepcopy below?
 #             self.setTable()  # 22/01/24 - try this instead? OK.
@@ -1028,7 +1055,7 @@ class ESgamess():
         # If so, generate XYZ representation then overwrite.
         # This should be robust even if atom ordering changes.
         # (Which is not the case for setCoords() )
-        if updateMol:
+        if updateMol and (not geomOpt):
             if self.verbose:
                 print(f"Updating with new coords, output set to {'self.mol' if refKey is None else f'self.refDict[{refKey}]'}")
                       
@@ -1426,8 +1453,9 @@ class ESgamess():
 #             self.xyz = self.mol.newCoords[0][-1]  # Using this directly fails, format is not correct
 #             self.molFromXYZ()
 
-            print("*** Gamess optimization run - reseting self.mol with updated coords.")
+            print("\n*** Gamess optimization run - reseting self.mol with updated coords.")
             print("Note that atom ordering may change depending on Gamess output.")
+            print(f"Found {len(self.mol.newCoords)} geometry iterations in Gamess output.")
 
         # 16/01/23: added try/except here, to avoid issues when Gamess run fails with no coords set.
         # TODO: parse "*** ERROR(S) DETECTED ***" section in Gamess file in this case (tail of file). Maybe a printTail() function for this?
@@ -1462,16 +1490,22 @@ class ESgamess():
                     print("*** WARNINGS FOUND IN GAMESS OUTPUT, values for E and molecular coords may reflect input molecule if run did not complete.")
     
                 # Set table for geom iterations - just reformats self.mol.newCoords
-                # Added 22/01/24, note PD only.
-                if pdFlag:
-                    coordList = io.StringIO('\n'.join([coords[-1] for coords in self.mol.newCoords]))
-                    pdTest = pd.read_csv(coordList, header=None, names = ['Species','Atomic Num.','x','y','z'], delim_whitespace=True)
-                    pdTest.index = pd.MultiIndex.from_product([range(0, len(self.mol.newCoords)),range(0, len(self.atomsDict['table']))], names=['Geom iter','Atom index'])
+                # Added 22/01/24, note PD only, also quite ugly, just repurposed existing parsing code from setPDfromGamess() + multi-index.
+#                 if pdFlag:
+#                     coordList = io.StringIO('\n'.join([coords[-1] for coords in self.mol.newCoords]))
+#                     pdTest = pd.read_csv(coordList, header=None, names = ['Species','Atomic Num.','x','y','z'], delim_whitespace=True)
+#                     pdTest.index = pd.MultiIndex.from_product([range(0, len(self.mol.newCoords)),range(0, len(self.atomsDict['table']))], names=['Geom iter','Atom index'])
                     
-                    self.geomOpt = pdTest
+#                     self.geomOpt = pdTest
                     
-                    if self.verbose:
-                        print("Set geom opt coord outputs to self.geomOpt.")
+#                     if self.verbose:
+#                         print("Set geom opt coord outputs to self.geomOpt.")
+
+                # Version using setPDfromGamess()
+                coordList = '\n'.join([coords[-1] for coords in self.mol.newCoords])  # Concat all coord strings from file.
+                self.setPDfromGamess(newCoords = coordList, geomOpt=True)
+                if self.verbose:
+                    print("Set geom opt coord outputs to self.geomOpt.")
                 
             
                 # Push self.E back to new mol object.
