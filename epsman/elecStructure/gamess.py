@@ -1534,14 +1534,16 @@ class ESgamess():
             self.gout = self.g.gamout
 
 
-    def head(self, lines=10):
+    def head(self, lines=10, skip=80):
         """
         Print head of Gamess file.
         
-        Pass integer for number of lines, default lines=10
+        Pass integer for number of lines, default lines=10, 
+        Skip header lines can also be set, default skips standard Gamess header with skip=80
         """
         
-        self.printGamess(head=lines)
+        self.printGamess(head=lines, skip=skip)
+        
  
     def tail(self, lines=20):
         """
@@ -1553,7 +1555,7 @@ class ESgamess():
         self.printGamess(tail=lines)
         
             
-    def printGamess(self, tail = None, head = None):
+    def printGamess(self, tail = None, head = None, skip = 0):
         """
         Print Gamess output.
         
@@ -1572,9 +1574,10 @@ class ESgamess():
                 
                 # 22/01/24 - added head and tail options here.
                 # Code from https://stackoverflow.com/a/5896320, thanks to Sven Marnach (https://stackoverflow.com/users/279627/sven-marnach)
+                # Also added 'skip' option for header, skip=80 skips standard Gamess header info.
                 if head is not None:
-                    print(f"Showing {head} header lines.")
-                    for line in islice(f, head):
+                    print(f"Showing {head} header lines, starting from line {skip}.")
+                    for line in islice(f, skip, head+skip):
                         print(line.strip('\n'))
                 
                 elif tail is not None:
