@@ -556,9 +556,9 @@ def syncFilesDict(self, fileKey, pushPrompt = True, **kwargs):
 
 #****** ATTRIBUTE METHODS
 
-def setAttributesFromDict(self, itemsDict, overwriteFlag = False):
+def setAttributesFromDict(self, itemsDict, overwriteFlag = False, printFlag = True):
 
-    [self.setAttribute(k, v, overwriteFlag = overwriteFlag) for k,v in itemsDict.items() if (k is not 'self') and (k is not 'overwriteFlag')]
+    [self.setAttribute(k, v, overwriteFlag = overwriteFlag, printFlag = printFlag) for k,v in itemsDict.items() if (k is not 'self') and (k is not 'overwriteFlag')]
 
 
 

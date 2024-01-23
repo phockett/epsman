@@ -121,7 +121,7 @@ class ESgamess():
 
     """
 
-    from epsman._util import setAttribute, checkLocalFiles
+    from epsman._util import setAttribute, setAttributesFromDict, checkLocalFiles
 
     __notebook__ = isnotebook()
 
@@ -155,6 +155,7 @@ class ESgamess():
         # Additional vars for Gamess job
         # Set default to None to allow easy overwrite later... or set to 'Default' and 'C1' for always running config?
         # Issue is as usual - when should these be set to defaults, and should they always be overwritten by new input by default?
+        # TODO: consolidate with self.params['extra'] - currently using both (Dec 2023)
         self.setAttribute('job', job)
         self.setAttribute('sym', sym)
         self.setAttribute('atomList', atomList)
@@ -821,11 +822,13 @@ class ESgamess():
 
 
     def setTable(self, atomsDict = None, refKey = None, returnTable = False, 
-                 roundCoords = True, decimals = 4):
+                 roundCoords = True, decimals = None):
         """
         Set PD table from atomsDict.
         
         If atomsDict = None, set using self.getAtoms()
+        
+        If decimals = None, set using self.precision (if roundCoords=True)
         
         12/12/23 - extended for ref case and optional return.
         May duplicate code elsewhere now.
@@ -856,7 +859,7 @@ class ESgamess():
                 self.refDict[refKey]['pd'] = pdTable
     
             
-    def printTable(self, refKey = None, roundCoords = True, decimals = 4):
+    def printTable(self, refKey = None, roundCoords = True, decimals = None):
         """
         Show pretty table using Pandas (use printCoords() for simple version), and also set to `self.pdTable`.
 
@@ -969,7 +972,7 @@ class ESgamess():
 
     def setPDfromGamess(self, refKey = None, newCoords = None, 
                         updateMol = True, printXYZ = False,
-                        decimals = 4, geomOpt = False):
+                        decimals = None, geomOpt = False):
         """
         Generate Pandas table from Gamess coord output.
         
@@ -996,8 +999,9 @@ class ESgamess():
         printXYZ : bool, default = False
             Print output from self.genXYZ (useful for debugging).
             
-        decimals : int, default = 4
+        decimals : int, default = None
             Decimal places setting for self.roundCoords().
+            If None, roundCoords routine will use setting from `self.precision`.
             
         geomOpt : bool, default = False
             If True, assume that input contains multiple sets of coords from geometry optimization.
@@ -1076,14 +1080,29 @@ class ESgamess():
             self.printTable()
             
  
-    def roundCoords(self, pdTable = None, decimals = 4, updateCoords = False, **kwargs):
+    def roundCoords(self, pdTable = None, decimals = None, updateCoords = False, **kwargs):
         """
         Round PD table of coords to specified d.p. and tidy up (-0.00 cases).
         
-        Pass pdTable, or None to use self.pdTable.
-        Pass updateCoods = True to run self.setCoords(coords = newCoords,**kwargs)
+        Parameters
+        ----------
+        
+        pdTable : optional, default = None
+            Pass Pandas dataframe for rounding, or None to use self.pdTable.
+        
+        decimals : optional, default = None
+            Set rounding precision (decimal places).
+            Use self.precision if None.
+        
+        updateCoords : optional, default = False
+            Pass updateCoods = True to run self.setCoords(coords = newCoords,**kwargs)
+            (In this case coords are set in base self.mol RDkit object, otherwise only PD table is affected by rounding.)
+            
         """
 
+        if decimals is None:
+            decimals = self.precision
+        
         # Round coords
         if pdTable is None:
             newCoords = self.pdTable.round(decimals = decimals)
@@ -1173,7 +1192,8 @@ class ESgamess():
 
         if job is None:
             # job = f'{self.name}, {self.g.options['basis']['gbasis']}'
-            job = self.name
+#             job = self.name
+            job = self.job
 
         if note is None:
             note = f"{job}, {self.g.options['basis']['gbasis']}"
@@ -1193,7 +1213,13 @@ class ESgamess():
         # print(self.gCard[job])
 
         # Set extras
-        self.g.setExtras(note, sym, atomList, overwriteFlag = True)
+        overwriteFlag = True
+        self.g.setExtras(note, sym, atomList, overwriteFlag = overwriteFlag)
+        
+        # Push back to base class objects, this ensures they're used correctly on rerun
+        self.setAttribute('job', job, overwriteFlag)
+        self.setAttribute('sym', sym, overwriteFlag)
+        self.setAttribute('atomList', atomList, overwriteFlag)
 
         if self.verbose:
             self.printGamessInput()
@@ -1202,7 +1228,7 @@ class ESgamess():
     def printGamessInput(self):
         """Show current Gamess input card."""
         # print("*** Set Gamess job, use self.params to modify options.\n")
-        print("*** Gamess input card:")
+        print("\n*** Gamess input card:")
         print(self.g.input(self.mol))  #, job = note, sym = sym))
 
     # def runOpt(self, fileOut = None):
@@ -1327,6 +1353,7 @@ class ESgamess():
             print(f"self.params['basis']: {self.params['basis']}")
         
         
+        
     def setParam(self, inputGroup='contrl', inputDict={}, 
                  resetGroup=False, removeGroup=False):
         """ 
@@ -1376,6 +1403,22 @@ class ESgamess():
             self.params[inputGroup] = inputDict
             
         print(f"Updated group '{inputGroup}': {self.params[inputGroup]}")
+        
+        # For extras, also push back to main class (LEGACY SETTINGS), and update self.g version
+        # TODO: tidy this up, shouldn't have multiple copies of same params!
+        if inputGroup == 'extra':
+            print("\n*** Found 'extra' job settings, updating local params and running setGamess()...")
+            
+            # Update self.keys
+            # self.setAttributesFromDict(inputDict, overwriteFlag=True)
+
+            # And push to self.g.options...
+            # self.g.setExtras(note, sym, atomList, overwriteFlag = overwriteFlag)
+
+            # Actually, this might be better - update self.keys, then rerun setGamess
+            # TO TEST - may only want to run for specific keys as above case?
+            self.setAttributesFromDict(self.params[inputGroup], overwriteFlag=True, printFlag = False)
+            self.setGamess()
             
 
     
