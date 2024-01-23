@@ -363,7 +363,12 @@ class ESgamess():
                     # Without this can get multiple separate molecules with H added
                     conn_mol = Chem.Mol(molXYZ)
                     Chem.rdDetermineBonds.DetermineConnectivity(conn_mol)
-                    Chem.rdDetermineBonds.DetermineConnectivity
+#                     Chem.rdDetermineBonds.DetermineConnectivity
+
+                    # 23/01/24 Currently setBondLengths is borked, need more massaging here?
+                    Chem.rdDetermineBonds.DetermineBonds(conn_mol,charge=0)
+                    Chem.RemoveHs(conn_mol)
+                    Chem.SanitizeMol(conn_mol)  # For "RingInfo not initialized" error, see https://github.com/rdkit/rdkit/issues/3708
 
                     # Set output
                     self.mol = conn_mol
