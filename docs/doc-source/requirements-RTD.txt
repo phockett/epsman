@@ -40,3 +40,6 @@ pygments >= 2.4.1
 
 # Additional themes for Sphinx/RTD
 sphinx-book-theme
+
+# 24/01/24 - additions for RTD changes
+recommonmark
