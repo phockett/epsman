@@ -366,6 +366,7 @@ class ESgamess():
 #                     Chem.rdDetermineBonds.DetermineConnectivity
 
                     # 23/01/24 Currently setBondLengths is borked, need more massaging here?
+                    # UPDATE: yes, this seems to fix the issues 
                     Chem.rdDetermineBonds.DetermineBonds(conn_mol,charge=0)
                     Chem.RemoveHs(conn_mol)
                     Chem.SanitizeMol(conn_mol)  # For "RingInfo not initialized" error, see https://github.com/rdkit/rdkit/issues/3708
@@ -1102,7 +1103,17 @@ class ESgamess():
         updateCoords : optional, default = False
             Pass updateCoods = True to run self.setCoords(coords = newCoords,**kwargs)
             (In this case coords are set in base self.mol RDkit object, otherwise only PD table is affected by rounding.)
+            If False, return newCoords.
             
+        **kwargs : optional
+            Passed as self.setCoords(coords = newCoords,**kwargs) if updateCoords = True
+        
+        Returns
+        -------
+        Pandas dataframe of new coordinates if updateCoords = False
+        
+        Nothing if updateCoords = True, but updates self.mol and self.pdTable.
+        
         """
 
         if decimals is None:
@@ -1123,7 +1134,51 @@ class ESgamess():
             
         else:
             return newCoords
-
+        
+        
+    def sortCoords(self, pdTable = None, sortCol = 'z', 
+                   ascending = False, ignore_index = True,
+                   updateCoords = False, **kwargs):
+        """
+        Sort PD table of coords by a specific column.
+        
+        Default case will sort by descending z coord values.
+        
+        Parameters
+        ----------
+        pdTable : optional, default = None
+            Pass Pandas dataframe for rounding, or None to use self.pdTable.
+        
+        sortCol : str, optional, default = 'z'
+            Column to use as sort values.
+        
+        ascending : bool, optional, default = False
+            Set ascending or decending sort.
+            
+        updateCoords : bool, optional, default = False
+            Update self.mol and self.pdTable if True.
+            If False, return new PD table instead.
+            
+        ignore_index : bool, optional, default = True
+            Reset dataframe index if True.
+        
+        
+        """
+        
+        # Round coords
+        if pdTable is None:
+            newCoords = self.pdTable.sort_values(sortCol, ascending=ascending, ignore_index = ignore_index)
+        else:
+            newCoords = pdTable.sort_values(sortCol, ascending=ascending, ignore_index = ignore_index)
+            
+        if updateCoords:
+            # Update main coord set
+#             self.setCoords(coords = newCoords,**kwargs)
+            print("*** updateCoords todo - self.setCoords() fails if atom ordering changes, need to use XYZ method as per setPDfromGamess() method.")
+            
+        else:
+            return newCoords 
+        
         
 #***** GAMESS SETUP ROUTINES
 
