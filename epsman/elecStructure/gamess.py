@@ -658,7 +658,7 @@ class ESgamess():
             self.printTable()
 
 
-    def rotateFrame(self, rotations = {'y':np.pi/2}, canonicalise=True, 
+    def rotateFrame(self, rotations = {'y':-np.pi/2}, canonicalise=True, 
                     roundCoords = True, decimals = None):
         """
         Rotate molecule to reference frame, using rotation matricies + AllChem.TransformConformer() functionality.
@@ -669,7 +669,7 @@ class ESgamess():
 
         Parameters
         ----------
-        rotations : dict, default = {'y':np.pi/2}
+        rotations : dict, default = {'y':-np.pi/2}
             Supply rotations as a dict, with rotations about labelled axes.
             Rotations will be applied sequentially.
             E.g. {'x':np.pi/2, 'y':np.pi/2} will rotate by pi/2 about x-axis then pi/2 about (new) y-axis.
@@ -694,7 +694,8 @@ class ESgamess():
 
         - Canoncial form sets x-axis as highest sym axis, see https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#module-rdkit.Chem.rdMolTransforms
         - Then rotate x > z axis, to match Gamess/comp chem conventions.
-
+        - 24/01/24: switched default case to -pi/2, this should put +z coords first, which Gamess prefers.
+        
         """
 
         # Canonicalise? This sets x-axis as highest sym axis, see https://rdkit.org/docs/source/rdkit.Chem.rdMolTransforms.html#module-rdkit.Chem.rdMolTransforms
