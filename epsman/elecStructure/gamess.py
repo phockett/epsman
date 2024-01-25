@@ -141,7 +141,7 @@ class ESgamess():
         self.setAttribute('name', searchName)
         self.setAttribute('smiles', smiles)
         self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
-        self.setAttribute('pdTable',pd, printFlag=False)
+        self.setAttribute('pd',pd, printFlag=False)
         self.setAttribute('xyz',xyz, printFlag=False)  # Skip printing in this case!
 
         # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
@@ -395,13 +395,14 @@ class ESgamess():
             Basically as per setPDfromGramess: use genXYZ() to convert input table, then run molFromXYZ().
             """
 
-            
-            self.genXYZ(refKey=None, printXYZ = False)
-            self.xyz = self.xyzStr
+            if self.pd is not None:
+                self.pdTable = self.pd
+                self.genXYZ(refKey=None, printXYZ = False)
+                self.xyz = self.xyzStr
 
-            # This should be sufficient for init case, otherwise may need to call molFrom XYZ 
-            
-            self.molFromXYZ()
+                # This should be sufficient for init case, otherwise may need to call molFrom XYZ 
+
+                self.molFromXYZ()
             
 
     def mol_with_atom_index(self):
