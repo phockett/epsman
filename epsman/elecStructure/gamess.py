@@ -27,6 +27,7 @@ Aims here:
 
 Dec 2023, Jan 2024 updates
 
+- Added molFromPD() to allow molecule creation from a pdTable of atoms.
 - Debugged geom opt case.
 - Added some additional geom opt outputs and warnings parsing.
 - For list see https://github.com/phockett/epsman/commits/restructure160221/
@@ -105,6 +106,7 @@ class ESgamess():
 
     - molFromSmiles(), molFromFile(), for core RDkit molecule creation
     - molFromPubChem(), for PubChemPy molecule downloader
+    - molFromPD(), for init from Pandas dataframe representation
     - molFromXYZ(), for XYZ string or file molecule definition (requires RDkit > 2022.3)
 
 
@@ -126,7 +128,8 @@ class ESgamess():
     __notebook__ = isnotebook()
 
 
-    def __init__(self, searchName = None, smiles = None, molFile = None, xyz = None,
+    def __init__(self, searchName = None, smiles = None, molFile = None, 
+                    xyz = None, pd = None,
                     addH = False, molOverride = None,
                     job = None, sym = 'C1', atomList = None, verbose = 1,
                     precision = 6,
@@ -138,6 +141,7 @@ class ESgamess():
         self.setAttribute('name', searchName)
         self.setAttribute('smiles', smiles)
         self.setAttribute('molFile', molFile)   # Path(molFile))  # Don't force to Path here, errors if None.
+        self.setAttribute('pdTable',pd, printFlag=False)
         self.setAttribute('xyz',xyz, printFlag=False)  # Skip printing in this case!
 
         # molOverride is set as a dictionary of atoms, e.g. {0:{'name':'H', 'Z': 1, 'coords':[0.0, 0.0, 1.0]}, 1:{'name':'C', 'Z': 16, 'coords':[0.0, 0.0, 4.0]}}.
@@ -150,6 +154,7 @@ class ESgamess():
         self.molFromPubChem()
         self.molFromSmiles(addH = addH)
         self.molFromXYZ()
+        self.molFromPD()
 
 
         # Additional vars for Gamess job
@@ -318,7 +323,7 @@ class ESgamess():
 
         if readFlag:
             self.molFromFile()  # Try reading file
-
+        
 
     def molFromXYZ(self):
         """
@@ -381,8 +386,22 @@ class ESgamess():
             
         else:
             pass
+
+        
+    def molFromPD(self):
+            """
+            Create molecule from Pandas Dataframe representation
+
+            Basically as per setPDfromGramess: use genXYZ() to convert input table, then run molFromXYZ().
+            """
+
             
+            self.genXYZ(refKey=None, printXYZ = False)
+            self.xyz = self.xyzStr
+
+            # This should be sufficient for init case, otherwise may need to call molFrom XYZ 
             
+            self.molFromXYZ()
             
 
     def mol_with_atom_index(self):
