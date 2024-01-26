@@ -30,6 +30,7 @@ Welcome to ePSman - job management tools for ePolyScat
    
    demos/ESgamess_class_demo_221123-tidy
    demos/ESgamess_class_demo_symmetry_011223-tidy
+   demos/ESgamess_class_demo_geomScans_230124-tidy
 
 
 .. toctree::
