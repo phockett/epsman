@@ -63,10 +63,47 @@ class ESmulti():
         self.ESbase.setGamess(**kwargs)
 
 
-    def runGeomScan(self, positionsList = None, positionsDict = None, bondDict = None,
-                 use_rungms = False, fileBase = None, zeroFill=True):
+    def runGeomScan(self, positionsList = None, positionsDict = None,
+                    bondDict = None, keys = None,
+                    use_rungms = False, fileBase = None, zeroFill=True):
         """
         Set geometry & run Gamess calculation for a set of atom positions or bond length settings.
+        
+        Note either `positionsDict` or `bondDict` must be passed.
+        
+        Parameters
+        ----------
+        positionsList : NOT IMPLEMENTED
+        
+        positionsDict : optional, default = None
+            Dictionary of geometries to use, (x,y,z) form.
+            Format is as per self.setCoords(), i.e. `{name:{atomInd1:[x,y,z], atomInd2:[x,y,z]...}` (see https://epsman.readthedocs.io/en/latest/demos/ESgamess_class_demo_221123-tidy.html#Manual-coords).
+            Where "name" is an arbitrary key, and atomInds correspond to existing atoms in the system. Any atoms not specified will retain their current coords.
+            E.g. `coords={0:[0,0,0], 1:[0.7,0,1.0]}` will set positions for atoms 1 and 2.
+            
+        bondDict : optional, default = None
+            Dictionary of geometries to use, bond form.
+            Format is as per self.setBondLength(), i.e. `{'Name':{'a1':atomInd1,'a2':atomInd2,'l':bondLength}}` where `a1` and `a2` give the atom indices for atoms defining the bond, and "name" is an arbitrary key.
+            E.g. `{'set1':{'a1':0, 'a2':1, 'l':5}, 'set2':{'a1':1, 'a2':2, 'l':2}}`
+            
+        keys : optional, default = None
+            List of keys to use from `positionsDict` or `bondDict`.
+            If set, run for only this subset of geometries.
+           
+        use_rungms : optional, default = False
+            Run setting for Gamess wrapper.
+            (See https://epsman.readthedocs.io/en/latest/demos/ESgamess_class_demo_221123-tidy.html#pyGamess-wrapper.)
+            
+        fileBase : optional, default = None
+            Base file name stub for Gamess output files.
+            If not set, Gamess outputs will not be saved.
+            (See https://epsman.readthedocs.io/en/latest/demos/ESgamess_class_demo_221123-tidy.html#Gamess-full-output-and-log-files.)
+            
+        zeroFill : optional, default = True
+            If True, set Eout=np.nan for cases where Eout=0.
+            This generally indicates an unconverged Gamess calculation.
+            
+        
 
         Notes
         -----
@@ -84,12 +121,23 @@ class ESmulti():
 
         if positionsDict is not None:
             posFlag = True
-            geomDict = positionsDict
+            
+            if 'details' in positionsDict.keys():
+                # Set inputs from file scan, as set by util.readMoldenGeoms()
+                # In this case have both 'pd' and 'positionsDict' per item.
+                # Use presence of 'details' key to determine format here.
+                geomDict = {k:v['positionsDict'] for k,v in positionsDict.items() if k!='details'}
+            else:
+                geomDict = positionsDict
 
-        if bondDict is not None:
+        elif bondDict is not None:
             bondFlag = True
             geomDict = bondDict
 
+        else:
+            print("*** No geoms defined for scan: Either `positionsDict` or `bondDict` must be passed.")
+            return 0
+            
         # TODO: combined case with itertools?
 
         # Set output
@@ -97,6 +145,10 @@ class ESmulti():
         if fileBase is None:
             fileBase = '/tmp/geomScan'
 
+        # If a list of keys is set, subselect from full geomDict
+        if keys is not None:
+            geomDict = {k:v for k,v in geomDict.items() if k in keys}
+            
 
         #*** Loop over specified geometries
         self.geomScan = {}
@@ -172,6 +224,14 @@ class ESmulti():
     def plotE(self):
         """Plot E from bondscan (1D only) - very basic."""
         
-        plt.plot(self.geomScan['summary']['E'])
-        plt.xlabel("Bond setting")
-        plt.ylabel("E")
+        xaxis = list(self.geomScan['summary']['geom'].keys())
+        
+        plt.plot(xaxis,self.geomScan['summary']['E'],'x--')
+        plt.xlabel("Geom setting")
+        plt.ylabel("Eh")
+        plt.title("Geom scan E outputs")
+        
+        # For int case force axis ticks & labels
+        if type(xaxis[0]) is int:
+            plt.gca().axes.set_xticks(xaxis)
+            plt.gca().axes.set_xticklabels(xaxis)
