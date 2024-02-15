@@ -153,7 +153,9 @@ def convertSymsGamessePS(gamessPGDict, symDict = None, verbose = True):
 
     # Update with Gamess dim sizes for reference (== used dims)
     # May be easier to add above, but this form allows for additional columns later too
-    pdDims = pd.DataFrame(pd.Series(gamessPGDict['Dimensions'], name = 'GDims', dtype=int))
+    # pdDims = pd.DataFrame(pd.Series(gamessPGDict['Dimensions'], name = 'GDims', dtype=int))
+    # 12/02/24 - add explicit dtype cast, otherwise dtype issues in PD v1.5.3
+    pdDims = pd.DataFrame(pd.Series(gamessPGDict['Dimensions'], name = 'GDims').astype('Int64'))
     pdDims.index.name = 'Gamess'
     dimMapPD = dimMapPD.merge(pdDims, on = 'Gamess', how='outer')
 
