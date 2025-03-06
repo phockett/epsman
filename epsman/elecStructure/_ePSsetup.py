@@ -37,6 +37,52 @@ def setPG(self, PG = None):
         print(f"***Warning, point group {self.PG} not found in ePolyScat reference set, see https://epolyscat.droppages.com/SymmetryLabels for supported cases.")
 
 
+def setInitialState(self, occDict):
+    """
+    Set initial state in self.orbGrps.
+    
+    06/03/25: added for setting initial states. Basically duplicates setChannel() function, so some repetition here.
+    But use dict syntax for setting multiple cases.
+
+    Parameters
+    ----------
+    
+    occDict : dict
+        Specifies updated occs by channel, e.g. {8:1, 9:1} to set orbs 8 and 9 to single occupancy.
+        Orbs are indexed by 'iOrbGrp'.
+
+
+    """
+
+        
+    # Set original as GS if not already set
+    if 'OrbGrpOccGround' not in self.orbGrps.columns:
+        self.orbGrps['OrbGrpOccGround'] = self.orbGrps['OrbGrpOcc']
+        
+#     self.orbGrps['OrbGrpOccFinal'] = self.orbGrps['OrbGrpOcc']  # Update table with final state
+
+    for k,v in occDict.items():
+#         channelInd = 8
+        self.orbGrps.at[k, 'OrbGrpOcc'] = v
+
+#     if orbOcc is None:
+#         self.orbGrps.at[channelInd, 'OrbGrpOccFinal'] = self.orbGrps.at[channelInd, 'OrbGrpOccFinal'] - 1
+
+#     else:
+#         self.orbGrps.at[channelInd, 'OrbGrpOccFinal'] = orbOcc
+
+#     self.channel = self.orbGrps.loc[channelInd]  #  self.orbGrps.at[channelInd]  # Log ionizing channel for later
+
+    # Update occ state
+    self.orbGrps = self.orbGrps.assign(Occ=lambda x: x['OrbGrpOcc']>0)
+
+    if self.verbose:
+        print(f"*** Updated orbital occs. in self.orbGrps.")
+        print("Updated orb table...")
+        self.orbInfoSummary(showSummary=False, showFull=False, showGrouped=True)
+        
+        
+        
 def setChannel(self, channelInd, orbOcc = None):
     """
     Set ionizing channel (final state) in self.orbGrps, or reset orbOcc number.
