@@ -183,7 +183,9 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
 
 
 
-def setePSinputs(self, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
+def setePSinputs(self, Ssym = None, Csym = None, 
+                 InitSym = None, TargSym = None,
+                 symKey = 'ePS', **kwargs):
     """
     Create ePS input records from existing data (from electronic structure file).
 
@@ -196,6 +198,8 @@ def setePSinputs(self, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
     Also added 'symKey' option to define table from orbPD to use for symmetry labels, defaults to 'ePS' labels.
 
     Use **kwargs  to define any further global settings, passed to setePSglobals().
+    
+    Update 17/03/25: added `InitSym` and `TargSym` options, default = None (and will use defaults if so).
 
     -----------
 
@@ -281,9 +285,18 @@ def setePSinputs(self, Ssym = None, Csym = None, symKey = 'ePS', **kwargs):
 
     #*** Symmetries
     # For the moment guess some things from the orbitals, but should do this properly. https://trello.com/c/UZuip2yt/181-symmetry-direct-products-etc
-    totSym = self.orbGrps[symKey][self.orbGrps['Occ']].mode().to_string(index = False)  # Assume most common case is totally symmetric, and use as InitSym
+    # UPDATE 17/03/25: now allow passing for easy override
+    
+    if InitSym is None:
+        totSym = self.orbGrps[symKey][self.orbGrps['Occ']].mode().to_string(index = False)  # Assume most common case is totally symmetric, and use as InitSym
+    else:
+        totSym = InitSym
+        
+    if TargSym is None:
+        TargSym = targetUPEs[symKey].to_string(index = False, header=False)  # OK for single ionizing channel, should also check intersection case above.
+    
     self.ePSrecords['InitSym'] = totSym
-    self.ePSrecords['TargSym'] = targetUPEs[symKey].to_string(index = False, header=False)  # OK for single ionizing channel, should also check intersection case above.
+    self.ePSrecords['TargSym'] = TargSym
 
 
     # # Symmetry pairs for ScatSym (==ion x electron symm) and ScatContSym (==electron symm), input file will loop through these
