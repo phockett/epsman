@@ -185,6 +185,7 @@ def setePSglobals(self, overwriteFlag = True, **kwargs):
 
 def setePSinputs(self, Ssym = None, Csym = None, 
                  InitSym = None, TargSym = None,
+                 CnvOrbSel = None,
                  symKey = 'ePS', **kwargs):
     """
     Create ePS input records from existing data (from electronic structure file).
@@ -270,6 +271,12 @@ def setePSinputs(self, Ssym = None, Csym = None,
     self.ePSrecords['OrbOccInit'] = self.orbGrps.OrbGrpOcc[orbInd].to_string(index=False, header=False).replace('\n',' ')
     self.ePSrecords['OrbOccTarget'] = self.orbGrps.OrbGrpOccFinal[orbInd].to_string(index=False, header=False).replace('\n',' ')
 
+    # 24/03/25: add CnvOrbSel too (now in default script), just use HOMO if not set explicitly
+    if CnvOrbSel is None:
+        self.ePSrecords['CnvOrbSel'] = f'1,{self.orbGrps.OrbGrpOcc[orbInd].index.max()}'
+    else:
+        self.ePSrecords['CnvOrbSel'] = CnvOrbSel
+    
     #*** Spins - rough
     # Test for UPEs - this should be OK for single ionizing channel, but will probably fail for open-shell cases - maybe take union to test for this?
     initUPEs = self.orbGrps[self.orbGrps['OrbGrpOcc']%2 != 0]  #.values
