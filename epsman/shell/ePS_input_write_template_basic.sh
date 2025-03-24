@@ -156,7 +156,8 @@ OrbOccInit
   $OrbOccInit
 OrbOcc        # occupation of the orbital groups of target
   $OrbOccTarget
-$CnvOrbSel
+CnvOrbSel     # Orbs to use, start,stop.
+  $CnvOrbSel
 
 # Set electronic structure to read in
 Convert '$elecStructure' 'molden2006'
