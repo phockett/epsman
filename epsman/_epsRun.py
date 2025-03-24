@@ -86,7 +86,8 @@ def runJobs(self, runScript = None):
 
 
 # Tidy up job files
-def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None, tol = 0.05):
+def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None, tol = 0.05,
+             searchDir = None, searchDirKey = 'jobComplete', searchString = None):
     """
     Check files for job completion (crudely). Move completed jobs to main job folder.
 
@@ -107,6 +108,18 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
 
     tol : float, optional, default = 0.05
         Tolerance (%age) for filesize tests.
+        
+    searchDir : string or path, optional, default = None
+        Pass to search a custom dir.
+        If None, will use seachDirKey for preset paths instead, default case `self.hostDefn[self.host]['jobComplete']`
+        
+    searchDirKey : string, optional, default = 'jobComplete'
+        Dir for completed jobs.
+        Default case searches in `self.hostDefn[self.host]['jobComplete']`
+        
+    searchString : string or Path, optional, default = None
+        File name string to use for file search.
+        If None, use self.genFile.stem
 
     TODO
     ----
@@ -115,11 +128,22 @@ def tidyJobs(self, chkFlag = True, mvFlag = True, cpFlag = False, owFlag = None,
 
     """
 
+    # 23/03/25: add path config options & overrides here.
+    # Note genFile currently needs splitting to match dir structure.
+    if searchString is None:
+        searchString = self.genFile.stem.split('.',1)[-1] +'*.out'
+        
+    if searchDir is None:
+        seachDir = self.hostDefn[self.host][searchDirKey]
+    
     # Grab list of files from jobs completed folder - note choice of job root name here.
     # With genFile as root
-    Result = self.c.run('ls ' + Path(self.hostDefn[self.host]['jobComplete'], self.genFile.stem).as_posix() + '*.out', warn = True, hide = True)
+#     Result = self.c.run('ls ' + Path(self.hostDefn[self.host]['jobComplete'], self.genFile.stem).as_posix() + '*.out', warn = True, hide = True)
     # With job.batch_job.orb as root.
     # Result = self.c.run('ls ' + Path(self.hostDefn[self.host]['jobComplete'], self.jobRoot).as_posix() + '*.out', warn = True, hide = True)
+    # With searchString
+    Result = self.c.run('ls ' + Path(searchDir, searchString).as_posix(), warn = True, hide = True)
+    
     self.fileList = Result.stdout.split()
 
     #*** Check number of files, .out should be equal to number of .inp, or 3x for stem check only.
