@@ -540,9 +540,9 @@ def symTest(self, jobES):
         # Set Elist as n.
         # TODO: do this better, set single E job writer IDIOT!!!!!
         # PROBABLY THIS IS ALREADY DONE IN BASE CODE, just not class version.
-        self.Elist = multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
+        # self.Elist = multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
         # job.Elist = np.array([1.0, 2.0], ndmin=2).T   # For single E case have to set manually...? With current code will ALWAYS be 2 Eke minimum, since self.writeInp() uses this for file name! Should have another version for single E test cases?
-
+        self.multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
         self.writeInp(scrType = 'basic', wLog = False)  #  'basic', 'wf-sph')
         n = n+1
 
