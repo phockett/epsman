@@ -272,8 +272,14 @@ def setePSinputs(self, Ssym = None, Csym = None,
     self.ePSrecords['OrbOccTarget'] = self.orbGrps.OrbGrpOccFinal[orbInd].to_string(index=False, header=False).replace('\n',' ')
 
     # 24/03/25: add CnvOrbSel too (now in default script), just use HOMO if not set explicitly
+    # 20/05/26: update indexing to use OrbN for Gamess orbital labels, otherwise may miss orbital(s) for degen cases.
+    #           NOTE: may be a slicker way to do this, here just rip index and use to get corresponding max OrbN (Gamess numbering)
+    orbGrpIndMax = self.orbGrps.OrbGrpOcc[orbInd].index.max()
+    groupsPD = self.orbPD.index.to_frame()
+    orbMax = groupsPD[groupsPD.iOrbGrp == orbGrpIndMax]['OrbN'].max()
+    
     if CnvOrbSel is None:
-        self.ePSrecords['CnvOrbSel'] = f'1,{self.orbGrps.OrbGrpOcc[orbInd].index.max()}'
+        self.ePSrecords['CnvOrbSel'] = f'1,{orbMax}'
     else:
         self.ePSrecords['CnvOrbSel'] = CnvOrbSel
     
