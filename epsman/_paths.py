@@ -191,7 +191,14 @@ def setJobPaths(self):
                 self.hostDefn[host]['jobDir'] = Path(self.hostDefn[host]['jobRoot'], self.orb)  # Definition here to match shell script. Possibly a bit redundant, but allows for multiple orbs per base job settings.
                 
                 # 24/03/25: update job complete dir on host, this allows for per-job complete dirs (rather than per host)
-                self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobRoot'], 'completed')
+                # self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobRoot'], 'completed')
+                
+                # 20/05/26: updated schema to jobDir + add processing.
+                # MAY not want this, depends on run script too...?
+                self.hostDefn[self.host]['jobComplete'] = Path(self.hostDefn[self.host]['jobDir'], 'completed')
+                self.hostDefn[self.host]['jobProcessing'] = Path(self.hostDefn[self.host]['jobDir'], 'processing')
+                self.hostDefn[self.host]['jobFailed'] = Path(self.hostDefn[self.host]['jobDir'], 'failed')
+                
                 
                 self.hostDefn[host]['webSystemDir'] = Path(self.hostDefn[host]['webDir'], 'source', self.mol)
                 
