@@ -52,7 +52,7 @@ class ESjob(em.epsJob):
                     Ssym = None, Csym = None,
                     Estart=1.0, Estop = 1.0, dE = 1.0, EJob = None, precision = 2,
                     scrType = 'basicNoDefaults', writeInpLog = True,
-                    overwriteFlag = False):
+                    overwriteFlag = False, confOnly = False):
         """
         Master ePS job creation routine for electronic-structe case.
         This tries to run all job creation steps, with useful output.
@@ -92,6 +92,10 @@ class ESjob(em.epsJob):
 
         overwriteFlag : bool, default = False
             Overwrite any existing settings if True.
+            
+        confOnly : bool, default = False
+            Skip ePS input file creation step.
+            This allows for local settings to be created without final deploy to ePS host.
 
 
         """
@@ -167,15 +171,21 @@ class ESjob(em.epsJob):
         #     return False
 
         # Set energies & create ePS input files from generator
-        try:
-            # self.Elist = em.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
-            self.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
-            self.writeInp(scrType = scrType, wLog = writeInpLog)
+        if confOnly:
+            print(f"\n*** Setting configuration only, skipping ePS file writers.")
+            print(f"Pass confOnly = True to run")
+            print(f"Or run `self.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)` and `self.writeInp(scrType = scrType, wLog = writeInpLog)` for manual control.")
+            
+        else:
+            try:
+                # self.Elist = em.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
+                self.multiEChunck(Estart = Estart, Estop = Estop, dE = dE, EJob = EJob, precision = precision)
+                self.writeInp(scrType = scrType, wLog = writeInpLog)
 
-        except Exception as err:
-            print(f"\n*** Failed to build job at self.writeInp.")
-            print(err)
-            return False
+            except Exception as err:
+                print(f"\n*** Failed to build job at self.writeInp.")
+                print(err)
+                return False
 
 
         # May also need to push electronic structure files...?
