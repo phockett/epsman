@@ -133,6 +133,8 @@ class ESjob(em.epsJob):
         # Build ePS generator file/configuration inputs
         try:
             # CURRENTLY NEED ALL OF THIS TO SET JOB FROM ES....
+            self.esData.host = self.host    # 20/05/26 QUICK hack to fix paths in setePSinputs() UGLY.
+            self.esData.hostDefn = self.hostDefn
             self.esData.setePSinputs(Ssym = Ssym, Csym = Csym)  # Set self.ePSglobals and self.ePSrecords from inputs
 
             # 09/05/23 - added this to fix broken electronic structure file paths on remote in ePS jobs...

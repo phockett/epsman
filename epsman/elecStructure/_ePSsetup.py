@@ -261,7 +261,8 @@ def setePSinputs(self, Ssym = None, Csym = None,
 #     note=f"'{job.jobNote}'"
 
     #*** Electronic struture
-    self.ePSrecords['elecStructure'] = self.moldenFile
+#     self.ePSrecords['elecStructure'] = self.moldenFile   # NOTE this is LOCALHOST dir
+    self.ePSrecords['elecStructure'] = self.hostDefn[self.host]['elecFile']  # Set for remote host, assumes this exists!
     self.ePSrecords['elecType'] = 'molden'     # For ePS IO, molden or molden2006 or gamess should be OK, see https://epolyscat.droppages.com/Convert
     self.ePSrecords['IP'] = np.round(-self.channel['E'], decimals = 3)  # Set effective channel IP (but may want only 1st IP here?)
 
@@ -508,11 +509,14 @@ note='{self.jobNote}'
 
 #     print()
 
-def symTest(self, jobES):
+def symTest(self, jobES, scrType = 'basicNoDefaults', writeInpLog = False):
     """
     Loop over symmetry pairs for symmetry testing case.
 
     Note this currently uses Eke value as a way to write one file per symmetry pair, with all other parameters unchanged. Bit ugly... but works with current codebase, including file checks.
+    
+    20/05/26: debugged and added scrType to keep consistency with buildePSjob.
+                Should fix to use "update" functionality rather than go from scratch here.
     """
 
 #     jobES.genSymList()  # Generate full sym list (all allowed pair)
@@ -549,7 +553,7 @@ def symTest(self, jobES):
         # self.Elist = multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
         # job.Elist = np.array([1.0, 2.0], ndmin=2).T   # For single E case have to set manually...? With current code will ALWAYS be 2 Eke minimum, since self.writeInp() uses this for file name! Should have another version for single E test cases?
         self.multiEChunck(Estart=n, Estop = n+dE, dE = dE, EJob=1)  # WITHOUT Estop this currently hangs!
-        self.writeInp(scrType = 'basic', wLog = False)  #  'basic', 'wf-sph')
+        self.writeInp(scrType = scrType, wLog = writeInpLog)  #  'basic', 'wf-sph')
         n = n+1
 
 # This works, but note it's ONE WAY - rerunning will mess things up.
